@@ -1,0 +1,88 @@
+src/features/calendar/CalendarPage.tsx(8,55): error TS6133: 'WriteGuard' is declared but its value is never read.
+src/features/calendar/CalendarPage.tsx(11,75): error TS6133: 'isPast' is declared but its value is never read.
+src/features/calendar/CalendarPage.tsx(39,51): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "payment_calendar_items", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; description: string; amount_clp: number; due_date: string; status: string; category_id: null; recurring_source_id: null; paid_transaction_id: null; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "payment_calendar_items", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/calendar/CalendarPage.tsx(47,58): error TS2345: Argument of type '{ status: string; }' is not assignable to parameter of type 'never'.
+src/features/calendar/CalendarPage.tsx(52,9): error TS6133: 'statusLabels' is declared but its value is never read.
+src/features/categories/CategoriesPage.tsx(40,61): error TS2345: Argument of type '{ name: string; icon: string; color: string; }' is not assignable to parameter of type 'never'.
+src/features/categories/CategoriesPage.tsx(41,53): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "categories", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "categories", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }' is not assignable to parameter of type 'never[]'.
+      Type '{ household_id: string; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }' is missing the following properties from type 'never[]': length, pop, push, concat, and 35 more.
+src/features/dashboard/DashboardPage.tsx(21,31): error TS6133: 'currentMember' is declared but its value is never read.
+src/features/dashboard/DashboardPage.tsx(31,10): error TS6133: 'loading' is declared but its value is never read.
+src/features/goals/GoalsPage.tsx(43,64): error TS2345: Argument of type '{ name: string; target_amount_clp: number; current_amount_clp: number; target_date: string; status: "active"; is_primary: boolean; }' is not assignable to parameter of type 'never'.
+src/features/goals/GoalsPage.tsx(44,49): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "savings_goals", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; name: string; target_amount_clp: number; current_amount_clp: number; target_date: string; status: "active"; is_primary: boolean; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "savings_goals", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/onboarding/InvitationPage.tsx(14,17): error TS6133: 'profile' is declared but its value is never read.
+src/features/onboarding/InvitationPage.tsx(39,23): error TS2339: Property 'expires_at' does not exist on type 'never'.
+src/features/onboarding/InvitationPage.tsx(55,15): error TS6133: 'data' is declared but its value is never read.
+src/features/onboarding/OnboardingPage.tsx(9,30): error TS6133: 'SelectField' is declared but its value is never read.
+src/features/onboarding/OnboardingPage.tsx(13,49): error TS6133: 'validateEmail' is declared but its value is never read.
+src/features/onboarding/OnboardingPage.tsx(73,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "households", never, "POST">', gave the following error.
+    Argument of type '{ name: string; split_rule_type: string; split_rule_config: {}; currency: string; timezone: string; created_by: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "households", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type 'never[]'.
+src/features/onboarding/OnboardingPage.tsx(87,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "household_members", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; user_id: string; role: string; display_name: string; email: string; monthly_income: number; invited_by: null; invitation_status: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "household_members", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/onboarding/OnboardingPage.tsx(88,33): error TS2339: Property 'id' does not exist on type 'never'.
+src/features/onboarding/OnboardingPage.tsx(100,33): error TS2339: Property 'id' does not exist on type 'never'.
+src/features/onboarding/OnboardingPage.tsx(107,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "categories", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }[]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "categories", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }[]' is not assignable to parameter of type 'never[]'.
+      Type '{ household_id: any; name: string; icon: string; color: string; is_default: boolean; sort_order: number; }' is not assignable to type 'never'.
+src/features/onboarding/OnboardingPage.tsx(111,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "savings_goals", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; name: string; target_amount_clp: number; current_amount_clp: number; target_date: string; is_primary: boolean; status: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "savings_goals", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/onboarding/OnboardingPage.tsx(112,35): error TS2339: Property 'id' does not exist on type 'never'.
+src/features/onboarding/OnboardingPage.tsx(123,44): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "subscriptions", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; provider: string; provider_account_label: string; plan_code: string; billing_cycle: string; status: string; price_amount_clp: number; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "subscriptions", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/onboarding/OnboardingPage.tsx(124,33): error TS2339: Property 'id' does not exist on type 'never'.
+src/features/onboarding/OnboardingPage.tsx(136,50): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "invitation_tokens", never, "POST">', gave the following error.
+    Argument of type '{ household_id: any; token: `${string}-${string}-${string}-${string}-${string}`; invited_email: string; invited_by: string; status: string; expires_at: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "invitation_tokens", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/onboarding/OnboardingPage.tsx(137,35): error TS2339: Property 'id' does not exist on type 'never'.
+src/features/recurring/RecurringPage.tsx(41,51): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "recurring_transactions", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; created_by: string; description: string; amount_clp: number; category_id: string | null; scope: "personal" | "shared"; paid_by_member_id: string; assigned_to_member_id: null; day_of_month: number; is_active: boolean; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "recurring_transactions", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'household_id' does not exist in type 'never[]'.
+src/features/settings/SettingsPage.tsx(26,50): error TS2345: Argument of type '{ name: string; split_rule_type: string; }' is not assignable to parameter of type 'never'.
+src/features/settings/SettingsPage.tsx(29,57): error TS2345: Argument of type '{ display_name: string; monthly_income: number; }' is not assignable to parameter of type 'never'.
+src/features/transactions/TransactionsPage.tsx(8,68): error TS6133: 'WriteGuard' is declared but its value is never read.
+src/features/transactions/TransactionsPage.tsx(13,16): error TS6133: 'Search' is declared but its value is never read.
+src/features/transactions/TransactionsPage.tsx(13,24): error TS6133: 'Filter' is declared but its value is never read.
+src/features/transactions/TransactionsPage.tsx(22,10): error TS6133: 'loading' is declared but its value is never read.
+src/features/transactions/TransactionsPage.tsx(135,50): error TS2345: Argument of type '{ household_id: string; created_by: string; type: "income" | "expense"; paid_by_member_id: string; scope: "personal" | "shared"; assigned_to_member_id: null; amount_clp: number; category_id: string | null; ... 4 more ...; notes: string | null; }' is not assignable to parameter of type 'never'.
+src/features/transactions/TransactionsPage.tsx(137,50): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; created_by: string; type: "income" | "expense"; paid_by_member_id: string; scope: "personal" | "shared"; assigned_to_member_id: null; amount_clp: number; category_id: string | null; ... 4 more ...; notes: string | null; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "transactions", never, "POST">', gave the following error.
+    Argument of type '{ household_id: string; created_by: string; type: "income" | "expense"; paid_by_member_id: string; scope: "personal" | "shared"; assigned_to_member_id: null; amount_clp: number; category_id: string | null; ... 4 more ...; notes: string | null; }' is not assignable to parameter of type 'never[]'.
+      Type '{ household_id: string; created_by: string; type: "income" | "expense"; paid_by_member_id: string; scope: "personal" | "shared"; assigned_to_member_id: null; amount_clp: number; category_id: string | null; ... 4 more ...; notes: string | null; }' is missing the following properties from type 'never[]': length, pop, push, concat, and 35 more.
+src/features/transactions/TransactionsPage.tsx(147,48): error TS2345: Argument of type '{ deleted_at: string; }' is not assignable to parameter of type 'never'.
+src/hooks/useHousehold.tsx(63,30): error TS2339: Property 'household_id' does not exist on type 'never'.
+src/hooks/useHousehold.tsx(74,40): error TS2339: Property 'household_id' does not exist on type 'never'.
+src/hooks/useHousehold.tsx(85,40): error TS2339: Property 'household_id' does not exist on type 'never'.
+src/utils/traffic-light.ts(5,15): error TS6196: 'Transaction' is declared but never used.
