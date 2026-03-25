@@ -32,16 +32,18 @@ export interface PlanInfo {
 export const PLANS: Record<'base' | 'plus', PlanInfo> = {
   base: {
     code: 'base',
-    name: 'Base',
-    description: 'Todo lo esencial para ordenar el dinero de tu hogar.',
+    name: 'Esencial',
+    description: 'Ordena el presente de tu hogar y recupera el control del mes.',
     features: [
-      'Dashboard principal',
-      'Movimientos manuales',
-      'Categorías personalizables',
-      'Reglas de reparto',
+      'Panel general del hogar',
+      'Ingresos y gastos manuales',
+      'Categorías básicas',
+      'Cuentas personales y compartidas',
+      'Notas en movimientos',
       'Calendario de pagos',
-      'Metas de ahorro',
+      'Meta de ahorro simple',
       'Resumen mensual',
+      'Acceso compartido para la pareja',
     ],
     prices: {
       monthly: 2990,
@@ -53,12 +55,17 @@ export const PLANS: Record<'base' | 'plus', PlanInfo> = {
   },
   plus: {
     code: 'plus',
-    name: 'Plus',
-    description: 'Para hogares que quieren ir un paso más allá.',
+    name: 'Estratégico',
+    description: 'Usa tus datos para anticiparte, optimizar y decidir mejor en pareja.',
     features: [
-      'Todo lo del plan Base',
+      'Todo lo de Esencial',
+      'Indicador de salud financiera',
+      'Proyección de cierre mensual',
+      'Múltiples metas de ahorro',
+      'Alertas financieras útiles',
+      'Recomendaciones accionables',
       'Importación CSV',
-      'Gastos recurrentes',
+      'Registros recurrentes',
       'Comparación mensual',
       'Cierre mensual guiado',
     ],
@@ -83,6 +90,11 @@ export type Feature =
   | 'calendar'
   | 'goals'
   | 'monthly_review'
+  | 'financial_health'
+  | 'monthly_projection'
+  | 'multiple_goals'
+  | 'smart_alerts'
+  | 'recommendations'
   | 'csv_import'
   | 'recurring'
   | 'comparison'
@@ -101,6 +113,11 @@ export const BASE_FEATURES: Feature[] = [
 
 export const PLUS_FEATURES: Feature[] = [
   ...BASE_FEATURES,
+  'financial_health',
+  'monthly_projection',
+  'multiple_goals',
+  'smart_alerts',
+  'recommendations',
   'csv_import',
   'recurring',
   'comparison',
@@ -214,17 +231,17 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
 // ============================================
 // Reglas de reparto
 // ============================================
-export type SplitRuleType = '50_50' | 'proportional' | 'fixed_amount' | 'custom_percent';
+export type SplitRuleType = 'fifty_fifty' | 'proportional' | 'fixed_amount' | 'custom_percent';
 
 export const SPLIT_RULE_LABELS: Record<SplitRuleType, string> = {
-  '50_50': '50/50',
+  fifty_fifty: '50/50',
   proportional: 'Proporcional a ingresos',
   fixed_amount: 'Monto fijo',
   custom_percent: 'Porcentaje personalizado',
 };
 
 export const SPLIT_RULE_DESCRIPTIONS: Record<SplitRuleType, string> = {
-  '50_50': 'Cada miembro aporta la mitad de los gastos compartidos.',
+  fifty_fifty: 'Cada miembro aporta la mitad de los gastos compartidos.',
   proportional: 'El aporte se calcula en proporción al ingreso de cada miembro.',
   fixed_amount: 'Cada miembro aporta un monto fijo mensual al gasto compartido.',
   custom_percent: 'Tú defines qué porcentaje aporta cada miembro.',

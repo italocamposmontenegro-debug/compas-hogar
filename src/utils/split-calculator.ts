@@ -2,7 +2,7 @@
 // Casa Clara — Calculador de reparto
 // ============================================
 
-import type { Transaction, HouseholdMember, Household } from '../types/database';
+import type { Transaction, HouseholdMember, Household, Json } from '../types/database';
 
 export interface SplitResult {
   memberId: string;
@@ -84,11 +84,12 @@ export function calculateSplit(
 
 function calculateShouldPay(
   ruleType: string,
-  ruleConfig: Record<string, unknown>,
+  ruleConfig: Json,
   members: HouseholdMember[],
   total: number
 ): Record<string, number> {
   const result: Record<string, number> = {};
+  const config = isJsonRecord(ruleConfig) ? ruleConfig : {};
 
   switch (ruleType) {
     case '50_50':
@@ -117,17 +118,16 @@ function calculateShouldPay(
     }
 
     case 'fixed_amount': {
-      const config = ruleConfig as Record<string, number>;
       for (const m of members) {
-        result[m.id] = config[m.id] || Math.round(total / members.length);
+        const amount = config[m.id];
+        result[m.id] = typeof amount === 'number' ? amount : Math.round(total / members.length);
       }
       break;
     }
 
     case 'custom_percent': {
-      const config = ruleConfig as Record<string, number>;
       for (const m of members) {
-        const pct = config[m.id] || (100 / members.length);
+        const pct = typeof config[m.id] === 'number' ? config[m.id] as number : (100 / members.length);
         result[m.id] = Math.round((pct / 100) * total);
       }
       break;
@@ -142,6 +142,10 @@ function calculateShouldPay(
   }
 
   return result;
+}
+
+function isJsonRecord(value: Json): value is Record<string, Json> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

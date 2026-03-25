@@ -2,7 +2,9 @@
 // Casa Clara — Categories Page
 // ============================================
 
-import { useEffect, useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { Card, Button, InputField, Modal, EmptyState } from '../../components/ui';
@@ -21,14 +23,14 @@ export function CategoriesPage() {
   const [color, setColor] = useState('#6B7280');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (household) loadCategories(); }, [household]);
-
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     if (!household) return;
     const { data } = await supabase.from('categories').select('*')
       .eq('household_id', household.id).is('deleted_at', null).order('sort_order');
     setCategories((data || []) as Category[]);
-  }
+  }, [household]);
+
+  useEffect(() => { void loadCategories(); }, [loadCategories]);
 
   function openCreate() { setEditing(null); setName(''); setIcon('📦'); setColor('#6B7280'); setShowForm(true); }
   function openEdit(c: Category) { setEditing(c); setName(c.name); setIcon(c.icon); setColor(c.color); setShowForm(true); }
@@ -56,7 +58,6 @@ export function CategoriesPage() {
               <span className="text-2xl">{c.icon}</span>
               <div>
                 <p className="font-medium text-text text-sm">{c.name}</p>
-                {c.is_default && <span className="text-xs text-text-muted">Por defecto</span>}
               </div>
             </div>
             {canWrite && !c.is_default && (

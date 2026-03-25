@@ -53,16 +53,16 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/registro" element={<RegisterPage />} />
-              <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
+            <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
             </Route>
 
             <Route path="/verificar-email" element={<VerifyEmailPage />} />
             <Route path="/restablecer-clave" element={<ResetPasswordPage />} />
+            <Route path="/invitacion/:token" element={<InvitationPage />} />
 
             {/* Authenticated routes */}
             <Route element={<AuthGuard />}>
               <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/invitacion/:token" element={<InvitationPage />} />
 
               {/* App routes (require household) */}
               <Route element={<HouseholdGuard />}>

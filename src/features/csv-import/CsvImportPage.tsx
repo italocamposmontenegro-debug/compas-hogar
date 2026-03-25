@@ -1,6 +1,6 @@
 // Casa Clara — CSV Import Page (Plus)
 import { useState } from 'react';
-import { Card, Button, FeatureGate, InputField } from '../../components/ui';
+import { Card, Button, FeatureGate } from '../../components/ui';
 import { FileSpreadsheet, Upload, Check, AlertCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useHousehold } from '../../hooks/useHousehold';
@@ -14,7 +14,7 @@ interface PreviewRow {
 }
 
 export function CsvImportPage() {
-  const { household } = useHousehold();
+  const { household, currentMember } = useHousehold();
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
@@ -51,7 +51,7 @@ export function CsvImportPage() {
           rows.push(row);
         }
         setPreview(rows.slice(0, 50)); // Preview first 50
-      } catch (err) {
+      } catch {
         setError('Error al leer el archivo. Asegúrate que sea un CSV válido.');
       }
     };
@@ -59,32 +59,36 @@ export function CsvImportPage() {
   };
 
   const handleImport = async () => {
-    if (!household || !user || preview.length === 0) return;
+    if (!household || !user || !currentMember || preview.length === 0) return;
     setLoading(true);
     setError('');
 
     try {
       const inserts = preview.map(row => ({
         household_id: household.id,
-        user_id: user.id,
-        category_id: null, // User will classify later or we could auto-match
-        amount: row.amount,
+        created_by: user.id,
+        paid_by_member_id: currentMember.id,
+        type: 'expense' as const,
+        scope: 'shared' as const,
+        assigned_to_member_id: null,
+        amount_clp: row.amount,
+        category_id: null,
         description: row.description,
-        transaction_date: row.date,
-        type: 'expense',
-        is_shared: true,
-        paid_by: user.id,
-        status: 'completed'
+        occurred_on: row.date,
+        expense_type: 'variable' as const,
+        is_recurring_instance: false,
+        recurring_source_id: null,
+        notes: null,
       }));
 
-      const { error: dbError } = await supabase.from('transactions').insert(inserts as any);
+      const { error: dbError } = await supabase.from('transactions').insert(inserts);
       if (dbError) throw dbError;
 
       setSuccess(true);
       setPreview([]);
       setFile(null);
-    } catch (err: any) {
-      setError(err.message || 'Error al importar movimientos');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Error al importar movimientos');
     } finally {
       setLoading(false);
     }

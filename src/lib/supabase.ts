@@ -18,3 +18,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+export function clearPersistedSupabaseSession() {
+  if (typeof window === 'undefined') return;
+
+  Object.keys(window.localStorage)
+    .filter((key) => key.startsWith('sb-'))
+    .forEach((key) => window.localStorage.removeItem(key));
+}

@@ -1,0 +1,44 @@
+[functions.accept-invitation]
+verify_jwt = false
+
+[functions.create-subscription]
+verify_jwt = false
+
+[functions.update-subscription]
+verify_jwt = false
+
+[functions.cancel-subscription]
+verify_jwt = false
+
+[functions.mp-webhook]
+verify_jwt = false
+
+[functions.subscription-return]
+verify_jwt = false
+
+[functions.sync-subscription-status]
+verify_jwt = false
+
+[functions.manage-invitation]
+verify_jwt = false
+
+[functions.preview-invitation]
+verify_jwt = false
+
+[functions.manage-household-member]
+verify_jwt = false
+
+[functions.pay-calendar-item]
+verify_jwt = false
+
+[functions.sync-recurring-items]
+verify_jwt = false
+
+[functions.manage-transaction]
+verify_jwt = false
+
+[functions.manage-calendar-item]
+verify_jwt = false
+
+[functions.manage-recurring-transaction]
+verify_jwt = false

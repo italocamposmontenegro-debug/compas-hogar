@@ -2,7 +2,9 @@
 // Casa Clara — Split / Reparto Page
 // ============================================
 
-import { useEffect, useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '../../hooks/useHousehold';
 import { Card, StatCard } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
@@ -18,16 +20,16 @@ export function SplitPage() {
   const { year, month } = getCurrentMonthYear();
   const [splitData, setSplitData] = useState<SplitSummary | null>(null);
 
-  useEffect(() => { if (household) loadSplit(); }, [household]);
-
-  async function loadSplit() {
+  const loadSplit = useCallback(async () => {
     if (!household) return;
     const { start, end } = getMonthRange(year, month);
     const { data } = await supabase.from('transactions').select('*')
       .eq('household_id', household.id).gte('occurred_on', start).lte('occurred_on', end).is('deleted_at', null);
     const txs = (data || []) as Transaction[];
     setSplitData(calculateSplit(household, members, txs));
-  }
+  }, [household, members, year, month]);
+
+  useEffect(() => { void loadSplit(); }, [loadSplit]);
 
   const ruleLabel = household ? SPLIT_RULE_LABELS[household.split_rule_type as keyof typeof SPLIT_RULE_LABELS] || household.split_rule_type : '';
   const imbalanceMsg = splitData ? describeSplitImbalance(splitData.results) : null;

@@ -3,7 +3,7 @@
 // ============================================
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, InputField, AlertBanner } from '../../components/ui';
 import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
@@ -33,10 +33,13 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 export function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const redirect = searchParams.get('redirect');
+  const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/app/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,20 +51,23 @@ export function LoginPage() {
     if (!pwCheck.valid) return setError(pwCheck.error!);
 
     setLoading(true);
-    const { error: authError } = await signIn(email, password);
-    setLoading(false);
+    try {
+      const { error: authError } = await signIn(email, password);
 
-    if (authError) {
-      setError(authError === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : authError);
-    } else {
-      navigate('/app/dashboard');
+      if (authError) {
+        setError(authError === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : authError);
+      } else {
+        navigate(redirectTarget);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <AuthLayout>
       <h2 className="text-xl font-bold text-text mb-2">Inicia sesión</h2>
-      <p className="text-sm text-text-muted mb-6">Ingresa a tu hogar en Casa Clara.</p>
+      <p className="text-sm text-text-muted mb-6">Ingresa a tu cuenta.</p>
 
       {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
 
@@ -80,7 +86,7 @@ export function LoginPage() {
 
       <p className="text-sm text-text-muted text-center mt-6">
         ¿No tienes cuenta?{' '}
-        <Link to="/registro" className="text-primary font-medium hover:text-primary-light">Regístrate</Link>
+        <Link to={`/registro${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary font-medium hover:text-primary-light">Regístrate</Link>
       </p>
     </AuthLayout>
   );
@@ -91,12 +97,16 @@ export function LoginPage() {
 // ============================================
 export function RegisterPage() {
   const { signUp } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const redirect = searchParams.get('redirect');
+  const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/onboarding';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,13 +120,18 @@ export function RegisterPage() {
     if (!pwCheck.valid) return setError(pwCheck.error!);
 
     setLoading(true);
-    const { error: authError } = await signUp(email, password, fullName);
-    setLoading(false);
+    try {
+      const { error: authError, needsEmailConfirmation } = await signUp(email, password, fullName);
 
-    if (authError) {
-      setError(authError);
-    } else {
-      setSuccess(true);
+      if (authError) {
+        setError(authError);
+      } else if (needsEmailConfirmation) {
+        setSuccess(true);
+      } else {
+        navigate(redirectTarget);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,12 +142,11 @@ export function RegisterPage() {
           <div className="h-16 w-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
             <Home className="h-8 w-8 text-success" />
           </div>
-          <h2 className="text-xl font-bold text-text mb-2">¡Revisa tu email!</h2>
+          <h2 className="text-xl font-bold text-text mb-2">Revisa tu correo</h2>
           <p className="text-sm text-text-muted mb-6">
             Te enviamos un enlace de verificación a <strong>{email}</strong>.
-            Haz clic en el enlace para activar tu cuenta.
           </p>
-          <Link to="/login" className="text-primary text-sm font-medium hover:text-primary-light">
+          <Link to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary text-sm font-medium hover:text-primary-light">
             Ir a iniciar sesión
           </Link>
         </div>
@@ -143,7 +157,7 @@ export function RegisterPage() {
   return (
     <AuthLayout>
       <h2 className="text-xl font-bold text-text mb-2">Crea tu cuenta</h2>
-      <p className="text-sm text-text-muted mb-6">Empieza a ordenar el dinero de tu hogar.</p>
+      <p className="text-sm text-text-muted mb-6">Crea tu acceso a Casa Clara.</p>
 
       {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
 
@@ -157,7 +171,7 @@ export function RegisterPage() {
 
       <p className="text-sm text-text-muted text-center mt-6">
         ¿Ya tienes cuenta?{' '}
-        <Link to="/login" className="text-primary font-medium hover:text-primary-light">Inicia sesión</Link>
+        <Link to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary font-medium hover:text-primary-light">Inicia sesión</Link>
       </p>
     </AuthLayout>
   );
@@ -181,11 +195,14 @@ export function ForgotPasswordPage() {
     if (!check.valid) return setError(check.error!);
 
     setLoading(true);
-    const { error: err } = await resetPassword(email);
-    setLoading(false);
+    try {
+      const { error: err } = await resetPassword(email);
 
-    if (err) setError(err);
-    else setSent(true);
+      if (err) setError(err);
+      else setSent(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -196,7 +213,7 @@ export function ForgotPasswordPage() {
 
       {sent ? (
         <div className="text-center">
-          <h2 className="text-xl font-bold text-text mb-2">Revisa tu email</h2>
+          <h2 className="text-xl font-bold text-text mb-2">Revisa tu correo</h2>
           <p className="text-sm text-text-muted">
             Si existe una cuenta con <strong>{email}</strong>, recibirás un enlace para restablecer tu contraseña.
           </p>
@@ -204,7 +221,7 @@ export function ForgotPasswordPage() {
       ) : (
         <>
           <h2 className="text-xl font-bold text-text mb-2">Recuperar contraseña</h2>
-          <p className="text-sm text-text-muted mb-6">Te enviaremos un enlace para restablecer tu contraseña.</p>
+          <p className="text-sm text-text-muted mb-6">Te enviaremos un enlace para cambiar tu contraseña.</p>
 
           {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
 
@@ -238,17 +255,20 @@ export function ResetPasswordPage() {
     if (password !== confirm) return setError('Las contraseñas no coinciden');
 
     setLoading(true);
-    const { error: err } = await updatePassword(password);
-    setLoading(false);
+    try {
+      const { error: err } = await updatePassword(password);
 
-    if (err) setError(err);
-    else navigate('/app/dashboard');
+      if (err) setError(err);
+      else navigate('/app/dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AuthLayout>
       <h2 className="text-xl font-bold text-text mb-2">Nueva contraseña</h2>
-      <p className="text-sm text-text-muted mb-6">Elige tu nueva contraseña.</p>
+      <p className="text-sm text-text-muted mb-6">Define tu nueva contraseña.</p>
 
       {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
 
@@ -266,6 +286,9 @@ export function ResetPasswordPage() {
 // ============================================
 export function VerifyEmailPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/login';
 
   return (
     <AuthLayout>
@@ -273,11 +296,11 @@ export function VerifyEmailPage() {
         <div className="h-16 w-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
           <Home className="h-8 w-8 text-success" />
         </div>
-        <h2 className="text-xl font-bold text-text mb-2">¡Email verificado!</h2>
+        <h2 className="text-xl font-bold text-text mb-2">Correo verificado</h2>
         <p className="text-sm text-text-muted mb-6">
-          Tu cuenta está activa. Ya puedes comenzar a usar Casa Clara.
+          Tu cuenta ya está lista. Ahora puedes iniciar sesión.
         </p>
-        <Button onClick={() => navigate('/login')}>Iniciar sesión</Button>
+        <Button onClick={() => navigate(redirectTarget)}>Iniciar sesión</Button>
       </div>
     </AuthLayout>
   );

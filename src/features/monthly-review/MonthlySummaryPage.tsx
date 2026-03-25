@@ -1,5 +1,6 @@
 // Casa Clara — Monthly Summary Page
-import { useEffect, useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '../../hooks/useHousehold';
 import { Card, StatCard } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
@@ -14,9 +15,7 @@ export function MonthlySummaryPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  useEffect(() => { if (household) load(); }, [household]);
-
-  async function load() {
+  const load = useCallback(async () => {
     if (!household) return;
     const { start, end } = getMonthRange(year, month);
     const [txRes, catRes] = await Promise.all([
@@ -26,7 +25,9 @@ export function MonthlySummaryPage() {
     ]);
     setTransactions((txRes.data || []) as Transaction[]);
     setCategories((catRes.data || []) as Category[]);
-  }
+  }, [household, year, month]);
+
+  useEffect(() => { void load(); }, [load]);
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount_clp, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount_clp, 0);

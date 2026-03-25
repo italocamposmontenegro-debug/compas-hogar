@@ -15,7 +15,7 @@ import {
 import { useState } from 'react';
 
 const NAV_ITEMS = [
-  { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/app/dashboard', label: 'Panel general', icon: LayoutDashboard },
   { to: '/app/movimientos', label: 'Movimientos', icon: ArrowUpDown },
   { to: '/app/categorias', label: 'Categorías', icon: Tags },
   { to: '/app/reparto', label: 'Reparto', icon: Scale },
@@ -100,7 +100,7 @@ export function AppLayout() {
           {/* Plus features */}
           <div className="mt-6">
             <p className="px-3 text-xs font-semibold text-text-light uppercase tracking-wider mb-2">
-              Plus {!canUsePlus && '🔒'}
+              Estratégico {!canUsePlus && '🔒'}
             </p>
             <div className="space-y-0.5">
               {PLUS_NAV_ITEMS.map(item => (

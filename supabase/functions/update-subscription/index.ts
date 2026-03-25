@@ -1,11 +1,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
+import { createServiceClient } from '../_shared/supabase.ts';
+import {
+  buildSubscriptionBackUrl,
+  cancelMercadoPagoPreapproval,
+  createPendingPreapproval,
+  getMercadoPagoAccessToken,
+  getMercadoPagoWebhookUrl,
+  getSubscriptionPrice,
+  normalizeBillingCycle,
+  normalizePlanCode,
+} from '../_shared/subscription.ts';
 
-const MP_ACCESS_TOKEN = Deno.env.get('MP_ACCESS_TOKEN_SANDBOX')!;
-const DB_URL = Deno.env.get('SUPABASE_URL')!;
-const DB_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-const supabase = createClient(DB_URL, DB_SERVICE_KEY);
+const supabase = createServiceClient();
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -14,47 +20,106 @@ const CORS_HEADERS = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS });
 
   try {
-    const authHeader = req.headers.get('Authorization')!;
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('Unauthorized');
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
     if (authError || !user) throw new Error('Unauthorized');
 
     const { household_id, plan_code, billing_cycle } = await req.json();
+    const normalizedPlan = normalizePlanCode(plan_code);
+    const normalizedCycle = normalizeBillingCycle(billing_cycle);
 
-    // Verificación de ownership
-    const { data: householdMember } = await supabase.from('household_members').select('role').eq('household_id', household_id).eq('user_id', user.id).single();
-    if (!householdMember || householdMember.role !== 'owner') {
-      throw new Error('Solo el owner puede modificar la suscripción nativa.');
+    const { data: householdMember, error: memberError } = await supabase
+      .from('household_members')
+      .select('role')
+      .eq('household_id', household_id)
+      .eq('user_id', user.id)
+      .eq('invitation_status', 'accepted')
+      .single();
+
+    if (memberError || !householdMember || householdMember.role !== 'owner') {
+      throw new Error('Solo el owner puede modificar la suscripcion.');
     }
 
-    const { data: sub } = await supabase.from('subscriptions').select('provider_subscription_id').eq('household_id', household_id).single();
-    if (!sub?.provider_subscription_id) {
-      throw new Error('Suscripción activa no encontrada');
+    const { data: sub, error: subError } = await supabase
+      .from('subscriptions')
+      .select('provider_subscription_id, status, provider, provider_account_label, current_period_start, current_period_end, trial_ends_at')
+      .eq('household_id', household_id)
+      .maybeSingle();
+
+    if (subError) {
+      throw subError;
     }
 
-    const planEnvKey = `MP_PLAN_${plan_code.toUpperCase()}_${billing_cycle.toUpperCase()}`;
-    const newPreapprovalPlanId = Deno.env.get(planEnvKey);
-    if (!newPreapprovalPlanId) throw new Error('Nuevo plan no configurado');
+    const accessToken = getMercadoPagoAccessToken();
+    const webhookUrl = getMercadoPagoWebhookUrl();
+    const backUrl = buildSubscriptionBackUrl();
+    const priceAmountClp = getSubscriptionPrice(normalizedPlan, normalizedCycle);
+    const idempotencyKey = `${household_id}:${normalizedPlan}:${normalizedCycle}:switch`;
 
-    // Muta el preapproval directo para upgrade/downgrade
-    const mpResp = await fetch(`https://api.mercadopago.com/preapproval/${sub.provider_subscription_id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`
-      },
-      body: JSON.stringify({
-        preapproval_plan_id: newPreapprovalPlanId,
-        reason: `Upgrade/Downgrade a ${plan_code} ${billing_cycle}`
-      })
+    if (sub?.provider_subscription_id) {
+      await cancelMercadoPagoPreapproval(accessToken, sub.provider_subscription_id);
+    }
+
+    if (!user.email) {
+      throw new Error('Usuario sin email');
+    }
+
+    const mpData = await createPendingPreapproval({
+      accessToken,
+      householdId: household_id,
+      payerEmail: user.email,
+      planCode: normalizedPlan,
+      billingCycle: normalizedCycle,
+      backUrl,
+      webhookUrl,
+      idempotencyKey,
     });
 
-    const mpData = await mpResp.json();
-    if (!mpResp.ok) throw new Error(mpData.message || 'Error actualizando preapproval en MP');
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .upsert({
+        household_id,
+        provider: sub.provider ?? 'mercadopago',
+        provider_account_label: sub.provider_account_label ?? 'mp_default',
+        plan_code: normalizedPlan,
+        billing_cycle: normalizedCycle,
+        status: 'pending',
+        migration_status: null,
+        external_reference: household_id,
+        provider_subscription_id: mpData.id ?? sub.provider_subscription_id,
+        price_amount_clp: priceAmountClp,
+        current_period_start: null,
+        current_period_end: null,
+        trial_ends_at: null,
+        last_payment_status: mpData.status ?? 'pending',
+        updated_at: now,
+      }, { onConflict: 'household_id' });
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 400 });
+    if (updateError) throw updateError;
+
+    return new Response(JSON.stringify({
+      success: true,
+      init_point: mpData.init_point,
+      status: mpData.status ?? 'pending',
+    }), {
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error inesperado';
+    return new Response(JSON.stringify({ error: message }), {
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      status: message === 'Unauthorized' ? 401 : 400,
+    });
   }
 });

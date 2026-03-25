@@ -31,7 +31,7 @@ export function LandingPage() {
               Iniciar sesión
             </Button>
             <Button variant="primary" size="sm" onClick={() => navigate('/registro')}>
-              Comenzar gratis
+              Crear cuenta
             </Button>
           </div>
         </div>
@@ -95,10 +95,10 @@ export function LandingPage() {
       <section id="planes" className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl lg:text-3xl font-bold text-text text-center mb-4">
-            Planes simples, sin letra chica
+            Planes pensados según la madurez financiera de tu hogar
           </h2>
           <p className="text-text-muted text-center mb-12 max-w-xl mx-auto">
-            Elige el plan que se ajuste a tu hogar. Cambia o cancela cuando quieras.
+            Esencial te ayuda a ordenar el presente. Estratégico te ayuda a anticiparte y decidir mejor.
           </p>
 
           <PricingCards onSelect={() => navigate('/registro')} />
@@ -117,8 +117,8 @@ export function LandingPage() {
               { q: '¿Mis datos están seguros?', a: 'Sí. Usamos autenticación segura, cifrado en tránsito, y cada hogar está completamente aislado del resto.' },
               { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Puedes cancelar tu suscripción cuando quieras. Tu información queda disponible en modo lectura.' },
               { q: '¿Funciona en celular?', a: 'Sí. Casa Clara funciona perfecto desde el navegador de tu celular. No necesitas instalar nada.' },
-              { q: '¿Qué métodos de pago aceptan?', a: 'Aceptamos tarjeta de crédito y débito a través de Mercado Pago chile.' },
-              { q: '¿Puedo cambiar de plan?', a: 'Sí. Puedes subir de Base a Plus en cualquier momento desde la configuración de tu cuenta.' },
+              { q: '¿Qué métodos de pago aceptan?', a: 'Aceptamos pagos a través de Mercado Pago.' },
+              { q: '¿Puedo cambiar de plan?', a: 'Sí. Puedes pasar de Esencial a Estratégico en cualquier momento desde tu suscripción.' },
             ].map((faq, i) => (
               <FAQItem key={i} question={faq.q} answer={faq.a} />
             ))}
@@ -133,7 +133,7 @@ export function LandingPage() {
             ¿Listo para ordenar tu hogar?
           </h2>
           <p className="text-text-muted mb-8">
-            Crea tu hogar en menos de 3 minutos. Sin tarjeta de crédito para empezar.
+            Configura tu hogar y deja listo tu sistema de gastos en pocos minutos.
           </p>
           <Button size="lg" onClick={() => navigate('/registro')}>
             Comenzar ahora <ArrowRight className="h-4 w-4" />
@@ -178,7 +178,7 @@ function PricingCards({ onSelect }: { onSelect: () => void }) {
         </button>
         <span className={`text-sm font-medium ${annual ? 'text-text' : 'text-text-muted'}`}>
           Anual
-          <span className="ml-1.5 text-xs text-success font-semibold">Ahorra más</span>
+          <span className="ml-1.5 text-xs text-success font-semibold">Mejor precio</span>
         </span>
       </div>
 
@@ -198,7 +198,7 @@ function PricingCards({ onSelect }: { onSelect: () => void }) {
             >
               {isPlus && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-white text-xs font-bold rounded-full">
-                  Más popular
+                  Para anticiparse
                 </div>
               )}
               <h3 className="text-xl font-bold text-text mb-2">{plan.name}</h3>

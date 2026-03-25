@@ -2,10 +2,11 @@
 // Casa Clara — Transactions Page (CRUD + Filters)
 // ============================================
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Card, Button, InputField, SelectField, Modal, EmptyState, ConfirmDialog } from '../../components/ui';
+import { Card, Button, InputField, SelectField, Modal, EmptyState, ConfirmDialog, AlertBanner } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatDate, getCurrentMonthYear, getMonthRange, formatMonthYear } from '../../utils/dates-chile';
@@ -16,6 +17,7 @@ export function TransactionsPage() {
   const { household, members, currentMember } = useHousehold();
   const { canWrite } = useSubscription();
   const { year, month } = getCurrentMonthYear();
+  const [searchParams] = useSearchParams();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -25,10 +27,10 @@ export function TransactionsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Filters
-  const [filterMonth, setFilterMonth] = useState(`${year}-${String(month).padStart(2, '0')}`);
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterMember, setFilterMember] = useState('');
-  const [filterType, setFilterType] = useState('');
+  const [filterMonth, setFilterMonth] = useState(searchParams.get('month') || `${year}-${String(month).padStart(2, '0')}`);
+  const [filterCategory, setFilterCategory] = useState(searchParams.get('category') || '');
+  const [filterMember, setFilterMember] = useState(searchParams.get('member') || '');
+  const [filterType, setFilterType] = useState(searchParams.get('type') || '');
 
   // Form
   const [formType, setFormType] = useState<'income' | 'expense'>('expense');
@@ -41,16 +43,10 @@ export function TransactionsPage() {
   const [formExpenseType, setFormExpenseType] = useState<'fixed' | 'variable'>('variable');
   const [formNotes, setFormNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'danger'>('success');
 
-  useEffect(() => {
-    if (household) loadData();
-  }, [household, filterMonth]);
-
-  useEffect(() => {
-    if (currentMember) setFormPaidBy(currentMember.id);
-  }, [currentMember]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (!household) return;
     const [y, m] = filterMonth.split('-').map(Number);
     const { start, end } = getMonthRange(y, m);
@@ -69,7 +65,22 @@ export function TransactionsPage() {
 
     setTransactions((txRes.data || []) as Transaction[]);
     setCategories((catRes.data || []) as Category[]);
-  }
+  }, [household, filterMonth]);
+
+  useEffect(() => {
+    if (currentMember) setFormPaidBy(currentMember.id);
+  }, [currentMember]);
+
+  useEffect(() => {
+    setFilterMonth(searchParams.get('month') || `${year}-${String(month).padStart(2, '0')}`);
+    setFilterCategory(searchParams.get('category') || '');
+    setFilterMember(searchParams.get('member') || '');
+    setFilterType(searchParams.get('type') || '');
+  }, [month, searchParams, year]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const filtered = transactions.filter(t => {
     if (filterCategory && t.category_id !== filterCategory) return false;
@@ -111,7 +122,16 @@ export function TransactionsPage() {
 
   async function handleSave() {
     if (!household || !currentMember) return;
+    if (!formDesc.trim() || !formAmount || !formDate || !formPaidBy) {
+      setMsgType('danger');
+      setMsg(formType === 'income'
+        ? 'Completa concepto, monto, fecha y quien lo recibio.'
+        : 'Completa descripcion, monto, fecha y quien pago.');
+      return;
+    }
+
     setSaving(true);
+    setMsg('');
 
     const data = {
       household_id: household.id,
@@ -121,7 +141,7 @@ export function TransactionsPage() {
       scope: formScope,
       assigned_to_member_id: null,
       amount_clp: parseInt(formAmount),
-      category_id: formCategory || null,
+      category_id: formType === 'expense' ? formCategory || null : null,
       description: formDesc,
       occurred_on: formDate,
       expense_type: formType === 'expense' ? formExpenseType : null,
@@ -129,22 +149,73 @@ export function TransactionsPage() {
       notes: formNotes || null,
     };
 
-    if (editingTx) {
-      await supabase.from('transactions').update(data).eq('id', editingTx.id);
-    } else {
-      await supabase.from('transactions').insert(data);
-    }
+    try {
+      if (editingTx) {
+        const { error } = await supabase.functions.invoke('manage-transaction', {
+          body: {
+            action: 'update',
+            transactionId: editingTx.id,
+            type: formType,
+            description: formDesc,
+            amountClp: parseInt(formAmount, 10),
+            categoryId: formType === 'expense' ? formCategory || null : null,
+            occurredOn: formDate,
+            paidByMemberId: formPaidBy,
+            scope: formScope,
+            expenseType: formType === 'expense' ? formExpenseType : null,
+            notes: formNotes || null,
+          },
+        });
 
-    setSaving(false);
-    setShowForm(false);
-    loadData();
+        if (error) throw error;
+
+        setMsgType('success');
+        setMsg(formType === 'income'
+          ? 'Ingreso actualizado correctamente.'
+          : 'Gasto actualizado correctamente.');
+      } else {
+        const { error } = await supabase.from('transactions').insert(data);
+        if (error) throw error;
+        setMsgType('success');
+        setMsg(formType === 'income'
+          ? 'Ingreso creado correctamente.'
+          : 'Gasto creado correctamente.');
+      }
+
+      setShowForm(false);
+      await loadData();
+    } catch (error) {
+      setMsgType('danger');
+      setMsg(error instanceof Error
+        ? error.message
+        : formType === 'income'
+          ? 'No pudimos guardar el ingreso.'
+          : 'No pudimos guardar el gasto.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
     if (!deleteId) return;
-    await supabase.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', deleteId);
-    setDeleteId(null);
-    loadData();
+    try {
+      const { error } = await supabase.functions.invoke('manage-transaction', {
+        body: {
+          action: 'delete',
+          transactionId: deleteId,
+        },
+      });
+
+      if (error) throw error;
+
+      setMsgType('success');
+      setMsg('Movimiento eliminado correctamente.');
+      setDeleteId(null);
+      await loadData();
+    } catch (error) {
+      setMsgType('danger');
+      setMsg(error instanceof Error ? error.message : 'No pudimos eliminar el movimiento.');
+    }
   }
 
   const getMemberName = (id: string) => members.find(m => m.id === id)?.display_name || '—';
@@ -166,6 +237,12 @@ export function TransactionsPage() {
           </Button>
         )}
       </div>
+
+      {msg && (
+        <div className="mb-6">
+          <AlertBanner type={msgType} message={msg} onClose={() => setMsg('')} />
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -223,6 +300,7 @@ export function TransactionsPage() {
                     <td className="py-3 px-4">
                       <span className="text-text">{tx.description}</span>
                       {tx.scope === 'shared' && <span className="ml-1.5 text-xs text-primary">compartido</span>}
+                      {tx.is_recurring_instance && <span className="ml-1.5 text-xs text-warning">recurrente</span>}
                     </td>
                     <td className="py-3 px-4 text-text-secondary">{getCategoryIcon(tx.category_id)} {getCategoryName(tx.category_id)}</td>
                     <td className="py-3 px-4 text-text-secondary">{getMemberName(tx.paid_by_member_id)}</td>
@@ -236,13 +314,13 @@ export function TransactionsPage() {
                     </td>
                     {canWrite && (
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(tx)} className="p-1.5 text-text-muted hover:text-primary rounded cursor-pointer">
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => setDeleteId(tx.id)} className="p-1.5 text-text-muted hover:text-danger rounded cursor-pointer">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="sm" icon={<Edit2 className="h-3.5 w-3.5" />} onClick={() => openEdit(tx)}>
+                            Editar
+                          </Button>
+                          <Button variant="ghost" size="sm" icon={<Trash2 className="h-3.5 w-3.5" />} className="text-danger hover:bg-danger-bg" onClick={() => setDeleteId(tx.id)}>
+                            Eliminar
+                          </Button>
                         </div>
                       </td>
                     )}
@@ -255,7 +333,14 @@ export function TransactionsPage() {
       </Card>
 
       {/* Form Modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editingTx ? 'Editar movimiento' : 'Nuevo movimiento'} size="lg">
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editingTx
+          ? (formType === 'income' ? 'Editar ingreso' : 'Editar gasto')
+          : (formType === 'income' ? 'Nuevo ingreso' : 'Nuevo gasto')}
+        size="lg"
+      >
         <div className="space-y-4">
           <div className="flex gap-2">
             {(['expense', 'income'] as const).map(t => (
@@ -267,27 +352,69 @@ export function TransactionsPage() {
               </button>
             ))}
           </div>
-          <InputField label="Descripción" value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="Ej: Supermercado Líder" />
-          <InputField label="Monto (CLP)" type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} placeholder="Ej: 45000" />
+          <InputField
+            label={formType === 'income' ? 'Origen o concepto' : 'Descripción'}
+            value={formDesc}
+            onChange={e => setFormDesc(e.target.value)}
+            placeholder={formType === 'income' ? 'Ej: Sueldo' : 'Ej: Supermercado Líder'}
+          />
+          <InputField
+            label="Monto (CLP)"
+            type="number"
+            value={formAmount}
+            onChange={e => setFormAmount(e.target.value)}
+            placeholder={formType === 'income' ? 'Ej: 1200000' : 'Ej: 45000'}
+          />
           <div className="grid grid-cols-2 gap-4">
-            <SelectField label="Categoría" value={formCategory} onChange={setFormCategory} placeholder="Seleccionar"
-              options={categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))} />
-            <InputField label="Fecha" type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
+            {formType === 'expense' ? (
+              <SelectField label="Categoría" value={formCategory} onChange={setFormCategory} placeholder="Seleccionar"
+                options={categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))} />
+            ) : (
+              <InputField
+                label="Fecha"
+                type="date"
+                value={formDate}
+                onChange={e => setFormDate(e.target.value)}
+              />
+            )}
+            {formType === 'expense' ? (
+              <InputField label="Fecha" type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
+            ) : (
+              <SelectField
+                label="Destino"
+                value={formScope}
+                onChange={v => setFormScope(v as 'personal' | 'shared')}
+                options={[{ value: 'shared', label: 'Compartido' }, { value: 'personal', label: 'Personal' }]}
+              />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <SelectField label="¿Quién pagó?" value={formPaidBy} onChange={setFormPaidBy}
+            <SelectField label={formType === 'income' ? '¿Quién lo recibió?' : '¿Quién pagó?'} value={formPaidBy} onChange={setFormPaidBy}
               options={members.map(m => ({ value: m.id, label: m.display_name }))} />
-            <SelectField label="Alcance" value={formScope} onChange={v => setFormScope(v as 'personal' | 'shared')}
-              options={[{ value: 'shared', label: 'Compartido' }, { value: 'personal', label: 'Personal' }]} />
+            {formType === 'expense' ? (
+              <SelectField label="Alcance" value={formScope} onChange={v => setFormScope(v as 'personal' | 'shared')}
+                options={[{ value: 'shared', label: 'Compartido' }, { value: 'personal', label: 'Personal' }]} />
+            ) : (
+              <div />
+            )}
           </div>
           {formType === 'expense' && (
             <SelectField label="Tipo de gasto" value={formExpenseType} onChange={v => setFormExpenseType(v as 'fixed' | 'variable')}
               options={[{ value: 'variable', label: 'Variable' }, { value: 'fixed', label: 'Fijo' }]} />
           )}
           <InputField label="Notas (opcional)" value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Notas adicionales..." />
+          {editingTx?.is_recurring_instance && (
+            <p className="text-xs text-text-muted">
+              Si este gasto viene de una recurrencia o pago programado, los cambios mantendrán ese enlace actualizado.
+            </p>
+          )}
           <div className="flex gap-3 justify-end pt-2">
             <Button variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-            <Button onClick={handleSave} loading={saving}>{editingTx ? 'Guardar' : 'Crear'}</Button>
+            <Button onClick={handleSave} loading={saving}>
+              {editingTx
+                ? (formType === 'income' ? 'Guardar ingreso' : 'Guardar gasto')
+                : (formType === 'income' ? 'Crear ingreso' : 'Crear gasto')}
+            </Button>
           </div>
         </div>
       </Modal>

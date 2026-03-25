@@ -2,8 +2,9 @@
 // Casa Clara — Shared UI Components
 // ============================================
 
-import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
+import { useEffect, useState, type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes } from 'react';
 import { Loader2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { clearPersistedSupabaseSession } from '../../lib/supabase';
 
 // ============================================
 // Button
@@ -234,11 +235,41 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 // Loading Page
 // ============================================
 export function LoadingPage() {
+  const [stalled, setStalled] = useState(false);
+
+  const resetSession = () => {
+    clearPersistedSupabaseSession();
+    window.location.assign('/');
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setStalled(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg">
       <div className="text-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
         <p className="text-text-muted text-sm">Cargando Casa Clara...</p>
+        {stalled && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs text-text-muted max-w-xs">
+              La carga tardó más de lo normal. Puedes reintentar sin cerrar la ventana.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button size="sm" onClick={() => window.location.reload()}>
+                Reintentar
+              </Button>
+              <Button size="sm" variant="secondary" onClick={resetSession}>
+                Restablecer sesión
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => window.location.assign('/')}>
+                Ir al inicio
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -252,6 +283,39 @@ interface EmptyStateProps {
   title: string;
   description: string;
   action?: { label: string; onClick: () => void };
+}
+
+interface BlockingStatePageProps {
+  title: string;
+  description: string;
+  primaryAction?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
+}
+
+export function BlockingStatePage({ title, description, primaryAction, secondaryAction }: BlockingStatePageProps) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg p-4">
+      <div className="max-w-md w-full bg-surface border border-border rounded-2xl p-8 text-center shadow-sm">
+        <div className="h-12 w-12 rounded-full bg-warning-bg flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="h-6 w-6 text-warning" />
+        </div>
+        <h2 className="text-xl font-bold text-text mb-2">{title}</h2>
+        <p className="text-sm text-text-muted mb-6">{description}</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {primaryAction && (
+            <Button onClick={primaryAction.onClick}>
+              {primaryAction.label}
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button variant="secondary" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
@@ -278,17 +342,18 @@ interface StatCardProps {
   subValue?: string;
   trend?: 'up' | 'down' | 'neutral';
   icon?: ReactNode;
+  onClick?: () => void;
 }
 
-export function StatCard({ label, value, subValue, trend, icon }: StatCardProps) {
+export function StatCard({ label, value, subValue, trend, icon, onClick }: StatCardProps) {
   const trendColors = {
     up: 'text-success',
     down: 'text-danger',
     neutral: 'text-text-muted',
   };
 
-  return (
-    <div className="bg-surface border border-border rounded-xl p-5 shadow-xs">
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-text-muted">{label}</span>
         {icon && <span className="text-text-light">{icon}</span>}
@@ -299,7 +364,25 @@ export function StatCard({ label, value, subValue, trend, icon }: StatCardProps)
           {subValue}
         </p>
       )}
-    </div>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-5 shadow-xs">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="bg-surface border border-border rounded-xl p-5 shadow-xs text-left w-full cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all"
+    >
+      {content}
+    </button>
   );
 }
 

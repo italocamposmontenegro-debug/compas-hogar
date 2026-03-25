@@ -1,5 +1,5 @@
 // Casa Clara — Guided Close Page (Plus)
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, Button, LoadingSpinner, StatCard, FeatureGate, AlertBanner } from '../../components/ui';
 import { ClipboardCheck, CheckCircle, ArrowRight, Wallet, PieChart } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -16,48 +16,60 @@ export function GuidedClosePage() {
   const [totals, setTotals] = useState({ income: 0, expenses: 0, balance: 0 });
   const [saving, setSaving] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [msg, setMsg] = useState('');
 
-  useEffect(() => {
-    if (household) load();
-  }, [household]);
-
-  async function load() {
+  const load = useCallback(async () => {
     if (!household) return;
     setLoading(true);
+    try {
+      const now = new Date();
+      const start = startOfMonth(now).toISOString();
+      const end = endOfMonth(now).toISOString();
 
-    const now = new Date();
-    const start = startOfMonth(now).toISOString();
-    const end = endOfMonth(now).toISOString();
+      const { data: txs } = await supabase.from('transactions')
+        .select('amount_clp, type')
+        .eq('household_id', household.id!)
+        .is('deleted_at', null)
+        .gte('occurred_on', start)
+        .lte('occurred_on', end);
 
-    const { data: txs } = await supabase.from('transactions')
-      .select('amount, type')
-      .eq('household_id', household.id!)
-      .gte('transaction_date', start)
-      .lte('transaction_date', end) as any;
+      const income = (txs || []).filter((t) => t.type === 'income').reduce((acc, curr) => acc + curr.amount_clp, 0);
+      const expenses = (txs || []).filter((t) => t.type === 'expense').reduce((acc, curr) => acc + curr.amount_clp, 0);
+      
+      setTotals({ income, expenses, balance: income - expenses });
+    } finally {
+      setLoading(false);
+    }
+  }, [household]);
 
-    const income = (txs || []).filter((t: any) => t.type === 'income').reduce((acc: number, curr: any) => acc + curr.amount, 0);
-    const expenses = (txs || []).filter((t: any) => t.type === 'expense').reduce((acc: number, curr: any) => acc + curr.amount, 0);
-    
-    setTotals({ income, expenses, balance: income - expenses });
-    setLoading(false);
-  }
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleFinish = async () => {
     if (!household || !user) return;
     setSaving(true);
+    setMsg('');
     
     const now = new Date();
-    const { error } = await supabase.from('monthly_reviews').insert({
+    const { error } = await supabase.from('monthly_reviews').upsert({
       household_id: household.id,
       year: now.getFullYear(),
       month: now.getMonth() + 1,
       total_income: totals.income,
       total_expenses: totals.expenses,
+      total_savings: Math.max(0, totals.balance),
       created_by: user.id,
       summary_data: { balance: totals.balance }
-    } as any);
+    }, {
+      onConflict: 'household_id,year,month',
+    });
 
-    if (!error) setFinished(true);
+    if (!error) {
+      setFinished(true);
+    } else {
+      setMsg('No pudimos guardar el cierre de este mes.');
+    }
     setSaving(false);
   };
 
@@ -82,6 +94,7 @@ export function GuidedClosePage() {
     <FeatureGate feature="guided_close">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold text-text mb-6">Cierre mensual guiado</h1>
+        {msg && <div className="mb-4"><AlertBanner type="danger" message={msg} onClose={() => setMsg('')} /></div>}
         
         {step === 1 && (
           <div className="space-y-6">
@@ -119,7 +132,7 @@ export function GuidedClosePage() {
                 <ClipboardCheck className="h-12 w-12 text-primary mx-auto mb-4" />
                 <h2 className="text-xl font-bold mb-2">¿Todo en orden?</h2>
                 <p className="text-text-muted mb-8 max-w-sm mx-auto">
-                  Al cerrar el mes, se generará una entrada histórica en tus reportes. Podrás seguir editando movimientos si es necesario.
+                  Al cerrar el mes, guardaremos o actualizaremos su resumen histórico. Si ajustas movimientos más tarde, podrás volver a cerrar el mes.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button variant="secondary" onClick={() => setStep(1)}>Atrás</Button>
