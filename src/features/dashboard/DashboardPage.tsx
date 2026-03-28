@@ -430,9 +430,11 @@ export function DashboardPage() {
                   <h2 className="text-lg font-bold mb-3 truncate" style={{ color: C.onSurface }}>
                     {primaryGoal.name}
                   </h2>
-                  <span className="text-5xl lg:text-7xl font-bold tracking-tighter" style={{ color: C.primary, fontFamily: C.fontHeadline }}>
-                    {formatCLP(primaryGoal.current_amount_clp)}
-                  </span>
+                  <div className="grid grid-cols-4 mt-3">
+                    <span className="col-start-4 col-span-1 text-5xl lg:text-7xl font-bold tracking-tighter whitespace-nowrap" style={{ color: C.primary, fontFamily: C.fontHeadline }}>
+                      {formatCLP(primaryGoal.current_amount_clp)}
+                    </span>
+                  </div>
                </div>
                <Button variant="secondary" onClick={() => navigate('/app/metas')}>Administrar metas</Button>
             </div>
@@ -528,9 +530,11 @@ function M3SummaryCard({
           <Icon className="h-4 w-4 shrink-0" />
         </div>
       </div>
-      <p className="mt-8 text-5xl font-bold tracking-tighter" style={{ color: ts.color, fontFamily: 'var(--font-headline)' }}>
-        {value}
-      </p>
+      <div className="mt-8 grid grid-cols-4">
+        <p className="col-start-4 col-span-1 text-5xl font-bold tracking-tighter whitespace-nowrap" style={{ color: ts.color, fontFamily: 'var(--font-headline)' }}>
+          {value}
+        </p>
+      </div>
       <p className="mt-4 text-[11px] font-medium opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{note}</p>
     </button>
   );
@@ -548,11 +552,11 @@ function M3MetricRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
+      className="grid w-full grid-cols-4 items-center gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
     >
-      <span className="text-sm font-medium opacity-70" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
+      <span className="col-span-3 text-sm font-medium opacity-70" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
       <span
-        className="text-sm font-bold tracking-tight"
+        className="col-span-1 text-sm font-bold tracking-tight whitespace-nowrap"
         style={{ color: emphasis ? 'var(--color-s-primary)' : 'var(--color-s-text)' }}
       >
         {value}
@@ -575,13 +579,13 @@ function M3ActionRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-start justify-between gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
+      className="grid w-full grid-cols-4 items-start gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
     >
-      <span className="min-w-0 flex-1">
+      <span className="col-span-3 min-w-0 flex-1">
         <span className="block text-sm font-bold tracking-tight mb-1" style={{ color: 'var(--color-s-text)' }}>{label}</span>
         <span className="block text-[11px] leading-relaxed opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{detail}</span>
       </span>
-      <span className="shrink-0 text-xs font-bold uppercase tracking-wider" style={{ color: valueColor }}>{value}</span>
+      <span className="col-span-1 shrink-0 text-xs font-bold uppercase tracking-wider whitespace-nowrap mt-1" style={{ color: valueColor }}>{value}</span>
     </button>
   );
 }
