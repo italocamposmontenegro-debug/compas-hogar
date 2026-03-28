@@ -17,21 +17,21 @@ import { Target, Plus, Star, Edit2, CheckCircle2, XCircle, RotateCcw } from 'luc
 
 // ─── M3 CSS variable aliases ─────────────────────────────────────────────────
 const C = {
-  surface:              'var(--color-m3-surface-container)',
-  surfaceLow:           'var(--color-m3-surface-container-low)',
-  outline:              'var(--color-m3-outline-variant)',
-  onSurface:            'var(--color-m3-on-surface)',
-  onSurfaceVariant:     'var(--color-m3-on-surface-variant)',
-  primary:              'var(--color-m3-primary)',
-  onPrimary:            'var(--color-m3-on-primary)',
-  primaryContainer:     'var(--color-m3-primary-container)',
-  onPrimaryContainer:   'var(--color-m3-on-primary-container)',
-  secondaryContainer:   'var(--color-m3-secondary-container)',
-  onSecondaryContainer: 'var(--color-m3-on-secondary-container)',
-  error:                'var(--color-m3-error)',
+  surface:              'var(--color-s-surface)',
+  surfaceLow:           'var(--color-s-bg)',
+  outline:              'var(--color-s-border)',
+  onSurface:            'var(--color-s-text)',
+  onSurfaceVariant:     'var(--color-s-text-muted)',
+  primary:              'var(--color-s-primary)',
+  onPrimary:            'var(--color-s-on-primary)',
+  primaryContainer:     'var(--color-s-surface)', /* Flat white instead of dark green bubble */
+  onPrimaryContainer:   'var(--color-s-text)',
+  secondaryContainer:   'var(--color-s-surface-muted)',
+  onSecondaryContainer: 'var(--color-s-text)',
+  error:                'var(--color-s-danger)',
   fontHeadline:         'var(--font-headline)',
-  successBg:            '#d0f0e4',
-  successText:          '#0a4f35',
+  successBg:            'var(--color-s-surface)',
+  successText:          'var(--color-s-success)',
 };
 
 export function GoalsPage() {
@@ -231,18 +231,18 @@ export function GoalsPage() {
       {/* ── Primary goal hero card ────────────────────────── */}
       {primaryGoal && (
         <div
-          className="rounded-3xl p-6"
-          style={{ background: C.primaryContainer, border: `1px solid ${C.outline}` }}
+          className="lg:p-8 p-6"
+          style={{ background: C.surface }}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Star className="h-4 w-4 fill-current" style={{ color: C.onPrimaryContainer }} />
-                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: C.onPrimaryContainer, opacity: 0.75 }}>
+                <Star className="h-4 w-4 fill-current" style={{ color: 'var(--color-s-accent-gold)' }} />
+                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: C.onSurfaceVariant }}>
                   Meta principal
                 </span>
               </div>
-              <h2 className="text-2xl font-semibold" style={{ fontFamily: C.fontHeadline, color: C.onPrimaryContainer }}>
+              <h2 className="text-3xl font-light tracking-tight mt-1" style={{ fontFamily: C.fontHeadline, color: C.primary }}>
                 {primaryGoal.name}
               </h2>
             </div>
@@ -250,8 +250,8 @@ export function GoalsPage() {
               <button
                 type="button"
                 onClick={() => openEdit(primaryGoal)}
-                className="p-2 rounded-xl hover:bg-white/20 transition cursor-pointer"
-                style={{ color: C.onPrimaryContainer }}
+                className="p-2 rounded-xl hover:bg-black/5 transition cursor-pointer"
+                style={{ color: C.onSurfaceVariant }}
                 title="Editar"
               >
                 <Edit2 className="h-4 w-4" />
@@ -275,12 +275,12 @@ export function GoalsPage() {
                   : '0%'}
               </p>
             </div>
-            <div className="h-2.5 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.25)' }}>
+            <div className="h-2 w-full rounded-full" style={{ background: C.outline }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${Math.min(100, primaryGoal.target_amount_clp > 0 ? (primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100 : 0)}%`,
-                  background: C.onPrimaryContainer,
+                  background: C.primary,
                 }}
               />
             </div>
@@ -319,8 +319,8 @@ export function GoalsPage() {
             return (
               <div
                 key={g.id}
-                className="rounded-2xl p-5"
-                style={{ background: C.surface, border: `1px solid ${C.outline}` }}
+                className="p-6"
+                style={{ background: C.surface }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">

@@ -16,28 +16,28 @@ import { calculateTrafficLight, type TrafficLightResult } from '../../utils/traf
 import { buildFinancialInsights, type FinancialInsightsResult, type InsightAction } from '../../utils/financial-insights';
 import type { Category, PaymentCalendarItem, SavingsGoal, Transaction } from '../../types/database';
 import { getFeatureUpgradeCopy } from '../../lib/constants';
-import { ArrowRight, TrendingUp, TrendingDown, CalendarClock, Target as TargetIcon, AlertTriangle, Sparkles } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, CalendarClock, Sparkles } from 'lucide-react';
 
 // ─── M3 CSS variable aliases ────────────────────────────────────────────────
 const C = {
-  surface:              'var(--color-m3-surface-container)',
-  surfaceLow:           'var(--color-m3-surface-container-low)',
-  surfaceHigh:          'var(--color-m3-surface-container-high)',
-  surfaceHighest:       'var(--color-m3-surface-container-highest)',
-  outline:              'var(--color-m3-outline-variant)',
-  onSurface:            'var(--color-m3-on-surface)',
-  onSurfaceVariant:     'var(--color-m3-on-surface-variant)',
-  primary:              'var(--color-m3-primary)',
-  onPrimary:            'var(--color-m3-on-primary)',
-  primaryContainer:     'var(--color-m3-primary-container)',
-  onPrimaryContainer:   'var(--color-m3-on-primary-container)',
-  secondaryContainer:   'var(--color-m3-secondary-container)',
-  onSecondaryContainer: 'var(--color-m3-on-secondary-container)',
-  error:                'var(--color-m3-error)',
-  errorContainer:       'var(--color-m3-error-container)',
-  onErrorContainer:     'var(--color-m3-on-error-container)',
+  surface:              'var(--color-s-surface-lowest)',
+  surfaceLow:           'var(--color-s-bg)',
+  surfaceHigh:          'var(--color-s-surface-container)',
+  surfaceHighest:       'var(--color-s-surface-low)',
+  outline:              'var(--color-s-border)',
+  onSurface:            'var(--color-s-text)',
+  onSurfaceVariant:     'var(--color-s-text-muted)',
+  primary:              'var(--color-s-primary)',
+  onPrimary:            'var(--color-s-on-primary)',
+  primaryContainer:     'var(--color-s-surface-container)',
+  onPrimaryContainer:   'var(--color-s-text)',
+  secondaryContainer:   'var(--color-s-surface-low)',
+  onSecondaryContainer: 'var(--color-s-primary)',
+  error:                'var(--color-s-danger)',
+  errorContainer:       'var(--color-s-danger-bg)',
+  onErrorContainer:     'var(--color-s-danger)',
   fontHeadline:         'var(--font-headline)',
-  fontSans:             'var(--font-sans)',
+  fontSans:             'var(--font-body)',
 };
 
 export function DashboardPage() {
@@ -190,24 +190,24 @@ export function DashboardPage() {
 
   // ─── Render ───────────────────────────────────────────────
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
+    <div className="space-y-8 lg:space-y-12 animate-in fade-in duration-700">
 
       {/* ── Page header ──────────────────────────────────── */}
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
             <PlanBadge>{planName}</PlanBadge>
-            <span className="text-xs uppercase tracking-[0.18em]" style={{ color: C.onSurfaceVariant }}>
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: C.onSurfaceVariant }}>
               {formatMonthYear(year, month)}
             </span>
           </div>
           <h1
-            className="mt-2 text-3xl lg:text-4xl font-semibold"
-            style={{ fontFamily: C.fontHeadline, color: C.onSurface }}
+            className="text-4xl lg:text-5xl font-bold tracking-tight"
+            style={{ fontFamily: C.fontHeadline, color: C.onSurface, lineHeight: 1.1 }}
           >
             Resumen del hogar
           </h1>
-          <p className="mt-1 text-sm" style={{ color: C.onSurfaceVariant }}>
+          <p className="mt-4 text-sm max-w-xl leading-relaxed opacity-70" style={{ color: C.onSurfaceVariant }}>
             Una lectura simple del mes para saber qué mirar primero y dónde conviene actuar.
           </p>
         </div>
@@ -217,7 +217,7 @@ export function DashboardPage() {
       </header>
 
       {/* ── Top summary cards (3-up) ─────────────────────── */}
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-3">
         <M3SummaryCard
           label="Saldo actual"
           value={formatCLP(balance)}
@@ -245,22 +245,22 @@ export function DashboardPage() {
       </section>
 
       {/* ── Main 2-col section ───────────────────────────── */}
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
 
         {/* Atención hoy */}
         <M3Card>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-4 mb-8">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] font-medium" style={{ color: C.onSurfaceVariant }}>
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
                 Atención inmediata
               </p>
-              <h2 className="mt-1.5 text-xl font-semibold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
+              <h2 className="mt-2 text-2xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
                 Qué requiere atención hoy
               </h2>
             </div>
             {pendingPayments.length > 0 && (
               <span
-                className="inline-flex items-center justify-center text-xs font-bold w-6 h-6 rounded-full"
+                className="inline-flex items-center justify-center text-xs font-bold w-7 h-7 rounded-full shadow-ambient"
                 style={{ background: C.error, color: C.onPrimary }}
               >
                 {pendingPayments.length}
@@ -268,7 +268,7 @@ export function DashboardPage() {
             )}
           </div>
 
-          <div className="mt-4 space-y-2">
+          <div className="space-y-1">
             {pendingPayments.length > 0 ? (
               pendingPayments.slice(0, 3).map(payment => (
                 <M3ActionRow
@@ -326,13 +326,13 @@ export function DashboardPage() {
 
         {/* Panorama del mes */}
         <M3Card>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-4 mb-8">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] font-medium" style={{ color: C.onSurfaceVariant }}>
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
                 Panorama mensual
               </p>
-              <h2 className="mt-1.5 text-xl font-semibold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
-                Panorama del mes
+              <h2 className="mt-2 text-2xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
+                Estado del mes
               </h2>
             </div>
             {showFinancialHealth && light && (
@@ -342,14 +342,14 @@ export function DashboardPage() {
             )}
           </div>
 
-          <div className="mt-4 space-y-2">
+          <div className="space-y-1">
             <M3MetricRow
-              label="Ingresos"
+              label="Ingresos registrados"
               value={formatCLP(totalIncome)}
               onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=income`)}
             />
             <M3MetricRow
-              label="Gastos"
+              label="Gastos registrados"
               value={formatCLP(totalExpenses)}
               onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=expense`)}
             />
@@ -368,8 +368,8 @@ export function DashboardPage() {
               />
             ) : (
               <M3MetricRow
-                label="Resumen del mes"
-                value="Abrir"
+                label="Análisis del mes"
+                value="Ver resumen"
                 onClick={() => navigate('/app/resumen')}
               />
             )}
@@ -379,30 +379,31 @@ export function DashboardPage() {
             <button
               type="button"
               onClick={() => navigate('/app/reparto')}
-              className="mt-4 block w-full rounded-2xl px-4 py-3 text-left transition-all cursor-pointer hover:opacity-80"
-              style={{ border: `1px solid ${C.outline}`, background: C.surfaceLow }}
+              className="mt-8 block w-full rounded-2xl p-6 text-left transition-all cursor-pointer hover:bg-black/5"
+              style={{ background: C.surfaceHigh }}
             >
-              <p className="text-xs uppercase tracking-[0.16em] font-medium" style={{ color: C.onSurfaceVariant }}>
+              <p className="text-[10px] uppercase tracking-[0.16em] font-bold opacity-60 mb-3" style={{ color: C.onSurfaceVariant }}>
                 Reparto del hogar
               </p>
-              <p className="mt-2 text-sm leading-6" style={{ color: C.onSurface }}>{splitSummary}</p>
+              <p className="text-sm leading-relaxed" style={{ color: C.onSurface }}>{splitSummary}</p>
             </button>
           )}
 
           {compactUpgrade && (
             <div
-              className="mt-4 rounded-2xl px-4 py-4"
-              style={{ background: C.secondaryContainer, border: `1px solid ${C.outline}` }}
+              className="mt-8 rounded-2xl p-6 transition-all hover:shadow-ambient"
+              style={{ background: 'var(--color-s-surface-low)' }}
             >
-              <p className="text-sm font-semibold" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.badge}</p>
-              <p className="mt-1 text-sm leading-6" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.description}</p>
+              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.badge}</p>
+              <p className="text-sm leading-relaxed mb-4 opacity-80" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.description}</p>
               <button
                 type="button"
                 onClick={() => navigate(compactUpgrade.route)}
-                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold cursor-pointer"
+                className="inline-flex items-center gap-2 text-sm font-bold cursor-pointer group"
                 style={{ color: C.primary }}
               >
-                {compactUpgrade.actionLabel || 'Ver planes'} <ArrowRight className="h-4 w-4" />
+                {compactUpgrade.actionLabel || 'Explorar planes'} 
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
             </div>
           )}
@@ -410,55 +411,35 @@ export function DashboardPage() {
       </section>
 
       {/* ── Primary goal card ────────────────────────────── */}
-      <M3Card>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div
-              className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: C.primaryContainer, color: C.onPrimaryContainer }}
-            >
-              <TargetIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] font-medium" style={{ color: C.onSurfaceVariant }}>
-                Meta principal
-              </p>
-              <h2 className="mt-1 text-xl font-semibold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
-                {primaryGoal ? primaryGoal.name : 'Todavía no hay una meta visible'}
-              </h2>
-              <p className="mt-1.5 text-sm" style={{ color: C.onSurfaceVariant }}>
-                {primaryGoal
-                  ? 'Una meta clara convierte el excedente del mes en dirección compartida.'
-                  : 'Cuando definas una meta, este bloque mostrará su avance y el ahorro disponible para sostenerla.'}
-              </p>
-            </div>
-          </div>
-          <Button variant="secondary" onClick={() => navigate(primaryGoal ? '/app/metas' : '/app/metas?create=1')}>
-            {primaryGoal ? 'Abrir metas' : 'Crear meta'}
-          </Button>
+      <div className="rounded-[2rem] p-8 lg:p-12 transition-all hover:shadow-ambient" style={{ background: C.surface }}>
+        <div className="flex justify-between items-start mb-10">
+          <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>
+            {primaryGoal ? 'Objetivo Central' : 'Sin metas activas'}
+          </p>
+          {primaryGoal && (
+            <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(20, 69, 74, 0.08)', color: C.primary }}>
+              {primaryGoalProgress}% completado
+            </span>
+          )}
         </div>
-
+        
         {primaryGoal ? (
-          <div
-            className="mt-5 rounded-2xl px-5 py-5"
-            style={{ border: `1px solid ${C.outline}`, background: C.surfaceLow }}
-          >
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-2xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
-                  {formatCLP(primaryGoal.current_amount_clp)}
-                </p>
-                <p className="mt-0.5 text-sm" style={{ color: C.onSurfaceVariant }}>
-                  de {formatCLP(primaryGoal.target_amount_clp)}
-                </p>
-              </div>
-              <p className="text-sm font-semibold" style={{ color: C.primary }}>
-                {primaryGoalProgress}% completado
-              </p>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+               <div className="min-w-0">
+                  <h2 className="text-lg font-bold mb-3 truncate" style={{ color: C.onSurface }}>
+                    {primaryGoal.name}
+                  </h2>
+                  <span className="text-5xl lg:text-7xl font-bold tracking-tighter" style={{ color: C.primary, fontFamily: C.fontHeadline }}>
+                    {formatCLP(primaryGoal.current_amount_clp)}
+                  </span>
+               </div>
+               <Button variant="secondary" onClick={() => navigate('/app/metas')}>Administrar metas</Button>
             </div>
-            <div className="mt-4 h-2 w-full rounded-full" style={{ background: C.outline }}>
+            
+            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-s-surface-low)' }}>
               <div
-                className="h-full rounded-full transition-all"
+                className="h-full transition-all duration-1000 ease-out"
                 style={{
                   width: `${Math.min(100, (primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100)}%`,
                   background: C.primary,
@@ -467,28 +448,26 @@ export function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div
-            className="mt-5 rounded-2xl border-2 border-dashed px-5 py-5"
-            style={{ borderColor: C.outline }}
-          >
-            <p className="text-sm" style={{ color: C.onSurfaceVariant }}>
+          <div className="flex flex-col items-start gap-6">
+            <p className="text-lg max-w-sm leading-relaxed" style={{ color: C.onSurfaceVariant }}>
               Una meta simple basta para empezar. No hace falta definir todo el futuro del hogar de una vez.
             </p>
+            <Button onClick={() => navigate('/app/metas?create=1')}>Crear meta</Button>
           </div>
         )}
-      </M3Card>
+      </div>
 
       {/* ── Quick actions ─────────────────────────────────── */}
       <section>
-        <p className="text-[11px] uppercase tracking-[0.18em] font-medium mb-3" style={{ color: C.onSurfaceVariant }}>
+        <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60 mb-6" style={{ color: C.onSurfaceVariant }}>
           Acciones rápidas
         </p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <M3QuickAction label="Registrar movimiento" onClick={() => navigate('/app/movimientos?create=expense')} />
-          <M3QuickAction label="Abrir calendario" onClick={() => navigate('/app/calendario')} />
-          <M3QuickAction label="Ver metas" onClick={() => navigate('/app/metas')} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <M3QuickAction label="Registrar gasto o ingreso" onClick={() => navigate('/app/movimientos?create=expense')} />
+          <M3QuickAction label="Calendario de pagos" onClick={() => navigate('/app/calendario')} />
+          <M3QuickAction label="Ver metas de ahorro" onClick={() => navigate('/app/metas')} />
           <M3QuickAction
-            label={showMonthlyProjection ? 'Abrir comparación' : 'Abrir resumen'}
+            label={showMonthlyProjection ? 'Análisis comparativo' : 'Resumen detallado'}
             onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : '/app/resumen')}
           />
         </div>
@@ -498,16 +477,15 @@ export function DashboardPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Local UI sub-components (M3 design)
+// Local UI sub-components (Architectural Editorial design)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function M3Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-3xl p-5 lg:p-6 ${className}`}
+      className={`rounded-[2rem] p-8 lg:p-10 transition-all hover:shadow-ambient ${className}`}
       style={{
-        background: 'var(--color-m3-surface-container)',
-        border: '1px solid var(--color-m3-outline-variant)',
+        background: 'var(--color-s-surface-lowest)',
       }}
     >
       {children}
@@ -525,11 +503,11 @@ function M3SummaryCard({
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
 }) {
-  const toneStyle: Record<string, { bg: string; color: string }> = {
-    success: { bg: '#d0f0e4',       color: '#0a4f35' },
-    warning: { bg: '#fdf3d7',       color: '#7a4d00' },
-    danger:  { bg: 'var(--color-m3-error-container)', color: 'var(--color-m3-on-error-container)' },
-    neutral: { bg: 'var(--color-m3-surface-container)', color: 'var(--color-m3-on-surface)' },
+  const toneStyle: Record<string, { bg: string; color: string; badge: string }> = {
+    success: { bg: 'var(--color-s-surface-lowest)', color: 'var(--color-s-primary)', badge: 'rgba(20, 69, 74, 0.05)' },
+    warning: { bg: 'var(--color-s-surface-low)', color: 'var(--color-s-text)', badge: 'rgba(0,0,0,0.05)' },
+    danger:  { bg: 'var(--color-s-surface-lowest)', color: 'var(--color-s-danger)', badge: 'rgba(186, 26, 26, 0.05)' },
+    neutral: { bg: 'var(--color-s-surface-low)', color: 'var(--color-s-text)', badge: 'rgba(0,0,0,0.05)' },
   };
   const ts = toneStyle[tone];
 
@@ -537,19 +515,23 @@ function M3SummaryCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-3xl px-5 py-5 text-left transition-all cursor-pointer hover:opacity-90"
-      style={{ background: ts.bg, border: '1px solid transparent' }}
+      className="w-full px-8 py-10 rounded-[2rem] text-left transition-all cursor-pointer group hover:shadow-ambient flex flex-col justify-between"
+      style={{ 
+        background: ts.bg
+      }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs uppercase tracking-[0.18em] font-medium" style={{ color: ts.color, opacity: 0.75 }}>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>
           {label}
         </p>
-        <Icon className="h-4 w-4 shrink-0 opacity-60" style={{ color: ts.color }} />
+        <div className="p-2 rounded-xl transition-colors group-hover:bg-white/50" style={{ color: ts.color, background: ts.badge }}>
+          <Icon className="h-4 w-4 shrink-0" />
+        </div>
       </div>
-      <p className="mt-3 text-2xl font-bold" style={{ color: ts.color, fontFamily: 'var(--font-headline)' }}>
+      <p className="mt-8 text-5xl font-bold tracking-tighter" style={{ color: ts.color, fontFamily: 'var(--font-headline)' }}>
         {value}
       </p>
-      <p className="mt-1.5 text-xs" style={{ color: ts.color, opacity: 0.7 }}>{note}</p>
+      <p className="mt-4 text-[11px] font-medium opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{note}</p>
     </button>
   );
 }
@@ -566,13 +548,12 @@ function M3MetricRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3 text-left transition-all cursor-pointer hover:bg-black/5"
-      style={{ border: '1px solid var(--color-m3-outline-variant)', background: 'var(--color-m3-surface-container-low)' }}
+      className="flex w-full items-center justify-between gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
     >
-      <span className="text-sm" style={{ color: 'var(--color-m3-on-surface-variant)' }}>{label}</span>
+      <span className="text-sm font-medium opacity-70" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
       <span
-        className="text-sm font-semibold"
-        style={{ color: emphasis ? 'var(--color-m3-primary)' : 'var(--color-m3-on-surface)' }}
+        className="text-sm font-bold tracking-tight"
+        style={{ color: emphasis ? 'var(--color-s-primary)' : 'var(--color-s-text)' }}
       >
         {value}
       </span>
@@ -589,19 +570,18 @@ function M3ActionRow({
   tone?: 'neutral' | 'warning' | 'danger';
   onClick: () => void;
 }) {
-  const valueColor = tone === 'danger' ? 'var(--color-m3-error)' : tone === 'warning' ? '#92610A' : 'var(--color-m3-on-surface)';
+  const valueColor = tone === 'danger' ? 'var(--color-s-danger)' : tone === 'warning' ? '#92610A' : 'var(--color-s-text)';
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-start justify-between gap-4 rounded-2xl px-4 py-3 text-left transition-all cursor-pointer hover:bg-black/5"
-      style={{ border: '1px solid var(--color-m3-outline-variant)', background: 'var(--color-m3-surface-container-low)' }}
+      className="flex w-full items-start justify-between gap-6 px-4 py-4 rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium" style={{ color: 'var(--color-m3-on-surface)' }}>{label}</span>
-        <span className="mt-0.5 block text-xs leading-5" style={{ color: 'var(--color-m3-on-surface-variant)' }}>{detail}</span>
+        <span className="block text-sm font-bold tracking-tight mb-1" style={{ color: 'var(--color-s-text)' }}>{label}</span>
+        <span className="block text-[11px] leading-relaxed opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{detail}</span>
       </span>
-      <span className="shrink-0 text-sm font-semibold" style={{ color: valueColor }}>{value}</span>
+      <span className="shrink-0 text-xs font-bold uppercase tracking-wider" style={{ color: valueColor }}>{value}</span>
     </button>
   );
 }
@@ -616,22 +596,19 @@ function M3EmptyState({
 }) {
   return (
     <div
-      className="rounded-2xl border-2 border-dashed px-4 py-4"
-      style={{ borderColor: 'var(--color-m3-outline-variant)' }}
+      className="rounded-3xl p-8 text-center"
+      style={{ background: 'var(--color-s-surface-low)' }}
     >
-      <div className="flex items-start gap-2">
-        <Sparkles className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--color-m3-on-surface-variant)' }} />
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-white shadow-ambient flex items-center justify-center">
+          <Sparkles className="h-5 w-5" style={{ color: 'var(--color-s-primary)' }} />
+        </div>
         <div>
-          <p className="text-sm font-medium" style={{ color: 'var(--color-m3-on-surface)' }}>{title}</p>
-          <p className="mt-1 text-sm leading-5" style={{ color: 'var(--color-m3-on-surface-variant)' }}>{description}</p>
-          <button
-            type="button"
-            onClick={onAction}
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold cursor-pointer"
-            style={{ color: 'var(--color-m3-primary)' }}
-          >
-            {actionLabel} <ArrowRight className="h-4 w-4" />
-          </button>
+          <p className="text-base font-bold mb-2" style={{ color: 'var(--color-s-text)' }}>{title}</p>
+          <p className="text-sm leading-relaxed opacity-60 max-w-xs mx-auto mb-6" style={{ color: 'var(--color-s-text-muted)' }}>{description}</p>
+          <Button size="sm" onClick={onAction}>
+            {actionLabel}
+          </Button>
         </div>
       </div>
     </div>
@@ -643,15 +620,15 @@ function M3QuickAction({ label, onClick }: { label: string; onClick: () => void 
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm font-medium transition-all cursor-pointer hover:opacity-80"
+      className="flex items-center justify-between px-6 py-5 rounded-2xl text-left text-sm font-bold transition-all cursor-pointer group hover:bg-white hover:shadow-ambient"
       style={{
-        border: '1px solid var(--color-m3-outline-variant)',
-        background: 'var(--color-m3-surface-container)',
-        color: 'var(--color-m3-on-surface)',
+        background: 'var(--color-s-surface-low)',
+        color: 'var(--color-s-text)',
       }}
     >
-      {label}
-      <ArrowRight className="h-4 w-4 shrink-0" style={{ color: 'var(--color-m3-on-surface-variant)' }} />
+      <span className="tracking-tight">{label}</span>
+      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'var(--color-s-text-muted)' }} />
     </button>
   );
 }
+

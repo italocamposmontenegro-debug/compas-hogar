@@ -16,22 +16,22 @@ import { Plus, Edit2, Trash2, ArrowUpDown } from 'lucide-react';
 
 // ─── M3 CSS variable aliases ─────────────────────────────────────────────────
 const C = {
-  surface:              'var(--color-m3-surface-container)',
-  surfaceLow:           'var(--color-m3-surface-container-low)',
-  outline:              'var(--color-m3-outline-variant)',
-  onSurface:            'var(--color-m3-on-surface)',
-  onSurfaceVariant:     'var(--color-m3-on-surface-variant)',
-  primary:              'var(--color-m3-primary)',
-  onPrimary:            'var(--color-m3-on-primary)',
-  primaryContainer:     'var(--color-m3-primary-container)',
-  onPrimaryContainer:   'var(--color-m3-on-primary-container)',
-  secondaryContainer:   'var(--color-m3-secondary-container)',
-  onSecondaryContainer: 'var(--color-m3-on-secondary-container)',
-  error:                'var(--color-m3-error)',
-  errorContainer:       'var(--color-m3-error-container)',
-  onErrorContainer:     'var(--color-m3-on-error-container)',
-  successBg:            '#d0f0e4',
-  successText:          '#0a4f35',
+  surface:              'var(--color-s-surface)',
+  surfaceLow:           'var(--color-s-bg)',
+  outline:              'var(--color-s-border)',
+  onSurface:            'var(--color-s-text)',
+  onSurfaceVariant:     'var(--color-s-text-muted)',
+  primary:              'var(--color-s-primary)',
+  onPrimary:            'var(--color-s-on-primary)',
+  primaryContainer:     'var(--color-s-primary)',
+  onPrimaryContainer:   'var(--color-s-on-primary)',
+  secondaryContainer:   'transparent',
+  onSecondaryContainer: 'var(--color-s-primary)',
+  error:                'var(--color-s-danger)',
+  errorContainer:       'var(--color-s-danger-bg)',
+  onErrorContainer:     'var(--color-s-danger)',
+  successBg:            'var(--color-s-surface)',
+  successText:          'var(--color-s-success)',
   fontHeadline:         'var(--font-headline)',
 };
 
@@ -288,7 +288,7 @@ export function TransactionsPage() {
       </div>
 
       {/* ── Filters ──────────────────────────────────────── */}
-      <div className="rounded-2xl p-4" style={{ background: C.surface, border: `1px solid ${C.outline}` }}>
+      <div className="py-2">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <InputField label="Mes" type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} />
           <SelectField label="Categoría" value={filterCategory} onChange={setFilterCategory}
@@ -301,7 +301,7 @@ export function TransactionsPage() {
       </div>
 
       {/* ── Transactions table ───────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.outline}`, background: C.surface }}>
+      <div className="overflow-hidden bg-transparent">
         {filtered.length === 0 ? (
           <EmptyState
             icon={<ArrowUpDown className="h-8 w-8" />}
@@ -492,15 +492,15 @@ export function TransactionsPage() {
 // ─── Local sub-component ─────────────────────────────────────────────────────
 function TxSummaryCard({ label, value, tone }: { label: string; value: string; tone: 'success' | 'danger' | 'neutral' }) {
   const styles = {
-    success: { bg: '#d0f0e4', color: '#0a4f35' },
-    danger:  { bg: 'var(--color-m3-error-container)', color: 'var(--color-m3-on-error-container)' },
-    neutral: { bg: 'var(--color-m3-surface-container)', color: 'var(--color-m3-on-surface)' },
+    success: { bg: 'var(--color-s-surface)', color: 'var(--color-s-primary)' },
+    danger:  { bg: 'var(--color-s-surface)', color: 'var(--color-s-danger)' },
+    neutral: { bg: 'var(--color-s-surface-muted)', color: 'var(--color-s-text)' },
   };
   const s = styles[tone];
   return (
-    <div className="rounded-2xl px-4 py-4" style={{ background: s.bg }}>
-      <p className="text-xs uppercase tracking-wider font-medium opacity-70" style={{ color: s.color }}>{label}</p>
-      <p className="mt-2 text-xl font-bold" style={{ fontFamily: 'var(--font-headline)', color: s.color }}>{value}</p>
+    <div className="px-5 py-5 flex flex-col justify-center" style={{ background: s.bg }}>
+      <p className="text-[10px] uppercase tracking-widest font-bold opacity-70" style={{ color: 'var(--color-s-text-light)' }}>{label}</p>
+      <p className="mt-2 text-3xl font-light tracking-tight" style={{ fontFamily: 'var(--font-headline)', color: s.color }}>{value}</p>
     </div>
   );
 }
