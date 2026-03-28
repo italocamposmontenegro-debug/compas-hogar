@@ -255,15 +255,12 @@ export function TransactionsPage() {
           </p>
         </div>
         {canWrite && (
-          <button
-            type="button"
+          <Button
+            icon={<Plus className="h-4 w-4" />}
             onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition cursor-pointer hover:opacity-90"
-            style={{ background: C.primary, color: C.onPrimary }}
           >
-            <Plus className="h-4 w-4" />
             Nuevo
-          </button>
+          </Button>
         )}
       </div>
 
