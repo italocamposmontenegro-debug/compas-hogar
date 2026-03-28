@@ -176,16 +176,16 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-10">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
-      <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.8rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
-        <div className="flex items-center justify-between p-10 lg:p-14 pb-6">
-          <h2 className="text-xl font-bold tracking-tight text-(--color-s-text)" style={{ fontFamily: 'var(--font-headline)' }}>
+      <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.5rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
+        <div className="relative flex items-center justify-center p-12 lg:p-16 pb-8">
+          <h2 className="text-xl font-bold tracking-tight text-(--color-s-text) text-center" style={{ fontFamily: 'var(--font-headline)' }}>
             {title}
           </h2>
-          <button onClick={onClose} className="text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
+          <button onClick={onClose} className="absolute right-10 lg:right-16 top-1/2 -translate-y-1/2 text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
             <X className="h-6 w-6" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-10 lg:px-14 pb-14">
+        <div className="flex-1 overflow-y-auto px-14 lg:px-24 pb-16">
           <div className="max-w-full">
             {children}
           </div>

@@ -400,20 +400,22 @@ export function TransactionsPage() {
         size="lg"
       >
         <div className="space-y-10">
-          <div className="flex gap-3 p-1.5 bg-black/5 rounded-[2rem]">
-            {(['expense', 'income'] as const).map(t => (
-              <button key={t} onClick={() => setFormType(t)}
-                className="flex-1 py-3 text-sm font-bold rounded-[1.6rem] transition-all cursor-pointer shadow-sm border border-transparent"
-                style={formType === t
-                  ? t === 'income'
-                    ? { background: C.successBg, color: C.successText, border: `1px solid ${C.successBg}` }
-                    : { background: C.errorContainer, color: C.onErrorContainer, border: `1px solid ${C.errorContainer}` }
-                  : { background: 'transparent', color: C.onSurfaceVariant, border: `1px solid transparent`, boxShadow: 'none' }
-                }
-              >
-                {t === 'income' ? 'Ingreso' : 'Gasto'}
-              </button>
-            ))}
+          <div className="flex justify-center">
+            <div className="flex gap-3 p-1.5 bg-black/5 rounded-[2rem] w-full max-w-sm">
+              {(['expense', 'income'] as const).map(t => (
+                <button key={t} onClick={() => setFormType(t)}
+                  className="flex-1 py-3 text-sm font-bold rounded-[1.6rem] transition-all cursor-pointer shadow-sm border border-transparent"
+                  style={formType === t
+                    ? t === 'income'
+                      ? { background: C.successBg, color: C.successText, border: `1px solid ${C.successBg}` }
+                      : { background: C.errorContainer, color: C.onErrorContainer, border: `1px solid ${C.errorContainer}` }
+                    : { background: 'transparent', color: C.onSurfaceVariant, border: `1px solid transparent`, boxShadow: 'none' }
+                  }
+                >
+                  {t === 'income' ? 'Ingreso' : 'Gasto'}
+                </button>
+              ))}
+            </div>
           </div>
           
           <div className="space-y-6">
@@ -473,27 +475,28 @@ export function TransactionsPage() {
               Si este gasto viene de una recurrencia o pago programado, los cambios mantendrán ese enlace actualizado.
             </p>
           )}
-          <div className="flex items-center justify-between pt-10 border-t border-border/40 mt-10">
-            <div>
-              {editingTx && (
-                <button
-                  type="button"
-                  onClick={() => { setShowForm(false); setDeleteId(editingTx.id); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-danger/70 hover:text-danger hover:bg-danger/5 rounded-xl transition-colors cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Eliminar movimiento
-                </button>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-              <Button onClick={handleSave} loading={saving}>
-                {editingTx
+          <div className="flex flex-col items-center gap-10 pt-10 border-t border-border/40 mt-14">
+            <div className="flex items-center justify-center gap-6 w-full">
+              <Button variant="secondary" onClick={() => setShowForm(false)} className="min-w-[140px]">
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} loading={saving} className="min-w-[180px]">
+                {editingTx 
                   ? (formType === 'income' ? 'Guardar ingreso' : 'Guardar gasto')
                   : (formType === 'income' ? 'Crear ingreso' : 'Crear gasto')}
               </Button>
             </div>
+            
+            {editingTx && (
+              <button
+                type="button"
+                onClick={() => { setShowForm(false); setDeleteId(editingTx.id); }}
+                className="flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-danger/60 hover:text-danger hover:bg-danger/5 rounded-full transition-all cursor-pointer opacity-70 hover:opacity-100"
+              >
+                <Trash2 className="h-4 w-4" />
+                Eliminar este movimiento definitivamente
+              </button>
+            )}
           </div>
         </div>
       </Modal>
