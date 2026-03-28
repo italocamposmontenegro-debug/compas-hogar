@@ -168,17 +168,17 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   if (!open) return null;
 
   const sizes = { 
-    sm: 'max-w-sm', 
-    md: 'max-w-lg', 
-    lg: 'max-w-2xl' 
+    sm: 'max-w-md', 
+    md: 'max-w-xl', 
+    lg: 'max-w-3xl' 
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-10">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
-      <div className={`relative bg-(--color-s-surface-lowest) rounded-[2.2rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
-        <div className="flex items-center justify-between p-10 lg:p-14">
-          <h2 className="text-2xl font-bold tracking-tight text-(--color-s-text)" style={{ fontFamily: 'var(--font-headline)' }}>
+      <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.8rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
+        <div className="flex items-center justify-between p-10 lg:p-14 pb-6">
+          <h2 className="text-xl font-bold tracking-tight text-(--color-s-text)" style={{ fontFamily: 'var(--font-headline)' }}>
             {title}
           </h2>
           <button onClick={onClose} className="text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
