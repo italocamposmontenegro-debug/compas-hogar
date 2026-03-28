@@ -73,7 +73,7 @@ export function InputField({ label, error, hint, className = '', id, ...props }:
       </label>
       <input
         id={inputId}
-        className={`w-full px-6 py-4 rounded-2xl transition-all duration-200 outline-none
+        className={`w-full px-10 py-4 rounded-2xl transition-all duration-200 outline-none
           bg-(--color-s-surface-low) hover:bg-(--color-s-surface-container) focus:bg-(--color-s-surface-lowest)
           focus:shadow-ambient border border-transparent focus:border-(--color-s-border-dark)
           text-sm font-medium text-(--color-s-text) placeholder:text-(--color-s-text-light)/40 ${
@@ -116,7 +116,7 @@ export function SelectField({ label, value, onChange, options, error, placeholde
           id={inputId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full appearance-none px-6 py-4 rounded-2xl transition-all duration-200 outline-none
+          className={`w-full appearance-none px-10 py-4 rounded-2xl transition-all duration-200 outline-none
             bg-(--color-s-surface-low) hover:bg-(--color-s-surface-container) focus:bg-(--color-s-surface-lowest)
             focus:shadow-ambient border border-transparent focus:border-(--color-s-border-dark)
             text-sm font-medium text-(--color-s-text) cursor-pointer ${
@@ -164,7 +164,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
   if (!open) return null;
 
   const sizes = { 
@@ -177,15 +177,12 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-10">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
       <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.5rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
-        <div className="relative flex items-center justify-center p-12 lg:p-16 pb-8">
-          <h2 className="text-xl font-bold tracking-tight text-(--color-s-text) text-center" style={{ fontFamily: 'var(--font-headline)' }}>
-            {title}
-          </h2>
-          <button onClick={onClose} className="absolute right-10 lg:right-16 top-1/2 -translate-y-1/2 text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
+        <div className="relative flex items-center justify-center p-12 lg:p-14 pb-4">
+          <button onClick={onClose} className="absolute right-10 lg:right-14 top-1/2 -translate-y-1/2 text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
             <X className="h-6 w-6" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-14 lg:px-24 pb-16">
+        <div className="flex-1 overflow-y-auto px-14 lg:px-24 pb-24">
           <div className="max-w-full">
             {children}
           </div>

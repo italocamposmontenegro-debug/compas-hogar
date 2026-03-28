@@ -320,7 +320,7 @@ export function AppLayout() {
         </header>
 
         {/* The "Breath" Rule: Top-of-page margins (spacing-20 = 7.5rem / 5rem used for balance) */}
-        <div className="w-full max-w-(--breakpoint-2xl) mx-auto pt-8 lg:pt-16 pb-12 px-8 lg:px-20">
+        <div className="w-full max-w-[1600px] mx-auto pt-8 lg:pt-16 pb-12 px-12 lg:px-40">
           
           {/* Restricted mode banner */}
           {isRestricted && ctaMessage && (
