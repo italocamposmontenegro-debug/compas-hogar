@@ -177,8 +177,8 @@ export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-10">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
       <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.5rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
-        <div className="relative flex items-center justify-center p-12 lg:p-14 pb-4">
-          <button onClick={onClose} className="absolute right-10 lg:right-14 top-1/2 -translate-y-1/2 text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
+        <div className="relative flex items-center justify-center p-14 lg:p-18 pb-6">
+          <button onClick={onClose} className="absolute right-12 lg:right-18 top-12 lg:top-14 text-(--color-s-text-muted) hover:text-(--color-s-text) p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer">
             <X className="h-6 w-6" />
           </button>
         </div>
