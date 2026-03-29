@@ -3,11 +3,12 @@ import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@s
 import { useSearchParams } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { AlertBanner, Button, Card, PlanBadge, UpgradePromptCard } from '../../components/ui';
+import { AlertBanner, Button, PlanBadge, UpgradePromptCard } from '../../components/ui';
 import { trackEvent, trackOnce } from '../../lib/analytics';
 import {
   APP_NAME,
   PUBLIC_PLAN_INFO,
+  SUBSCRIPTION_STATUS_LABELS,
   getFeatureUpgradeCopy,
   mapBillingPlanCodeToTier,
   getPlanName,
@@ -17,8 +18,9 @@ import {
   type PlanTier,
 } from '../../lib/constants';
 import { formatCLP } from '../../utils/format-clp';
+import { formatDateLong } from '../../utils/dates-chile';
 import { supabase } from '../../lib/supabase';
-import { CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle } from 'lucide-react';
 
 export function SubscriptionPage() {
   const { subscription, household, currentMember, refetch } = useHousehold();
@@ -33,11 +35,11 @@ export function SubscriptionPage() {
   const currentPlanName = getPlanName(planTier);
   const currentCycleLabel = billingCycle === 'monthly' ? 'Mensual' : billingCycle === 'yearly' ? 'Anual' : '—';
   const currentPlanPromise = getPlanPromise(planTier);
-  
   const featureUpgrade = useMemo(() => {
     const feature = searchParams.get('feature') as FeatureKey | null;
     return feature ? getFeatureUpgradeCopy(feature) : null;
   }, [searchParams]);
+  const requestedPlan = searchParams.get('plan');
 
   useEffect(() => {
     if (subscription?.billing_cycle) {
@@ -144,7 +146,7 @@ export function SubscriptionPage() {
       });
       if (error) throw error;
       await refetch();
-      setSyncMessage('Tu hogar volvio al plan Free.');
+      setSyncMessage('Tu hogar volvió al plan Free.');
     } catch (error) {
       alert(await resolveSubscriptionError(error));
     } finally {
@@ -206,77 +208,151 @@ export function SubscriptionPage() {
   }, [autoSyncedSubscriptionId, household, isOwner, subscription?.provider_subscription_id, subscription?.status, syncSubscriptionStatus]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-12 lg:space-y-16 animate-in fade-in duration-700">
-      <header className="space-y-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/60">Suscripción</p>
-        <h1 className="display-heading text-4xl lg:text-5xl text-text">Planes</h1>
-        <p className="max-w-2xl text-base leading-relaxed text-text-muted">
-          Elige el nivel de seguimiento que necesita tu hogar.
-        </p>
-      </header>
-
-      <section className="grid gap-10 lg:grid-cols-[1fr_0.8fr]">
-        <div className="space-y-10">
-          <div className="grid gap-4 md:grid-cols-3">
-            <SubscriptionSignal
-              label="Plan actual"
-              value={currentPlanName}
-              description="Tu nivel activo."
-            />
-            <SubscriptionSignal
-              label="Ciclo"
-              value={isActivePaidPlan ? currentCycleLabel : "—"}
-              description="Renovación actual."
-            />
-            <SubscriptionSignal
-              label="Precio"
-              value={subscription?.price_amount_clp ? formatCLP(subscription.price_amount_clp) : "Gratis"}
-              description="Monto vigente."
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-4 items-center">
-            {subscription?.status === 'pending' && isOwner && (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => { void syncSubscriptionStatus(); }} 
-                loading={syncing}
-                className="opacity-80 hover:opacity-100"
-              >
-                Sincronizar estado
-              </Button>
-            )}
-            {!isOwner && (
-              <p className="text-xs font-bold text-text-light/60 uppercase tracking-widest">
-                Solo el dueño puede modificar el plan
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-[2.5rem] border border-border-light bg-surface/40 p-16 lg:p-20 space-y-12 backdrop-blur-sm shadow-xl">
-          <header className="px-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-light/60">Resumen</p>
-          </header>
-          
-          <div className="space-y-10 px-6">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-light/50 mb-3">Etapa actual</p>
-              <p className="text-lg font-bold text-text leading-tight">{currentPlanPromise}</p>
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:gap-8 lg:px-8 lg:py-8">
+      <section className="ui-panel overflow-hidden">
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+          <div className="border-b border-border-light p-6 lg:p-8 xl:border-b-0 xl:border-r xl:border-border-light">
+            <div className="flex flex-wrap items-center gap-3">
+              <PlanBadge>{currentPlanName}</PlanBadge>
+              <span className="text-xs uppercase tracking-[0.18em] text-text-light">
+                {status ? SUBSCRIPTION_STATUS_LABELS[status] : 'Plan Free'}
+              </span>
             </div>
-            
-            <div className="h-px bg-border-light/40 w-full" />
-            
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-light/50 mb-3">Gestión</p>
-              <p className="text-base font-bold text-text-secondary">
-                {isOwner ? "Administra tu plan" : "Solo lectura"}
-              </p>
+
+            <h1 className="mt-4 max-w-xl text-[clamp(1.9rem,2.3vw,2.45rem)] font-semibold tracking-[-0.04em] text-text">
+              Plan y dirección del hogar
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+              {currentPlanPromise} Desde aquí ves en qué etapa está el hogar y qué nivel de seguimiento conviene activar para el mes.
+            </p>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <SubscriptionSignal
+                label="Plan actual"
+                value={currentPlanName}
+                description={planTier === 'free' ? 'Visibilidad básica y hábito inicial.' : PUBLIC_PLAN_INFO[planTier].promise}
+              />
+              <SubscriptionSignal
+                label="Ciclo"
+                value={isActivePaidPlan ? currentCycleLabel : '—'}
+                description={isActivePaidPlan ? 'La renovación sigue este ciclo.' : 'No hay ciclo de cobro activo.'}
+              />
+              <SubscriptionSignal
+                label="Precio"
+                value={subscription?.price_amount_clp ? formatCLP(subscription.price_amount_clp) : 'Gratis'}
+                description={subscription?.current_period_end ? `Vigente hasta ${formatDateLong(subscription.current_period_end)}` : 'Puedes empezar gratis y subir después.'}
+              />
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              {isActivePaidPlan && isOwner ? (
+                <Button variant="secondary" onClick={handleDowngradeToFree} loading={loading}>
+                  Volver a Free
+                </Button>
+              ) : (
+                <Button variant="primary" onClick={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                  Ver planes
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
+              {subscription?.status === 'pending' && isOwner && (
+                <Button variant="secondary" onClick={() => { void syncSubscriptionStatus(); }} loading={syncing}>
+                  Sincronizar estado
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-bg/55 p-6 lg:p-8">
+            <div className="grid gap-4">
+              <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Lectura rápida</p>
+                <p className="mt-3 text-lg font-semibold tracking-tight text-text">{currentPlanPromise}</p>
+                <ul className="mt-4 space-y-3">
+                  {PUBLIC_PLAN_INFO[planTier].featureHighlights.slice(0, 3).map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-text-secondary">
+                      <CheckCircle className="mt-1 h-4 w-4 shrink-0 text-primary-lighter" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Gestión</p>
+                <p className="mt-3 text-base font-semibold tracking-tight text-text">{isOwner ? 'Administra tu plan desde aquí' : 'Solo el owner puede cambiarlo'}</p>
+                <p className="mt-3 text-sm leading-7 text-text-muted">
+                  {isOwner
+                    ? `Puedes subir, bajar o sincronizar la suscripción de ${APP_NAME} sin salir del flujo del hogar.`
+                    : 'Puedes revisar el estado del plan y su valor actual, pero el cambio de suscripción lo hace el owner del hogar.'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {!isOwner && (
+        <AlertBanner type="info" message="Solo el owner puede cambiar la suscripción." />
+      )}
+
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Progresión del hogar</p>
+            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+              {planTier === 'free'
+                ? 'El hogar ya empezó con una lectura básica.'
+                : planTier === 'essential'
+                  ? 'El hogar ya tiene orden operativo real.'
+                  : 'El hogar ya está en la etapa más alta disponible.'}
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-text-muted">
+              {planTier === 'free'
+                ? 'El siguiente salto natural es Esencial cuando el hogar ya necesita categorías propias, seguimiento más claro y más de una meta para sostener el mes.'
+                : planTier === 'essential'
+                  ? 'El siguiente salto natural es Estratégico cuando ya no basta con registrar: conviene anticiparse, comparar y decidir con más contexto.'
+                  : 'Ahora el foco no está en subir de plan, sino en aprovechar mejor la proyección, las alertas y las recomendaciones para conducir el hogar con continuidad.'}
+            </p>
+          </div>
+
+          <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Siguiente paso útil</p>
+            <p className="mt-3 text-base font-semibold tracking-tight text-text">
+              {planTier === 'free'
+                ? 'Subir a Esencial cuando el mes ya pide más seguimiento.'
+                : planTier === 'essential'
+                  ? 'Subir a Estratégico cuando el hogar necesita anticiparse.'
+                  : 'Mantener continuidad y usar mejor las señales del mes.'}
+            </p>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              {planTier === 'strategic'
+                ? 'Revisa con frecuencia las alertas, la proyección y la comparación mensual para convertir continuidad en criterio.'
+                : 'La suscripción no es solo un cobro. Es la etapa desde la que el hogar puede ordenar mejor o decidir mejor.'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {featureUpgrade && (
+        <UpgradePromptCard
+          badge={featureUpgrade.badge}
+          title={featureUpgrade.title}
+          description={featureUpgrade.description}
+          highlights={featureUpgrade.highlights}
+          actionLabel={featureUpgrade.actionLabel || 'Ver planes'}
+          onAction={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          compact
+          trackingContext={`subscription-feature-${searchParams.get('feature') || 'unknown'}`}
+        />
+      )}
+
+      {!featureUpgrade && requestedPlan && (requestedPlan === 'essential' || requestedPlan === 'strategic') && (
+        <AlertBanner
+          type="info"
+          message={`Actualiza a ${getPlanName(requestedPlan as PlanTier)} para desbloquear esta función.`}
+        />
+      )}
 
       {syncMessage && (
         <AlertBanner
@@ -286,161 +362,17 @@ export function SubscriptionPage() {
         />
       )}
 
-      <section className="space-y-8">
-        <header className="max-w-2xl">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-light/60 px-1">Estado del plan</p>
-          <h2 className="display-heading mt-4 text-2xl lg:text-3xl text-text px-1">
-            {planTier === 'free'
-              ? 'Base activa'
-              : planTier === 'essential'
-                ? 'Seguimiento ampliado'
-                : 'Nivel más completo'}
-          </h2>
-          <p className="mt-3 text-sm text-text-muted leading-relaxed px-1">
-            {planTier === 'free'
-              ? 'Estructura inicial del hogar para registrar ingresos y gastos básicos.'
-              : planTier === 'essential'
-                ? 'Control operativo diario con categorías personalizadas y múltiples metas.'
-                : 'Visión estratégica total con proyecciones y alertas preventivas.'}
-          </p>
-        </header>
-
-        {featureUpgrade && (
-          <UpgradePromptCard
-            badge={featureUpgrade.badge}
-            title={featureUpgrade.title}
-            description={featureUpgrade.description}
-            highlights={featureUpgrade.highlights}
-            actionLabel={featureUpgrade.actionLabel || 'Ver planes'}
-            onAction={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            compact
-            trackingContext={`subscription-feature-${searchParams.get('feature') || 'unknown'}`}
-          />
-        )}
-      </section>
-
-      <section id="planes-disponibles" className="space-y-10 lg:space-y-16 pt-8 border-t border-border-light">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3 px-1">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/60">Compara planes</p>
-            <h2 className="display-heading text-3xl lg:text-4xl text-text">Elige tu plan</h2>
-            <p className="text-base text-text-muted max-w-lg">
-              Empieza simple o activa más control.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 p-1 bg-surface-low rounded-2xl border border-border-light self-start">
-            <button
-              onClick={() => setAnnual(false)}
-              className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${!annual ? 'bg-surface-lowest text-text shadow-sm' : 'text-text-light/50 hover:text-text'}`}
-            >
-              Mensual
-            </button>
-            <button
-              onClick={() => setAnnual(true)}
-              className={`px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${annual ? 'bg-surface-lowest text-text shadow-sm' : 'text-text-light/50 hover:text-text'}`}
-            >
-              Anual
-              <span className="text-[9px] px-1.5 py-0.5 bg-success/10 text-success rounded-md font-black">Ahorra</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-3">
-          {(['free', 'essential', 'strategic'] as const).map((tier: PlanTier) => {
-            const plan = PUBLIC_PLAN_INFO[tier];
-            const price = annual ? plan.prices.yearly : plan.prices.monthly;
-            const isCurrent = tier === planTier && (tier === 'free' || (isActivePaidPlan && billingCycle === (annual ? 'yearly' : 'monthly')));
-            
-            const labels = { free: "Inicio", essential: "Recomendado", strategic: "Más completo" };
-            const phrases = { 
-              free: "Orden básico del mes", 
-              essential: "Más control cotidiano", 
-              strategic: "Seguimiento y anticipación" 
-            };
-            const descriptions = {
-              free: "Para registrar y entender lo esencial.",
-              essential: "Categorías, reparto y metas con más claridad.",
-              strategic: "Comparación, proyección y alertas para decidir mejor."
-            };
-
-            return (
-              <Card 
-                key={tier} 
-                className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-[3rem] ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
-              >
-                <div className="p-14 lg:p-16 space-y-12 flex-1">
-                  <header className="space-y-8">
-                    <div className="flex items-center justify-between px-8">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70">{labels[tier]}</p>
-                      {isCurrent && <PlanBadge>Actual</PlanBadge>}
-                      {!isCurrent && tier === 'essential' && <PlanBadge>Recomendado</PlanBadge>}
-                    </div>
-                    <h3 className="display-heading text-4xl text-text px-8">{plan.name}</h3>
-                  </header>
-
-                  <div className="space-y-4 px-8">
-                    <p className="text-base font-bold text-text leading-snug">{phrases[tier]}</p>
-                    <p className="text-sm text-text-muted leading-relaxed line-clamp-2">
-                      {descriptions[tier]}
-                    </p>
-                  </div>
-
-                  <div className="py-10 border-y border-border-light/30 mx-8">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black tracking-tight text-text">
-                        {price === null ? 'Gratis' : formatCLP(price)}
-                      </span>
-                      {price !== null && (
-                        <span className="text-sm font-bold text-text-light/50">
-                          /{annual ? 'año' : 'mes'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ul className="space-y-5 pt-4 px-8">
-                    {plan.featureHighlights.map((feature) => (
-                      <li key={feature} className="flex items-start gap-4">
-                        <CheckCircle className="h-5 w-5 shrink-0 text-text-light/40 mt-1" />
-                        <span className="text-base font-medium text-text-secondary leading-tight">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-14 lg:p-16 pt-0">
-                  {isCurrent ? (
-                    <Button variant="secondary" className="w-full h-14 opacity-60" disabled>
-                      Plan actual
-                    </Button>
-                  ) : tier === 'free' ? (
-                    <Button
-                      variant="secondary"
-                      className="w-full h-14 font-black"
-                      onClick={handleDowngradeToFree}
-                      loading={loading}
-                      disabled={!isOwner || !isActivePaidPlan}
-                    >
-                      Volver a Free
-                    </Button>
-                  ) : (
-                    <Button
-                      variant={tier === 'strategic' ? 'primary' : 'secondary'}
-                      className="w-full h-14 font-black text-base"
-                      onClick={() => plan.billingPlanCode && handleSelectPlan(plan.billingPlanCode as BillingPlanCode)}
-                      loading={loading}
-                      disabled={!isOwner}
-                    >
-                      {isActivePaidPlan ? `Cambiar a ${plan.name}` : `Elegir ${plan.name}`}
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+      {planTier === 'free' && (
+        <UpgradePromptCard
+          badge="Disponible al subir de plan"
+          title="Free sirve para partir. El siguiente salto es ordenar el mes."
+          description="Sube a Esencial si ya necesitas categorías propias, reparto y múltiples metas. Sube a Estratégico si además quieres comparación, proyección y alertas."
+          highlights={['Categorías personalizadas', 'Calendario completo', 'Comparación y proyección']}
+          actionLabel="Ver planes"
+          onAction={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          trackingContext="subscription-free-upgrade"
+        />
+      )}
 
       {subscription?.status === 'pending' && isOwner && (
         <AlertBanner
@@ -449,6 +381,61 @@ export function SubscriptionPage() {
           action={{ label: syncing ? 'Sincronizando...' : 'Sincronizar ahora', onClick: () => { void syncSubscriptionStatus(); } }}
         />
       )}
+
+      <section id="planes-disponibles" className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Planes disponibles</p>
+            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+              {isActivePaidPlan ? 'Cambia tu plan' : 'Elige un plan para comenzar'}
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-text-muted">
+              Free sirve para empezar con claridad. Esencial ordena el funcionamiento cotidiano del hogar. Estratégico añade anticipación, alertas y mejor criterio para decidir.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-bg/80 px-1 py-1">
+              <button
+                type="button"
+                onClick={() => setAnnual(false)}
+                className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${!annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
+              >
+                Mensual
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnnual(true)}
+                className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
+              >
+                Anual
+              </button>
+            </div>
+            <span className="text-xs font-medium text-text-muted">Ahorra al pagar anual</span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
+          {(['free', 'essential', 'strategic'] as const).map((tier: PlanTier) => {
+            const plan = PUBLIC_PLAN_INFO[tier];
+            return (
+              <PlanOptionCard
+                key={tier}
+                tier={tier}
+                plan={plan}
+                annual={annual}
+                billingCycle={billingCycle}
+                currentPlanTier={planTier}
+                isActivePaidPlan={isActivePaidPlan}
+                isOwner={isOwner}
+                loading={loading}
+                onDowngrade={handleDowngradeToFree}
+                onSelect={handleSelectPlan}
+              />
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
@@ -463,13 +450,140 @@ function SubscriptionSignal({
   description: string;
 }) {
   return (
-    <div className="rounded-[3rem] border border-border-light bg-surface/30 p-16 lg:p-20 space-y-8 backdrop-blur-xs min-h-[220px] flex flex-col justify-center">
-      <div className="px-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-light/50">{label}</p>
-      </div>
-      <div className="space-y-4 px-8">
-        <p className="text-3xl font-black text-text tracking-tighter">{value}</p>
-        <p className="text-xs text-text-muted leading-tight max-w-[180px]">{description}</p>
+    <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">{label}</p>
+      <p className="mt-3 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">{value}</p>
+      <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
+    </div>
+  );
+}
+
+function PlanOptionCard({
+  tier,
+  plan,
+  annual,
+  billingCycle,
+  currentPlanTier,
+  isActivePaidPlan,
+  isOwner,
+  loading,
+  onDowngrade,
+  onSelect,
+}: {
+  tier: PlanTier;
+  plan: (typeof PUBLIC_PLAN_INFO)[PlanTier];
+  annual: boolean;
+  billingCycle: 'monthly' | 'yearly' | null;
+  currentPlanTier: PlanTier;
+  isActivePaidPlan: boolean;
+  isOwner: boolean;
+  loading: boolean;
+  onDowngrade: () => Promise<void>;
+  onSelect: (plan: BillingPlanCode) => Promise<void>;
+}) {
+  const price = annual ? plan.prices.yearly : plan.prices.monthly;
+  const currentCycle = annual ? 'yearly' : 'monthly';
+  const isCurrent = tier === currentPlanTier && (tier === 'free' || billingCycle === currentCycle);
+  const billingPlanCode = plan.billingPlanCode as BillingPlanCode | null;
+  const metaLabel =
+    tier === 'free' ? 'Primer paso' : tier === 'essential' ? 'Orden operativo' : 'Más visión';
+  const badge =
+    isCurrent
+      ? 'Actual'
+      : tier === 'essential'
+        ? 'Más razonable'
+        : tier === 'strategic'
+          ? 'Premium'
+          : null;
+  const description =
+    tier === 'free'
+      ? 'Empieza con una vista simple del mes, una meta visible y los movimientos esenciales.'
+      : tier === 'essential'
+        ? 'Suma categorías propias, seguimiento más claro y una operación mensual mejor conducida.'
+        : 'Añade comparación, alertas y proyección para decidir con más anticipación.';
+
+  return (
+    <div
+      className={`ui-panel overflow-hidden ${
+        tier === 'essential'
+          ? 'border-primary/35 bg-linear-to-br from-primary-bg/28 to-surface shadow-[0_16px_36px_rgba(23,59,69,0.08)]'
+          : tier === 'strategic'
+            ? 'border-border bg-linear-to-br from-bg to-surface'
+            : 'border-border bg-surface'
+      }`}
+    >
+      <div className="flex h-full flex-col p-6 lg:p-7">
+        <div className="flex min-h-[28px] items-start justify-between gap-3">
+          <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-text-light">
+            {metaLabel}
+          </p>
+          <div className="shrink-0 whitespace-nowrap">
+            {badge ? <PlanBadge>{badge}</PlanBadge> : <span className="inline-block h-7" />}
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <h3 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-text">{plan.name}</h3>
+          <p className="mt-2 text-sm font-medium text-primary">{plan.promise}</p>
+        </div>
+
+        <div className="mt-4">
+          <p className="max-w-sm text-sm leading-6 text-text-muted">{description}</p>
+        </div>
+
+        <div className="mt-5 border-t border-border pt-5">
+          <div className="flex items-end gap-1.5">
+            <span className="text-4xl font-semibold tracking-[-0.04em] text-text">
+              {price === null ? 'Gratis' : formatCLP(price)}
+            </span>
+            {price !== null && (
+              <span className="pb-1 text-sm text-text-muted">/{annual ? 'año' : 'mes'}</span>
+            )}
+          </div>
+          {annual && price !== null && (
+            <p className="mt-2 text-xs font-medium text-text-muted">
+              Ahorras {formatCLP(plan.savings.yearly)} al año
+            </p>
+          )}
+        </div>
+
+        <ul className="mt-5 space-y-3">
+          {plan.featureHighlights.map((feature) => (
+            <li key={feature} className="flex items-start gap-3">
+              <CheckCircle className="mt-1 h-4 w-4 shrink-0 text-primary-lighter" />
+              <span className="text-sm leading-6 text-text-secondary">{feature}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6">
+          {isCurrent ? (
+            <Button variant="secondary" className="w-full" disabled>
+              Plan actual
+            </Button>
+          ) : tier === 'free' ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={onDowngrade}
+              loading={loading}
+              disabled={!isOwner || !isActivePaidPlan}
+            >
+              Volver a Free
+            </Button>
+          ) : (
+            <Button
+              variant={tier === 'strategic' ? 'primary' : 'secondary'}
+              className="w-full"
+              onClick={() => billingPlanCode && onSelect(billingPlanCode)}
+              loading={loading}
+              disabled={!isOwner}
+            >
+              {isActivePaidPlan ? `Cambiar a ${plan.name}` : `Elegir ${plan.name}`}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
