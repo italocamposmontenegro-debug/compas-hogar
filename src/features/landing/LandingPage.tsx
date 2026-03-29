@@ -5,13 +5,13 @@ import {
   ArrowRight,
   CheckCircle2,
   CircleDollarSign,
-  Home,
   Sparkles,
   Target,
   Users,
 } from 'lucide-react';
 import { Button, PlanBadge } from '../../components/ui';
-import { APP_NAME, PUBLIC_PLAN_INFO, type PlanTier } from '../../lib/constants';
+import { BrandLogo } from '../../components/ui/BrandLogo';
+import { PUBLIC_PLAN_INFO, type PlanTier } from '../../lib/constants';
 import { trackEvent } from '../../lib/analytics';
 import { formatCLP } from '../../utils/format-clp';
 
@@ -52,13 +52,8 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border bg-surface/92 backdrop-blur-md">
         <div className="page-shell flex items-center justify-between py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
-              <Home className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-semibold text-text">{APP_NAME}</p>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Control financiero del hogar</p>
-            </div>
+            <BrandLogo mode="icon" className="h-8 w-8 sm:hidden" />
+            <BrandLogo mode="full" className="hidden h-8 w-auto sm:block" />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -76,6 +71,9 @@ export function LandingPage() {
         <section className="page-shell pt-8 lg:pt-12">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,520px)] lg:items-center xl:gap-14">
             <div className="min-w-0 lg:pr-3">
+              <div className="flex justify-center lg:justify-start">
+                <BrandLogo mode="full" className="h-10 w-auto" />
+              </div>
               <div className="eyebrow">
                 <Sparkles className="h-4 w-4" />
                 Claridad, control y seguimiento real

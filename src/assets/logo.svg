@@ -1,0 +1,21 @@
+<svg width="380" height="120" viewBox="0 0 380 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- símbolo -->
+  <g>
+    <!-- círculo -->
+    <circle cx="60" cy="60" r="44" stroke="#14454a" stroke-width="4"></circle>
+
+    <!-- techo -->
+    <path d="M44 58 L60 42 L76 58" stroke="#14454a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <!-- eje -->
+    <line x1="60" y1="42" x2="60" y2="78" stroke="#14454a" stroke-width="4" stroke-linecap="round"></line>
+
+    <!-- aguja -->
+    <polygon points="60,36 66,50 60,47 54,50" fill="#dcc399"></polygon>
+  </g>
+
+  <!-- texto -->
+  <text x="130" y="70" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="30" fill="#1c1c18" font-weight="500" letter-spacing="0.5">
+    Compás Hogar
+  </text>
+</svg>

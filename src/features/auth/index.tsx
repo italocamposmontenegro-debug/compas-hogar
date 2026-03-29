@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Home, Shield, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, Shield, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { AlertBanner, Button, InputField } from '../../components/ui';
-import { APP_NAME, APP_TAGLINE } from '../../lib/constants';
+import { BrandLogo } from '../../components/ui/BrandLogo';
+import { APP_TAGLINE } from '../../lib/constants';
 import { trackEvent } from '../../lib/analytics';
 import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
 
@@ -44,14 +45,8 @@ function AuthLayout({
               <Sparkles className="h-4 w-4" />
               Claridad compartida para el hogar
             </div>
-            <div className="mt-8 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
-                <Home className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-text">{APP_NAME}</p>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Sistema de claridad compartida</p>
-              </div>
+            <div className="mt-8 flex justify-center">
+              <BrandLogo mode="full" className="h-11 w-auto" />
             </div>
             <h1 className="section-heading mt-8 max-w-[11ch] text-[clamp(2.35rem,4vw,4rem)] text-text">
               Una entrada clara y confiable al hogar.
@@ -76,14 +71,8 @@ function AuthLayout({
         <section className="mx-auto flex w-full max-w-lg items-center justify-center lg:max-w-none">
           <div className="ui-panel w-full p-5 sm:p-8 lg:p-9">
             <div className="mb-8 lg:hidden">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
-                  <Home className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-text">{APP_NAME}</p>
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Control financiero del hogar</p>
-                </div>
+              <div className="flex justify-center">
+                <BrandLogo mode="full" className="h-10 w-auto" />
               </div>
             </div>
 

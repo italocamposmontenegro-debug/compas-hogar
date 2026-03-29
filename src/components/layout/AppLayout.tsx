@@ -8,7 +8,6 @@ import {
   CreditCard,
   FileSpreadsheet,
   GitCompare,
-  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -26,6 +25,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { AlertBanner, PlanBadge } from '../ui';
+import { BrandLogo } from '../ui/BrandLogo';
 import type { FeatureKey } from '../../lib/constants';
 
 type NavItem = {
@@ -141,12 +141,9 @@ export function AppLayout() {
         >
           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-3 px-1 pb-4`}>
             <div className={`flex min-w-0 items-center gap-3 ${sidebarCollapsed ? 'hidden lg:flex lg:flex-col lg:items-center' : ''}`}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
-                <Home className="h-5 w-5" />
-              </div>
+              <BrandLogo mode={sidebarCollapsed ? 'icon' : 'full'} className={sidebarCollapsed ? 'h-8 w-8' : 'h-8 w-auto'} />
               {!sidebarCollapsed ? (
                 <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-text">Compás Hogar</p>
                   <p className="truncate text-[11px] uppercase tracking-[0.16em] text-text-light">
                     {household?.name || 'Mi hogar'}
                   </p>
@@ -252,7 +249,7 @@ export function AppLayout() {
                   <Menu className="h-5 w-5" />
                 </button>
                 <div>
-                  <p className="text-base font-semibold text-text">Compás Hogar</p>
+                  <BrandLogo mode="icon" className="h-8 w-8" />
                   <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">
                     {household?.name || 'Mi hogar'}
                   </p>
