@@ -8,7 +8,6 @@ import { trackEvent, trackOnce } from '../../lib/analytics';
 import {
   APP_NAME,
   PUBLIC_PLAN_INFO,
-  SUBSCRIPTION_STATUS_LABELS,
   getFeatureUpgradeCopy,
   mapBillingPlanCodeToTier,
   getPlanName,
@@ -18,9 +17,8 @@ import {
   type PlanTier,
 } from '../../lib/constants';
 import { formatCLP } from '../../utils/format-clp';
-import { formatDateLong } from '../../utils/dates-chile';
 import { supabase } from '../../lib/supabase';
-import { ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 export function SubscriptionPage() {
   const { subscription, household, currentMember, refetch } = useHousehold();
@@ -35,11 +33,11 @@ export function SubscriptionPage() {
   const currentPlanName = getPlanName(planTier);
   const currentCycleLabel = billingCycle === 'monthly' ? 'Mensual' : billingCycle === 'yearly' ? 'Anual' : '—';
   const currentPlanPromise = getPlanPromise(planTier);
+  
   const featureUpgrade = useMemo(() => {
     const feature = searchParams.get('feature') as FeatureKey | null;
     return feature ? getFeatureUpgradeCopy(feature) : null;
   }, [searchParams]);
-  const requestedPlan = searchParams.get('plan');
 
   useEffect(() => {
     if (subscription?.billing_cycle) {
@@ -257,21 +255,21 @@ export function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-border-light bg-surface/40 p-10 lg:p-12 space-y-8 backdrop-blur-sm">
-          <header>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-light/60">Resumen</p>
+        <div className="rounded-3xl border border-border-light bg-surface/40 p-12 lg:p-14 space-y-8 backdrop-blur-sm">
+          <header className="px-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-light/60">Resumen</p>
           </header>
           
-          <div className="space-y-6">
+          <div className="space-y-6 px-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Etapa actual</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Etapa actual</p>
               <p className="text-base font-bold text-text leading-tight">{currentPlanPromise}</p>
             </div>
             
             <div className="h-px bg-border-light/50 w-full" />
             
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Gestión</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Gestión</p>
               <p className="text-sm font-bold text-text-secondary">
                 {isOwner ? "Administra tu plan" : "Solo lectura"}
               </p>
@@ -290,15 +288,15 @@ export function SubscriptionPage() {
 
       <section className="space-y-8">
         <header className="max-w-2xl">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-light/60">Estado del plan</p>
-          <h2 className="display-heading mt-4 text-2xl lg:text-3xl text-text">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-light/60 px-1">Estado del plan</p>
+          <h2 className="display-heading mt-4 text-2xl lg:text-3xl text-text px-1">
             {planTier === 'free'
               ? 'Base activa'
               : planTier === 'essential'
                 ? 'Seguimiento ampliado'
                 : 'Nivel más completo'}
           </h2>
-          <p className="mt-3 text-sm text-text-muted leading-relaxed">
+          <p className="mt-3 text-sm text-text-muted leading-relaxed px-1">
             {planTier === 'free'
               ? 'Estructura inicial del hogar para registrar ingresos y gastos básicos.'
               : planTier === 'essential'
@@ -323,7 +321,7 @@ export function SubscriptionPage() {
 
       <section id="planes-disponibles" className="space-y-10 lg:space-y-16 pt-8 border-t border-border-light">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
+          <div className="space-y-3 px-1">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/60">Compara planes</p>
             <h2 className="display-heading text-3xl lg:text-4xl text-text">Elige tu plan</h2>
             <p className="text-base text-text-muted max-w-lg">
@@ -369,26 +367,26 @@ export function SubscriptionPage() {
             return (
               <Card 
                 key={tier} 
-                className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
+                className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-3xl ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
               >
                 <div className="p-10 lg:p-12 space-y-10 flex-1">
                   <header className="space-y-6">
-                    <div className="flex items-center justify-between px-1">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">{labels[tier]}</p>
+                    <div className="flex items-center justify-between px-6">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70">{labels[tier]}</p>
                       {isCurrent && <PlanBadge>Actual</PlanBadge>}
                       {!isCurrent && tier === 'essential' && <PlanBadge>Recomendado</PlanBadge>}
                     </div>
-                    <h3 className="display-heading text-3xl text-text">{plan.name}</h3>
+                    <h3 className="display-heading text-3xl text-text px-6">{plan.name}</h3>
                   </header>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 px-6">
                     <p className="text-sm font-bold text-text leading-snug">{phrases[tier]}</p>
                     <p className="text-sm text-text-muted leading-relaxed line-clamp-2">
                       {descriptions[tier]}
                     </p>
                   </div>
 
-                  <div className="py-6 border-y border-border-light/30">
+                  <div className="py-6 border-y border-border-light/30 mx-6">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black tracking-tight text-text">
                         {price === null ? 'Gratis' : formatCLP(price)}
@@ -401,7 +399,7 @@ export function SubscriptionPage() {
                     </div>
                   </div>
 
-                  <ul className="space-y-4 pt-2">
+                  <ul className="space-y-4 pt-2 px-6">
                     {plan.featureHighlights.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <CheckCircle className="h-4 w-4 shrink-0 text-text-light/40 mt-0.5" />
@@ -465,10 +463,12 @@ function SubscriptionSignal({
   description: string;
 }) {
   return (
-    <div className="rounded-[1.8rem] border border-border-light bg-surface/30 p-8 lg:p-10 space-y-5 backdrop-blur-xs">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-light/50">{label}</p>
-      <div className="space-y-2">
-        <p className="text-2xl font-black text-text tracking-tight">{value}</p>
+    <div className="rounded-3xl border border-border-light bg-surface/30 p-10 lg:p-12 space-y-6 backdrop-blur-xs">
+      <div className="px-4">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-light/50">{label}</p>
+      </div>
+      <div className="space-y-3 px-4">
+        <p className="text-xl font-black text-text tracking-tight">{value}</p>
         <p className="text-xs text-text-muted leading-tight">{description}</p>
       </div>
     </div>
