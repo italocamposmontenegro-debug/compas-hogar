@@ -1,12 +1,8 @@
-// ============================================
-// Casa Clara — Dashboard Page — Stitch M3 Edition
-// ============================================
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Button, PlanBadge } from '../../components/ui';
+import { Button, PlanBadge, UpgradePromptCard } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { syncRecurringItems } from '../../lib/recurring';
 import { trackOnce } from '../../lib/analytics';
@@ -16,29 +12,15 @@ import { calculateTrafficLight, type TrafficLightResult } from '../../utils/traf
 import { buildFinancialInsights, type FinancialInsightsResult, type InsightAction } from '../../utils/financial-insights';
 import type { Category, PaymentCalendarItem, SavingsGoal, Transaction } from '../../types/database';
 import { getFeatureUpgradeCopy } from '../../lib/constants';
-import { ArrowRight, TrendingUp, TrendingDown, CalendarClock, Sparkles } from 'lucide-react';
-
-// ─── M3 CSS variable aliases ────────────────────────────────────────────────
-const C = {
-  surface:              'var(--color-s-surface-lowest)',
-  surfaceLow:           'var(--color-s-bg)',
-  surfaceHigh:          'var(--color-s-surface-container)',
-  surfaceHighest:       'var(--color-s-surface-low)',
-  outline:              'var(--color-s-border)',
-  onSurface:            'var(--color-s-text)',
-  onSurfaceVariant:     'var(--color-s-text-muted)',
-  primary:              'var(--color-s-primary)',
-  onPrimary:            'var(--color-s-on-primary)',
-  primaryContainer:     'var(--color-s-surface-container)',
-  onPrimaryContainer:   'var(--color-s-text)',
-  secondaryContainer:   'var(--color-s-surface-low)',
-  onSecondaryContainer: 'var(--color-s-primary)',
-  error:                'var(--color-s-danger)',
-  errorContainer:       'var(--color-s-danger-bg)',
-  onErrorContainer:     'var(--color-s-danger)',
-  fontHeadline:         'var(--font-headline)',
-  fontSans:             'var(--font-body)',
-};
+import {
+  AlertTriangle,
+  CalendarClock,
+  CircleDollarSign,
+  PiggyBank,
+  Target,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 
 export function DashboardPage() {
   const { household, members } = useHousehold();
@@ -46,24 +28,24 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { year, month } = getCurrentMonthYear();
   const { start, end } = getMonthRange(year, month);
-  const prevYear  = month === 1 ? year - 1 : year;
+  const prevYear = month === 1 ? year - 1 : year;
   const prevMonth = month === 1 ? 12 : month - 1;
   const { start: prevStart, end: prevEnd } = getMonthRange(prevYear, prevMonth);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [payments,     setPayments]     = useState<PaymentCalendarItem[]>([]);
-  const [primaryGoal,  setPrimaryGoal]  = useState<SavingsGoal | null>(null);
-  const [light,        setLight]        = useState<TrafficLightResult | null>(null);
-  const [insights,     setInsights]     = useState<FinancialInsightsResult>({ alerts: [], recommendations: [] });
+  const [payments, setPayments] = useState<PaymentCalendarItem[]>([]);
+  const [primaryGoal, setPrimaryGoal] = useState<SavingsGoal | null>(null);
+  const [light, setLight] = useState<TrafficLightResult | null>(null);
+  const [insights, setInsights] = useState<FinancialInsightsResult>({ alerts: [], recommendations: [] });
 
-  const showDashboardFull    = hasFeature('dashboard_full');
+  const showDashboardFull = hasFeature('dashboard_full');
   const showMonthlyProjection = hasFeature('monthly_projection');
-  const showFinancialHealth  = hasFeature('insights_financial_health');
-  const showSmartAlerts      = hasFeature('smart_alerts');
-  const showRecommendations  = hasFeature('recommendations');
-  const showSplitSummary     = hasFeature('split_manual') && showDashboardFull;
-  const canManageCalendar    = hasFeature('calendar_full');
-  const canSyncRecurring     = hasFeature('recurring_transactions');
+  const showFinancialHealth = hasFeature('insights_financial_health');
+  const showSmartAlerts = hasFeature('smart_alerts');
+  const showRecommendations = hasFeature('recommendations');
+  const showSplitSummary = hasFeature('split_manual') && showDashboardFull;
+  const canManageCalendar = hasFeature('calendar_full');
+  const canSyncRecurring = hasFeature('recurring_transactions');
 
   useEffect(() => {
     if (!household) return;
@@ -99,7 +81,7 @@ export function DashboardPage() {
 
       if (cancelled) return;
 
-      const txs  = (txRes.data  || []) as Transaction[];
+      const txs = (txRes.data || []) as Transaction[];
       const prevTxs = (prevTxRes.data || []) as Transaction[];
       const cats = (catRes.data || []) as Category[];
       const pays = (payRes.data || []) as PaymentCalendarItem[];
@@ -109,23 +91,25 @@ export function DashboardPage() {
       setPayments(pays);
       setPrimaryGoal(goal);
 
-      const totalIncomeAmount  = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount_clp, 0);
-      const totalExpenseAmount = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount_clp, 0);
+      const totalIncomeAmount = txs.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount_clp, 0);
+      const totalExpenseAmount = txs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount_clp, 0);
 
       setLight(calculateTrafficLight(totalIncomeAmount, totalExpenseAmount, pays, goal, month));
       setInsights(buildFinancialInsights({
-        currentTransactions:  txs,
+        currentTransactions: txs,
         previousTransactions: prevTxs,
-        upcomingPayments:     pays,
-        primaryGoal:          goal,
-        categories:           cats,
-        currentYear:          year,
-        currentMonth:         month,
+        upcomingPayments: pays,
+        primaryGoal: goal,
+        categories: cats,
+        currentYear: year,
+        currentMonth: month,
       }));
     };
 
     void loadDashboardData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [canSyncRecurring, household, month, prevEnd, prevStart, start, end, year]);
 
   useEffect(() => {
@@ -138,12 +122,11 @@ export function DashboardPage() {
     );
   }, [household, planTier]);
 
-  // ─── Derived values ──────────────────────────────────────
-  const totalIncome    = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount_clp, 0);
-  const totalExpenses  = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount_clp, 0);
-  const balance        = totalIncome - totalExpenses;
-  const pendingPayments    = payments.filter(p => p.status === 'pending' || p.status === 'overdue');
-  const totalPendingAmount = pendingPayments.reduce((s, p) => s + p.amount_clp, 0);
+  const totalIncome = transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount_clp, 0);
+  const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount_clp, 0);
+  const balance = totalIncome - totalExpenses;
+  const pendingPayments = payments.filter((p) => p.status === 'pending' || p.status === 'overdue');
+  const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + p.amount_clp, 0);
   const projectedClose = balance - totalPendingAmount;
   const currentMonthParam = `${year}-${String(month).padStart(2, '0')}`;
   const hasTransactions = transactions.length > 0;
@@ -151,21 +134,23 @@ export function DashboardPage() {
     ? Math.round((primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100)
     : 0;
 
-  const urgentAlerts      = showSmartAlerts
-    ? insights.alerts.filter(a => a.severity === 'danger' || a.severity === 'warning').slice(0, 3)
+  const urgentAlerts = showSmartAlerts
+    ? insights.alerts.filter((a) => a.severity === 'danger' || a.severity === 'warning').slice(0, 3)
     : [];
   const firstRecommendation = showRecommendations ? insights.recommendations[0] : null;
-  const dashboardUpgrade    = getFeatureUpgradeCopy('dashboard_full');
-  const strategicUpgrade    = getFeatureUpgradeCopy('monthly_projection');
-  const compactUpgrade      = !showDashboardFull ? dashboardUpgrade : !showMonthlyProjection ? strategicUpgrade : null;
+  const dashboardUpgrade = getFeatureUpgradeCopy('dashboard_full');
+  const strategicUpgrade = getFeatureUpgradeCopy('monthly_projection');
+  const compactUpgrade = !showDashboardFull ? dashboardUpgrade : !showMonthlyProjection ? strategicUpgrade : null;
 
-  const memberContributions = members.map(member => {
-    const sharedTx = transactions.filter(t => t.type === 'expense' && t.scope === 'shared' && t.paid_by_member_id === member.id);
-    return { name: member.display_name, total: sharedTx.reduce((s, t) => s + t.amount_clp, 0) };
+  const memberContributions = members.map((member) => {
+    const sharedTx = transactions.filter(
+      (t) => t.type === 'expense' && t.scope === 'shared' && t.paid_by_member_id === member.id,
+    );
+    return { name: member.display_name, total: sharedTx.reduce((sum, t) => sum + t.amount_clp, 0) };
   });
-  const sharedTotal    = memberContributions.reduce((s, c) => s + c.total, 0);
-  const splitSummary   = showSplitSummary && sharedTotal > 0
-    ? memberContributions.map(m => `${m.name}: ${formatCLP(m.total)}`).join(' · ')
+  const sharedTotal = memberContributions.reduce((sum, c) => sum + c.total, 0);
+  const splitSummary = showSplitSummary && sharedTotal > 0
+    ? memberContributions.map((m) => `${m.name}: ${formatCLP(m.total)}`).join(' · ')
     : null;
 
   function openInsightAction(action?: InsightAction) {
@@ -184,107 +169,108 @@ export function DashboardPage() {
       navigate(`/app/movimientos?${params.toString()}`);
       return;
     }
-    if (action.target === 'comparison') { navigate('/app/comparacion'); return; }
-    if (action.target === 'goals')       { navigate('/app/metas'); }
+    if (action.target === 'comparison') {
+      navigate('/app/comparacion');
+      return;
+    }
+    if (action.target === 'goals') {
+      navigate('/app/metas');
+    }
   }
 
-  // ─── Render ───────────────────────────────────────────────
   return (
-    <div className="space-y-8 lg:space-y-12 animate-in fade-in duration-700">
-
-      {/* ── Page header ──────────────────────────────────── */}
-      <header className="flex flex-col items-center justify-center text-center gap-8 py-10">
-        <div>
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
-            <PlanBadge>{planName}</PlanBadge>
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: C.onSurfaceVariant }}>
-              {formatMonthYear(year, month)}
-            </span>
+    <div className="app-page max-w-7xl">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <PlanBadge>{planName}</PlanBadge>
+              <span className="text-xs uppercase tracking-[0.18em] text-text-light">
+                {formatMonthYear(year, month)}
+              </span>
+            </div>
+            <h1 className="mt-4 max-w-2xl text-[clamp(1.95rem,2.7vw,2.8rem)] font-semibold tracking-[-0.04em] text-text">
+              Control del hogar
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+              Una lectura clara del mes para saber cómo está el hogar, qué requiere atención y dónde conviene actuar ahora.
+            </p>
           </div>
-          <h1
-            className="text-5xl lg:text-7xl font-bold tracking-tight mb-6"
-            style={{ fontFamily: C.fontHeadline, color: C.onSurface, lineHeight: 1.05 }}
-          >
-            Orden del mes
-          </h1>
-          <p className="text-[13px] max-w-sm mx-auto leading-relaxed opacity-50" style={{ color: C.onSurfaceVariant }}>
-            Resumen de actividad y estado del mes.
-          </p>
-        </div>
-        <Button size="lg" onClick={() => navigate('/app/movimientos?create=expense')}>
-          Registrar movimiento
-        </Button>
-      </header>
 
-      {/* ── Top summary cards (3-up) ─────────────────────── */}
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate('/app/movimientos?create=expense')}>
+              Registrar movimiento
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/app/calendario')}>
+              Ver calendario
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
-        <M3SummaryCard
-          label="Saldo actual"
+        <DashboardSummaryCard
+          label="Saldo del mes"
           value={formatCLP(balance)}
-          note={balance >= 0 ? 'Mes en terreno positivo' : 'Mes en terreno negativo'}
+          note={balance >= 0 ? 'Disponible después de gastos registrados' : 'El gasto ya superó el ingreso registrado'}
           tone={balance >= 0 ? 'success' : 'danger'}
-          icon={balance >= 0 ? TrendingUp : TrendingDown}
+          icon={balance >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
           onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}`)}
         />
-        <M3SummaryCard
-          label="Pagos abiertos"
+        <DashboardSummaryCard
+          label="Pagos por cubrir"
           value={formatCLP(totalPendingAmount)}
-          note={pendingPayments.length > 0 ? `${pendingPayments.length} por revisar` : 'Sin pagos pendientes'}
+          note={pendingPayments.length > 0 ? `${pendingPayments.length} pago(s) por revisar` : 'Sin pagos pendientes este mes'}
           tone={pendingPayments.length > 0 ? 'warning' : 'neutral'}
-          icon={CalendarClock}
+          icon={<CalendarClock className="h-4 w-4" />}
           onClick={() => navigate(`/app/calendario${pendingPayments.length > 0 ? '?status=pending' : ''}`)}
         />
-        <M3SummaryCard
-          label="Gasto del mes"
-          value={formatCLP(totalExpenses)}
-          note="Abrir movimientos"
-          tone="neutral"
-          icon={TrendingDown}
-          onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=expense`)}
+        <DashboardSummaryCard
+          label={showMonthlyProjection ? 'Cierre estimado' : 'Gasto del mes'}
+          value={formatCLP(showMonthlyProjection ? projectedClose : totalExpenses)}
+          note={showMonthlyProjection ? 'Saldo proyectado al cierre con pagos pendientes' : 'Total de gastos registrados hasta hoy'}
+          tone={showMonthlyProjection && projectedClose < 0 ? 'danger' : showMonthlyProjection ? 'success' : 'neutral'}
+          icon={showMonthlyProjection ? <PiggyBank className="h-4 w-4" /> : <CircleDollarSign className="h-4 w-4" />}
+          onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : `/app/movimientos?month=${currentMonthParam}&type=expense`)}
         />
       </section>
 
-      {/* ── Main 2-col section ───────────────────────────── */}
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-
-        {/* Atención hoy */}
-        <M3Card>
-          <div className="flex flex-col items-center justify-center text-center gap-3 mb-12">
-            {pendingPayments.length > 0 && (
-              <span
-                className="inline-flex items-center justify-center text-xs font-bold w-10 h-10 rounded-full shadow-ambient animate-bounce mb-2"
-                style={{ background: C.error, color: C.onPrimary }}
-              >
-                {pendingPayments.length}
-              </span>
-            )}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
-                Atención inmediata
-              </p>
-              <h2 className="mt-1 text-3xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+        <div className="ui-panel overflow-hidden p-6 lg:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Atención inmediata</p>
+              <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
                 Qué requiere atención hoy
               </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+                Lo urgente aparece primero para que el hogar actúe antes de que el mes se desordene.
+              </p>
             </div>
+            {showFinancialHealth && light && (
+              <span className={getTrafficLightClass(light.status)}>
+                {light.label}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-1">
+          <div className="mt-6 space-y-3">
             {pendingPayments.length > 0 ? (
-              pendingPayments.slice(0, 3).map(payment => (
-                <M3ActionRow
+              pendingPayments.slice(0, 3).map((payment) => (
+                <AttentionRow
                   key={payment.id}
-                  label={payment.description}
+                  title={payment.description}
                   detail={`${payment.status === 'overdue' ? 'Vencido' : 'Pendiente'} · ${payment.due_date}`}
                   value={formatCLP(payment.amount_clp)}
-                  tone={payment.status === 'overdue' ? 'danger' : 'neutral'}
+                  tone={payment.status === 'overdue' ? 'danger' : 'warning'}
                   onClick={() => navigate(canManageCalendar ? `/app/calendario?itemId=${payment.id}&mode=edit` : '/app/calendario')}
                 />
               ))
             ) : urgentAlerts.length > 0 ? (
-              urgentAlerts.map(alert => (
-                <M3ActionRow
+              urgentAlerts.map((alert) => (
+                <AttentionRow
                   key={alert.id}
-                  label={alert.title}
+                  title={alert.title}
                   detail={alert.message}
                   value={alert.severity === 'danger' ? 'Alta' : 'Media'}
                   tone={alert.severity === 'danger' ? 'danger' : 'warning'}
@@ -292,182 +278,189 @@ export function DashboardPage() {
                 />
               ))
             ) : firstRecommendation ? (
-              <M3ActionRow
-                label={firstRecommendation.title}
+              <AttentionRow
+                title={firstRecommendation.title}
                 detail={firstRecommendation.message}
                 value="Sugerencia"
                 tone="neutral"
                 onClick={() => openInsightAction(firstRecommendation.action)}
               />
             ) : !hasTransactions ? (
-              <M3EmptyState
-                title="Sin movimientos"
-                description="Registra el primer ingreso o gasto para ver el resumen del mes."
-                actionLabel="Registrar"
+              <DashboardEmptyBlock
+                title="Todavía no hay lectura del mes"
+                description="Registra el primer ingreso o gasto para convertir el hogar en una referencia útil."
+                actionLabel="Registrar movimiento"
                 onAction={() => navigate('/app/movimientos?create=expense')}
               />
             ) : !primaryGoal ? (
-              <M3EmptyState
-                title="Sin metas activas"
-                description="Define una dirección para el margen disponible del mes."
+              <DashboardEmptyBlock
+                title="Todavía no hay una meta principal"
+                description="Define una dirección para que el margen del mes no quede sin criterio."
                 actionLabel="Crear meta"
                 onAction={() => navigate('/app/metas?create=1')}
               />
             ) : (
-              <M3EmptyState
-                title="Al día"
-                description="No hay acciones pendientes. El hogar está bajo control."
-                actionLabel="Ver detalles"
+              <DashboardEmptyBlock
+                title="Todo está al día"
+                description="No hay alertas urgentes. Este es un buen momento para revisar metas o cerrar mejor el mes."
+                actionLabel="Ver resumen"
                 onAction={() => navigate('/app/resumen')}
               />
             )}
           </div>
-        </M3Card>
+        </div>
 
-        {/* Panorama del mes */}
-        <M3Card>
-          <div className="flex flex-col items-center justify-center text-center gap-3 mb-12">
-            {showFinancialHealth && light && (
-              <span className={`traffic-light traffic-light-${light.status === 'order' ? 'order' : light.status === 'tension' ? 'tension' : 'risk'} mb-2`}>
-                {light.label}
-              </span>
-            )}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
-                Panorama mensual
-              </p>
-              <h2 className="mt-1 text-3xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
-                Estado del mes
-              </h2>
-            </div>
+        <div className="ui-panel overflow-hidden p-6 lg:p-7">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Panorama del mes</p>
+            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+              Cómo va el hogar
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              Ingresos, gastos y señales clave del mes en una sola lectura.
+            </p>
           </div>
 
-          <div className="space-y-1">
-            <M3MetricRow
+          <div className="mt-6 space-y-3">
+            <MetricRow
               label="Ingresos registrados"
               value={formatCLP(totalIncome)}
               onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=income`)}
             />
-            <M3MetricRow
+            <MetricRow
               label="Gastos registrados"
               value={formatCLP(totalExpenses)}
               onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=expense`)}
             />
-            <M3MetricRow
+            <MetricRow
               label="Resultado actual"
               value={formatCLP(balance)}
-              emphasis={balance >= 0}
+              valueTone={balance >= 0 ? 'success' : 'danger'}
               onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}`)}
             />
-            {showMonthlyProjection ? (
-              <M3MetricRow
-                label="Cierre estimado"
-                value={formatCLP(projectedClose)}
-                emphasis={true}
-                onClick={() => navigate('/app/comparacion')}
-              />
-            ) : (
-              <M3MetricRow
-                label="Análisis del mes"
-                value="Ver resumen"
-                onClick={() => navigate('/app/resumen')}
-              />
-            )}
+            <MetricRow
+              label={showMonthlyProjection ? 'Cierre estimado' : 'Resumen detallado'}
+              value={showMonthlyProjection ? formatCLP(projectedClose) : 'Abrir vista'}
+              valueTone={showMonthlyProjection && projectedClose < 0 ? 'danger' : showMonthlyProjection ? 'success' : 'neutral'}
+              onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : '/app/resumen')}
+            />
           </div>
+
+          {showFinancialHealth && light && (
+            <div className="mt-5 rounded-2xl border border-border bg-bg/75 px-5 py-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Salud del mes</p>
+              <p className="mt-2 text-base font-semibold tracking-tight text-text">{light.label}</p>
+              <p className="mt-2 text-sm leading-6 text-text-muted">
+                {light.reasons[0]}
+              </p>
+            </div>
+          )}
 
           {splitSummary && (
             <button
               type="button"
               onClick={() => navigate('/app/reparto')}
-              className="mt-12 block w-full rounded-[2rem] p-8 text-center transition-all cursor-pointer hover:bg-black/5"
-              style={{ background: C.surfaceHigh }}
+              className="mt-5 w-full rounded-2xl border border-border bg-bg/75 px-5 py-4 text-left transition-colors hover:bg-surface-hover cursor-pointer"
             >
-              <p className="text-[10px] uppercase tracking-[0.16em] font-bold opacity-60 mb-3" style={{ color: C.onSurfaceVariant }}>
-                Reparto del hogar
-              </p>
-              <p className="text-base leading-relaxed font-medium" style={{ color: C.onSurface }}>{splitSummary}</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Reparto del hogar</p>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">{splitSummary}</p>
             </button>
           )}
-
-          {compactUpgrade && (
-            <div
-              className="mt-8 rounded-2xl p-6 transition-all hover:shadow-ambient"
-              style={{ background: 'var(--color-s-surface-low)' }}
-            >
-              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.badge}</p>
-              <p className="text-sm leading-relaxed mb-4 opacity-80" style={{ color: C.onSecondaryContainer }}>{compactUpgrade.description}</p>
-              <button
-                type="button"
-                onClick={() => navigate(compactUpgrade.route)}
-                className="inline-flex items-center gap-2 text-sm font-bold cursor-pointer group"
-                style={{ color: C.primary }}
-              >
-                {compactUpgrade.actionLabel || 'Explorar planes'} 
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-          )}
-        </M3Card>
+        </div>
       </section>
 
-      {/* ── Primary goal card ────────────────────────────── */}
-      <div className="rounded-[2rem] p-8 lg:p-12 transition-all hover:shadow-ambient" style={{ background: C.surface }}>
-        <div className="flex justify-between items-start mb-10">
-          <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>
-            {primaryGoal ? 'Objetivo Central' : 'Sin metas activas'}
-          </p>
-          {primaryGoal && (
-            <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(20, 69, 74, 0.08)', color: C.primary }}>
-              {primaryGoalProgress}% completado
-            </span>
-          )}
-        </div>
-        
-        {primaryGoal ? (
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col items-center justify-center text-center gap-6">
-               <div className="min-w-0">
-                  <h2 className="text-lg font-bold mb-4 opacity-70" style={{ color: C.onSurface }}>
-                    {primaryGoal.name}
-                  </h2>
-                  <span className="text-2xl lg:text-3xl font-bold tracking-tighter block mb-6 px-12" style={{ color: C.primary, fontFamily: C.fontHeadline }}>
-                    {formatCLP(primaryGoal.current_amount_clp)}
-                  </span>
-               </div>
-               <Button variant="secondary" onClick={() => navigate('/app/metas')}>Administrar metas</Button>
-            </div>
-            
-            <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-s-surface-low)' }}>
-              <div
-                className="h-full transition-all duration-1000 ease-out"
-                style={{
-                  width: `${Math.min(100, (primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100)}%`,
-                  background: C.primary,
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-6">
-            <p className="text-lg max-w-sm leading-relaxed" style={{ color: C.onSurfaceVariant }}>
-              Define una dirección para el margen disponible del mes.
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-center">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">
+              {primaryGoal ? 'Meta principal' : 'Dirección del ahorro'}
             </p>
-            <Button onClick={() => navigate('/app/metas?create=1')}>Crear meta</Button>
-          </div>
-        )}
-      </div>
+            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+              {primaryGoal ? primaryGoal.name : 'Todavía no hay una meta principal'}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              {primaryGoal
+                ? `Lleva ${formatCLP(primaryGoal.current_amount_clp)} de ${formatCLP(primaryGoal.target_amount_clp)}.`
+                : 'Definir una meta ayuda a convertir el excedente del mes en una decisión concreta.'}
+            </p>
 
-      {/* ── Quick actions ─────────────────────────────────── */}
-      <section>
-        <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60 mb-6" style={{ color: C.onSurfaceVariant }}>
-          Acciones rápidas
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <M3QuickAction label="Registrar gasto o ingreso" onClick={() => navigate('/app/movimientos?create=expense')} />
-          <M3QuickAction label="Calendario de pagos" onClick={() => navigate('/app/calendario')} />
-          <M3QuickAction label="Ver metas de ahorro" onClick={() => navigate('/app/metas')} />
-          <M3QuickAction
-            label={showMonthlyProjection ? 'Análisis comparativo' : 'Resumen detallado'}
+            {primaryGoal ? (
+              <div className="mt-5">
+                <div className="flex items-end justify-between gap-4">
+                  <span className="text-[2rem] font-semibold tracking-[-0.04em] text-text">
+                    {primaryGoalProgress}%
+                  </span>
+                  <span className="text-sm text-text-muted">completado</span>
+                </div>
+                <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-border-light">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${Math.min(100, primaryGoalProgress)}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button variant="secondary" onClick={() => navigate('/app/metas')}>
+              {primaryGoal ? 'Administrar metas' : 'Crear meta'}
+            </Button>
+            {primaryGoal && (
+              <Button variant="ghost" onClick={() => navigate('/app/resumen')}>
+                Ver resumen del mes
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {compactUpgrade && (
+        <UpgradePromptCard
+          badge={compactUpgrade.badge}
+          title={compactUpgrade.title}
+          description={compactUpgrade.description}
+          highlights={compactUpgrade.highlights}
+          actionLabel={compactUpgrade.actionLabel || 'Explorar plan'}
+          onAction={() => navigate(compactUpgrade.route)}
+          compact
+          trackingContext="dashboard-upgrade"
+        />
+      )}
+
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Acciones rápidas</p>
+            <h2 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
+              Qué conviene hacer ahora
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <QuickActionCard
+            label="Registrar gasto o ingreso"
+            hint="Actualizar el mes"
+            icon={<CircleDollarSign className="h-4 w-4" />}
+            onClick={() => navigate('/app/movimientos?create=expense')}
+          />
+          <QuickActionCard
+            label="Abrir calendario"
+            hint="Revisar vencimientos"
+            icon={<CalendarClock className="h-4 w-4" />}
+            onClick={() => navigate('/app/calendario')}
+          />
+          <QuickActionCard
+            label="Ver metas"
+            hint="Seguir el ahorro"
+            icon={<Target className="h-4 w-4" />}
+            onClick={() => navigate('/app/metas')}
+          />
+          <QuickActionCard
+            label={showMonthlyProjection ? 'Comparar el mes' : 'Abrir resumen'}
+            hint={showMonthlyProjection ? 'Leer proyección y cambios' : 'Revisar cierre actual'}
+            icon={<TrendingUp className="h-4 w-4" />}
             onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : '/app/resumen')}
           />
         </div>
@@ -476,116 +469,102 @@ export function DashboardPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Local UI sub-components (Architectural Editorial design)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function M3Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={`rounded-[2rem] p-10 lg:p-14 transition-all hover:shadow-ambient ${className}`}
-      style={{
-        background: 'var(--color-s-surface-lowest)',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function M3SummaryCard({
-  label, value, note, tone, icon: Icon, onClick,
+function DashboardSummaryCard({
+  label,
+  value,
+  note,
+  tone,
+  icon,
+  onClick,
 }: {
   label: string;
   value: string;
   note: string;
   tone: 'success' | 'warning' | 'danger' | 'neutral';
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ReactNode;
   onClick: () => void;
 }) {
-  const toneStyle: Record<string, { bg: string; color: string; badge: string }> = {
-    success: { bg: 'var(--color-s-surface-lowest)', color: 'var(--color-s-primary)', badge: 'rgba(20, 69, 74, 0.05)' },
-    warning: { bg: 'var(--color-s-surface-low)', color: 'var(--color-s-text)', badge: 'rgba(0,0,0,0.05)' },
-    danger:  { bg: 'var(--color-s-surface-lowest)', color: 'var(--color-s-danger)', badge: 'rgba(186, 26, 26, 0.05)' },
-    neutral: { bg: 'var(--color-s-surface-low)', color: 'var(--color-s-text)', badge: 'rgba(0,0,0,0.05)' },
-  };
-  const ts = toneStyle[tone];
-
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full px-8 py-12 rounded-[2rem] text-center transition-all cursor-pointer group hover:shadow-ambient flex flex-col items-center justify-center"
-      style={{ 
-        background: ts.bg
-      }}
+      className="ui-panel ui-panel-interactive overflow-hidden p-6 text-left w-full cursor-pointer"
     >
-      <div className="flex flex-col items-center gap-4 mb-8">
-        <div className="p-3 rounded-full transition-colors group-hover:bg-white/50" style={{ color: ts.color, background: ts.badge }}>
-          <Icon className="h-5 w-5 shrink-0" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="metric-label">{label}</p>
+          <p className={`metric-value ${getValueToneClass(tone)}`}>{value}</p>
+          <p className="metric-subvalue">{note}</p>
         </div>
-        <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>
-          {label}
-        </p>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
+          {icon}
+        </div>
       </div>
-      <p className="text-2xl font-bold tracking-tighter" style={{ color: ts.color, fontFamily: 'var(--font-headline)' }}>
-        {value}
-      </p>
-      <p className="mt-6 text-[11px] font-medium opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{note}</p>
     </button>
   );
 }
 
-function M3MetricRow({
-  label, value, emphasis = false, onClick,
+function AttentionRow({
+  title,
+  detail,
+  value,
+  tone,
+  onClick,
 }: {
-  label: string;
-  value: string;
-  emphasis?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 w-full py-8 rounded-[2rem] text-center transition-all cursor-pointer hover:bg-black/5"
-    >
-      <span
-        className="text-2xl font-bold tracking-tighter"
-        style={{ color: emphasis ? 'var(--color-s-primary)' : 'var(--color-s-text)', fontFamily: 'var(--font-headline)' }}
-      >
-        {value}
-      </span>
-      <span className="text-xs font-bold uppercase tracking-widest opacity-40 italic" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
-    </button>
-  );
-}
-
-function M3ActionRow({
-  label, detail, value, tone = 'neutral', onClick,
-}: {
-  label: string;
+  title: string;
   detail: string;
   value: string;
-  tone?: 'neutral' | 'warning' | 'danger';
+  tone: 'danger' | 'warning' | 'neutral';
   onClick: () => void;
 }) {
-  const valueColor = tone === 'danger' ? 'var(--color-s-danger)' : tone === 'warning' ? '#92610A' : 'var(--color-s-text)';
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center justify-center gap-3 w-full py-8 rounded-[2rem] text-center transition-all cursor-pointer hover:bg-black/5"
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start gap-4 overflow-hidden p-5 text-left cursor-pointer"
     >
-      <span className="text-base font-bold tracking-tight text-right mt-1" style={{ color: valueColor }}>{value}</span>
-      <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--color-s-text)' }}>{label}</span>
-      <span className="text-[11px] font-medium opacity-50 uppercase tracking-wider" style={{ color: 'var(--color-s-text-muted)' }}>{detail}</span>
+      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${getToneSoftClass(tone)}`}>
+        <AlertTriangle className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-semibold tracking-tight text-text">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-text-muted">{detail}</p>
+      </div>
+      <div className={`shrink-0 text-right text-sm font-semibold ${getValueToneClass(tone)}`}>
+        {value}
+      </div>
     </button>
   );
 }
 
-function M3EmptyState({
-  title, description, actionLabel, onAction,
+function MetricRow({
+  label,
+  value,
+  valueTone = 'neutral',
+  onClick,
+}: {
+  label: string;
+  value: string;
+  valueTone?: 'success' | 'warning' | 'danger' | 'neutral';
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-center justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer"
+    >
+      <span className="text-sm font-medium text-text-secondary">{label}</span>
+      <span className={`text-lg font-semibold tracking-tight ${getValueToneClass(valueTone)}`}>{value}</span>
+    </button>
+  );
+}
+
+function DashboardEmptyBlock({
+  title,
+  description,
+  actionLabel,
+  onAction,
 }: {
   title: string;
   description: string;
@@ -593,40 +572,61 @@ function M3EmptyState({
   onAction: () => void;
 }) {
   return (
-    <div
-      className="rounded-3xl p-8 text-center"
-      style={{ background: 'var(--color-s-surface-low)' }}
-    >
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-white shadow-ambient flex items-center justify-center">
-          <Sparkles className="h-5 w-5" style={{ color: 'var(--color-s-primary)' }} />
-        </div>
-        <div>
-          <p className="text-base font-bold mb-2" style={{ color: 'var(--color-s-text)' }}>{title}</p>
-          <p className="text-sm leading-relaxed opacity-60 max-w-xs mx-auto mb-6" style={{ color: 'var(--color-s-text-muted)' }}>{description}</p>
-          <Button size="sm" onClick={onAction}>
-            {actionLabel}
-          </Button>
-        </div>
+    <div className="ui-panel ui-panel-subtle overflow-hidden p-6">
+      <p className="text-base font-semibold tracking-tight text-text">{title}</p>
+      <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
+      <div className="mt-5">
+        <Button size="sm" onClick={onAction}>
+          {actionLabel}
+        </Button>
       </div>
     </div>
   );
 }
 
-function M3QuickAction({ label, onClick }: { label: string; onClick: () => void }) {
+function QuickActionCard({
+  label,
+  hint,
+  icon,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-between px-6 py-5 rounded-2xl text-left text-sm font-bold transition-all cursor-pointer group hover:bg-white hover:shadow-ambient"
-      style={{
-        background: 'var(--color-s-surface-low)',
-        color: 'var(--color-s-text)',
-      }}
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer"
     >
-      <span className="tracking-tight">{label}</span>
-      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'var(--color-s-text-muted)' }} />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold tracking-tight text-text">{label}</p>
+        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-text-light">{hint}</p>
+      </div>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
+        {icon}
+      </div>
     </button>
   );
 }
 
+function getTrafficLightClass(status: TrafficLightResult['status']) {
+  if (status === 'order') return 'traffic-light traffic-light-order';
+  if (status === 'tension') return 'traffic-light traffic-light-tension';
+  return 'traffic-light traffic-light-risk';
+}
+
+function getValueToneClass(tone: 'success' | 'warning' | 'danger' | 'neutral') {
+  if (tone === 'success') return 'text-success';
+  if (tone === 'warning') return 'text-warning';
+  if (tone === 'danger') return 'text-danger';
+  return 'text-text';
+}
+
+function getToneSoftClass(tone: 'danger' | 'warning' | 'neutral') {
+  if (tone === 'danger') return 'bg-danger-bg text-danger';
+  if (tone === 'warning') return 'bg-warning-bg text-warning';
+  return 'bg-info-bg text-info';
+}

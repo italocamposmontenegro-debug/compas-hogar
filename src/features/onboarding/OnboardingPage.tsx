@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { Button, InputField, Card, AlertBanner } from '../../components/ui';
-import { APP_NAME, SPLIT_RULE_LABELS, SPLIT_RULE_DESCRIPTIONS, type SplitRuleType } from '../../lib/constants';
+import { SPLIT_RULE_LABELS, SPLIT_RULE_DESCRIPTIONS, type SplitRuleType } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 import { trackEvent } from '../../lib/analytics';
 import { Home, ArrowRight, ArrowLeft, Users, DollarSign, Scale, Target, CheckCircle, Link as LinkIcon } from 'lucide-react';

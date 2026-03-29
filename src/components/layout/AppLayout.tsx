@@ -6,7 +6,6 @@ import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { APP_NAME } from '../../lib/constants';
 import { AlertBanner } from '../ui';
 import { PlanBadge } from '../ui';
 import {

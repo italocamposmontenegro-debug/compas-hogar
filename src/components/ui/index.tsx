@@ -143,11 +143,18 @@ export function SelectField({ label, value, onChange, options, error, placeholde
 interface CardProps {
   children: ReactNode;
   className?: string;
+  padding?: 'sm' | 'md' | 'lg';
 }
 
-export function Card({ children, className = '' }: CardProps) {
+export function Card({ children, className = '', padding = 'md' }: CardProps) {
+  const paddings = {
+    sm: 'p-5',
+    md: 'p-8 lg:p-10',
+    lg: 'p-10 lg:p-12',
+  };
+
   return (
-    <div className={`bg-(--color-s-surface-lowest) rounded-[2rem] p-8 lg:p-10 transition-all duration-300 hover:shadow-ambient ${className}`}>
+    <div className={`bg-(--color-s-surface-lowest) rounded-[2rem] transition-all duration-300 hover:shadow-ambient ${paddings[padding]} ${className}`}>
       {children}
     </div>
   );
@@ -164,7 +171,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   if (!open) return null;
 
   const sizes = { 
@@ -175,9 +182,21 @@ export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-10">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
       <div className={`relative bg-(--color-s-surface-lowest) rounded-[1.5rem] shadow-2xl w-full ${sizes[size]} max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-300`}>
-        <div className="relative p-10 lg:p-12 pb-2" />
+        <div className="relative border-b border-border-light px-10 py-6 lg:px-12">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold tracking-tight text-(--color-s-text)">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-(--color-s-text-muted) transition-colors hover:bg-(--color-s-surface-low) hover:text-(--color-s-text) cursor-pointer"
+              aria-label="Cerrar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
         <div className="flex-1 overflow-y-auto px-14 lg:px-24 pb-24">
           <div className="max-w-full">
             {children}
