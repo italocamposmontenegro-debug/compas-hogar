@@ -51,18 +51,18 @@ export function LandingPage() {
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-40 border-b border-border bg-surface/92 backdrop-blur-md">
         <div className="page-shell flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
               <Home className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-lg font-semibold text-text">{APP_NAME}</p>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold text-text">{APP_NAME}</p>
               <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Control financiero del hogar</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/login')} className="hidden sm:inline-flex">
               Iniciar sesión
             </Button>
             <Button size="sm" onClick={() => handlePrimaryCta('header')}>

@@ -73,8 +73,8 @@ function AuthLayout({
           </div>
         </section>
 
-        <section className="mx-auto flex w-full max-w-lg items-center lg:max-w-none">
-          <div className="ui-panel w-full p-6 sm:p-8 lg:p-9">
+        <section className="mx-auto flex w-full max-w-lg items-center justify-center lg:max-w-none">
+          <div className="ui-panel w-full p-5 sm:p-8 lg:p-9">
             <div className="mb-8 lg:hidden">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
@@ -88,7 +88,7 @@ function AuthLayout({
             </div>
 
             <header className="max-w-xl">
-              <h1 className="section-heading text-3xl text-text">{title}</h1>
+              <h1 className="section-heading text-[clamp(2rem,5vw,2.7rem)] text-text">{title}</h1>
               <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
             </header>
             <div className="mt-8">{children}</div>
