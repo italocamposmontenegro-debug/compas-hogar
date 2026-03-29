@@ -1,15 +1,23 @@
-// Casa Clara — Settings Page
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Card, Button, InputField, SelectField, AlertBanner, Modal, ConfirmDialog, UpgradePromptCard } from '../../components/ui';
+import { AlertBanner, Button, Card, ConfirmDialog, InputField, Modal, SelectField, UpgradePromptCard } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { MAX_HOUSEHOLD_MEMBERS, SPLIT_RULE_LABELS, type SplitRuleType } from '../../lib/constants';
-import { Users, Home, Link as LinkIcon, PencilLine, UserMinus } from 'lucide-react';
 import { validateEmail, validateHouseholdName, validateRequired } from '../../utils/validators';
 import type { HouseholdMember } from '../../types/database';
+import {
+  Home,
+  Link as LinkIcon,
+  Mail,
+  PencilLine,
+  PiggyBank,
+  ShieldCheck,
+  UserMinus,
+  Users,
+} from 'lucide-react';
 
 interface PendingInvitationState {
   id: string;
@@ -48,9 +56,10 @@ export function SettingsPage() {
   const splitUpgrade = getUpgradeCopy('split_manual');
   const canManageHouseholdSettings = isOwner;
   const partnerMember = useMemo(
-    () => (isOwner
-      ? members.find((member) => member.role === 'member' && member.invitation_status === 'accepted') ?? null
-      : null),
+    () =>
+      isOwner
+        ? members.find((member) => member.role === 'member' && member.invitation_status === 'accepted') ?? null
+        : null,
     [isOwner, members],
   );
 
@@ -74,11 +83,13 @@ export function SettingsPage() {
     const parsedIncome = income.trim() === '' ? 0 : Number.parseInt(income, 10);
     if (!Number.isFinite(parsedIncome) || parsedIncome < 0) {
       setMsgType('danger');
-      setMsg('Tu ingreso mensual debe ser un numero igual o mayor a 0.');
+      setMsg('Tu ingreso mensual debe ser un número igual o mayor a 0.');
       return;
     }
 
-    setSaving(true); setMsg('');
+    setSaving(true);
+    setMsg('');
+
     try {
       const { error } = await supabase.functions.invoke('manage-household-settings', {
         body: {
@@ -96,6 +107,7 @@ export function SettingsPage() {
       setMsgType('danger');
       setMsg(error instanceof Error ? error.message : 'No pudimos guardar la configuración.');
     }
+
     setSaving(false);
   }
 
@@ -246,7 +258,7 @@ export function SettingsPage() {
 
     if (!Number.isFinite(parsedIncome) || parsedIncome < 0) {
       setMsgType('danger');
-      setMsg('El ingreso mensual debe ser un numero igual o mayor a 0.');
+      setMsg('El ingreso mensual debe ser un número igual o mayor a 0.');
       return;
     }
 
@@ -306,100 +318,135 @@ export function SettingsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-text mb-6">Configuración</h1>
+    <div className="app-page max-w-6xl">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="settings-title">
+        <div className="max-w-3xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Configuración</p>
+          <h1 id="settings-title" className="mt-3 text-[clamp(1.85rem,2.4vw,2.35rem)] font-semibold tracking-[-0.04em] text-text">
+            Ajustes del hogar
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+            Mantén ordenados los datos del hogar, su reparto y quién participa de la cuenta compartida.
+          </p>
+        </div>
+      </section>
 
-      <div className="space-y-6 max-w-2xl">
-        {msg && <AlertBanner type={msgType} message={msg} onClose={() => setMsg('')} />}
+      {msg ? <AlertBanner type={msgType} message={msg} onClose={() => setMsg('')} /> : null}
 
-        <Card>
-          <div className="flex items-center gap-2 mb-4"><Home className="h-5 w-5 text-primary" /><h3 className="font-semibold text-text">Hogar</h3></div>
-          <div className="space-y-4">
-            <InputField label="Nombre del hogar" value={householdName} onChange={e => setHouseholdName(e.target.value)} disabled={!canManageHouseholdSettings} />
-            {canManageSplitRule ? (
-              <SelectField
-                label="Regla de reparto"
-                value={splitRule}
-                onChange={(value) => setSplitRule(value as SplitRuleType)}
-                options={Object.entries(SPLIT_RULE_LABELS).map(([value, label]) => ({
-                  value,
-                  label,
-                }))} />
-            ) : (
-              <>
-                <InputField label="Regla de reparto" value={SPLIT_RULE_LABELS.fifty_fifty} onChange={() => {}} readOnly />
-                <UpgradePromptCard
-                  badge={splitUpgrade.badge}
-                  title={splitUpgrade.title}
-                  description={splitUpgrade.description}
-                  highlights={splitUpgrade.highlights}
-                  actionLabel={splitUpgrade.actionLabel || 'Ver planes'}
-                  onAction={() => navigate(splitUpgrade.route)}
-                  compact
-                />
-              </>
-            )}
-            {!canManageHouseholdSettings && (
-              <AlertBanner
-                type="info"
-                message="Solo el owner puede cambiar el nombre del hogar y la regla de reparto."
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SettingsCard
+          icon={<Home className="h-5 w-5" />}
+          eyebrow="Base del hogar"
+          title="Hogar"
+          description="Nombre y criterio general del reparto."
+        >
+          <InputField
+            label="Nombre del hogar"
+            value={householdName}
+            onChange={(event) => setHouseholdName(event.target.value)}
+            disabled={!canManageHouseholdSettings}
+          />
+
+          {canManageSplitRule ? (
+            <SelectField
+              label="Regla de reparto"
+              value={splitRule}
+              onChange={(value) => setSplitRule(value as SplitRuleType)}
+              options={Object.entries(SPLIT_RULE_LABELS).map(([value, label]) => ({ value, label }))}
+            />
+          ) : (
+            <div className="space-y-4">
+              <InputField label="Regla de reparto" value={SPLIT_RULE_LABELS.fifty_fifty} onChange={() => {}} readOnly />
+              <UpgradePromptCard
+                badge={splitUpgrade.badge}
+                title={splitUpgrade.title}
+                description={splitUpgrade.description}
+                highlights={splitUpgrade.highlights}
+                actionLabel={splitUpgrade.actionLabel || 'Ver planes'}
+                onAction={() => navigate(splitUpgrade.route)}
+                compact
               />
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-2 mb-4"><Users className="h-5 w-5 text-primary" /><h3 className="font-semibold text-text">Nuestro perfil</h3></div>
-          <div className="space-y-4">
-            <InputField label="Nombre visible" value={displayName} onChange={e => setDisplayName(e.target.value)} />
-            <InputField label="Ingreso mensual (CLP)" type="number" value={income} onChange={e => setIncome(e.target.value)} />
-            <InputField label="Email" value={profile?.email || ''} onChange={() => {}} disabled />
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-2 mb-4"><Users className="h-5 w-5 text-primary" /><h3 className="font-semibold text-text">Miembros</h3></div>
-          <ul className="space-y-2">
-            {members.map(m => (
-              <li key={m.id} className="flex items-center justify-between py-2 border-b border-border-light last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-text">{m.display_name}</p>
-                  <p className="text-xs text-text-muted">{m.email} · {m.role}</p>
-                </div>
-                {isOwner && m.role === 'member' && m.invitation_status === 'accepted' && (
-                  <Button size="sm" variant="secondary" onClick={() => openPartnerEditor(m)}>
-                    <PencilLine className="h-4 w-4" /> Editar
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-          {isOwner && !partnerMember && (
-            <p className="mt-4 text-xs text-text-muted">
-              Una vez aceptada la invitación, podrás gestionar sus datos aquí.
-            </p>
-          )}
-        </Card>
-
-        {isOwner && (
-          <Card>
-            <div className="flex items-center gap-2 mb-4">
-              <LinkIcon className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-text">Invitar miembro nuevo</h3>
             </div>
+          )}
 
+          {!canManageHouseholdSettings ? (
+            <AlertBanner
+              type="info"
+              message="Solo el owner puede cambiar el nombre del hogar y la regla de reparto."
+            />
+          ) : null}
+        </SettingsCard>
+
+        <SettingsCard
+          icon={<PiggyBank className="h-5 w-5" />}
+          eyebrow="Tu referencia"
+          title="Tu perfil"
+          description="Datos visibles para reparto y lectura del hogar."
+        >
+          <InputField label="Nombre visible" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+          <InputField label="Ingreso mensual (CLP)" type="number" value={income} onChange={(event) => setIncome(event.target.value)} />
+          <InputField label="Email" value={profile?.email || ''} onChange={() => {}} disabled />
+        </SettingsCard>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <SettingsCard
+          icon={<Users className="h-5 w-5" />}
+          eyebrow="Personas"
+          title="Miembros"
+          description="Quién forma parte del hogar y cómo se muestra en la cuenta."
+        >
+          <div className="space-y-3">
+            {members.map((member) => (
+              <div key={member.id} className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text">{member.display_name}</p>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {member.email} · {member.role}
+                    </p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-text-light">
+                      {member.invitation_status === 'accepted' ? 'Acceso activo' : 'Pendiente'}
+                    </p>
+                  </div>
+                  {isOwner && member.role === 'member' && member.invitation_status === 'accepted' ? (
+                    <Button size="sm" variant="secondary" icon={<PencilLine className="h-3.5 w-3.5" />} onClick={() => openPartnerEditor(member)}>
+                      Editar
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isOwner && !partnerMember ? (
+            <p className="text-sm leading-6 text-text-muted">
+              Cuando otra persona acepte la invitación, podrás gestionar sus datos desde aquí.
+            </p>
+          ) : null}
+        </SettingsCard>
+
+        {isOwner ? (
+          <SettingsCard
+            icon={<Mail className="h-5 w-5" />}
+            eyebrow="Invitación"
+            title="Invitar miembro nuevo"
+            description="Comparte un enlace directo para sumar a otra persona al hogar."
+          >
             {pendingInvitation ? (
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-text">{pendingInvitation.invited_email}</p>
-                  <p className="text-xs text-text-muted">
-                    Invitación pendiente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. Comparte este enlace por el medio que prefieras.
+                <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                  <p className="text-sm font-semibold text-text">{pendingInvitation.invited_email}</p>
+                  <p className="mt-2 text-sm leading-6 text-text-muted">
+                    Invitación pendiente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. Puedes compartir este enlace por el medio que prefieras.
                   </p>
                 </div>
+
                 <InputField label="Enlace de invitación" value={pendingInvitation.invitation_url} onChange={() => {}} readOnly />
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button onClick={copyInvitationLink}>
-                    <LinkIcon className="h-4 w-4" /> Copiar enlace
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Button icon={<LinkIcon className="h-3.5 w-3.5" />} onClick={copyInvitationLink}>
+                    Copiar enlace
                   </Button>
                   <Button variant="secondary" onClick={refreshInvitation} loading={inviteLoading}>
                     Renovar enlace
@@ -410,67 +457,91 @@ export function SettingsPage() {
                 </div>
               </div>
             ) : householdIsFull ? (
-              <p className="text-sm text-text-muted">
-                Tu hogar ya tiene los {MAX_HOUSEHOLD_MEMBERS} miembros permitidos. Si más adelante quieres hacer un cambio, puedes gestionarlo desde la sección de miembros.
-              </p>
+              <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                <p className="text-sm leading-7 text-text-muted">
+                  Tu hogar ya tiene los {MAX_HOUSEHOLD_MEMBERS} miembros permitidos. Si más adelante quieres hacer un cambio, puedes gestionarlo desde la sección de miembros.
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-xs text-text-muted">
+                <p className="text-sm leading-7 text-text-muted">
                   Genera un enlace para sumar a otra persona al hogar.
                 </p>
                 <InputField
                   label="Email"
                   type="email"
                   value={inviteEmail}
-                  onChange={e => setInviteEmail(e.target.value)}
+                  onChange={(event) => setInviteEmail(event.target.value)}
                   placeholder="ej@email.com"
                 />
                 <Button onClick={createInvitation} loading={inviteLoading}>
-                  Invitar
+                  Crear invitación
                 </Button>
               </div>
             )}
-          </Card>
-        )}
-
-        {canWrite && <Button onClick={saveSettings} loading={saving}>Guardar cambios</Button>}
+          </SettingsCard>
+        ) : null}
       </div>
 
+      {canWrite ? (
+        <section className="ui-panel overflow-hidden p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Guardar</p>
+              <p className="mt-2 text-sm leading-7 text-text-muted">
+                Aplica tus cambios cuando termines de revisar esta pantalla.
+              </p>
+            </div>
+            <Button onClick={saveSettings} loading={saving}>
+              Guardar cambios
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       <Modal open={!!editingPartner} onClose={closePartnerEditor} title="Editar miembro" size="sm">
-        <div className="space-y-4">
-          <p className="text-sm text-text-muted">
+        <div className="space-y-5">
+          <p className="text-sm leading-7 text-text-muted">
             Ajusta el nombre visible o el ingreso mensual para mantener el reparto y los reportes al día.
           </p>
-          <p className="text-xs text-text-muted">
-            Si más adelante necesitas hacer un cambio en quién participa del hogar, también puedes resolverlo desde esta misma ventana.
-          </p>
+
           <InputField
             label="Nombre visible"
             value={editingPartnerName}
-            onChange={e => setEditingPartnerName(e.target.value)}
+            onChange={(event) => setEditingPartnerName(event.target.value)}
           />
           <InputField
             label="Ingreso mensual (CLP)"
             type="number"
             min="0"
             value={editingPartnerIncome}
-            onChange={e => setEditingPartnerIncome(e.target.value)}
+            onChange={(event) => setEditingPartnerIncome(event.target.value)}
           />
-          <div className="rounded-[1.2rem] border border-border bg-bg/70 px-4 py-4">
-            <p className="text-sm font-medium text-text">Acceso al hogar</p>
-            <p className="mt-1 text-xs leading-5 text-text-muted">
-              Si esta persona ya no debe seguir usando el hogar, puedes quitar su acceso desde aquí. El historial compartido se mantendrá intacto.
-            </p>
-            <Button
-              variant="ghost"
-              className="mt-3 text-danger hover:bg-danger-bg"
-              onClick={() => setRemovePartnerOpen(true)}
-              disabled={memberActionLoading}
-            >
-              <UserMinus className="h-4 w-4" /> Quitar acceso
-            </Button>
+
+          <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-danger-bg text-danger">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-text">Acceso al hogar</p>
+                <p className="mt-2 text-sm leading-6 text-text-muted">
+                  Si esta persona ya no debe seguir usando el hogar, puedes quitar su acceso desde aquí. El historial compartido se mantendrá intacto.
+                </p>
+                <Button
+                  variant="ghost"
+                  className="mt-4 text-danger hover:border-danger/10 hover:bg-danger-bg hover:text-danger"
+                  icon={<UserMinus className="h-3.5 w-3.5" />}
+                  onClick={() => setRemovePartnerOpen(true)}
+                  disabled={memberActionLoading}
+                >
+                  Quitar acceso
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-end gap-3">
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={closePartnerEditor}>
               Cancelar
             </Button>
@@ -491,5 +562,37 @@ export function SettingsPage() {
         loading={memberActionLoading}
       />
     </div>
+  );
+}
+
+function SettingsCard({
+  icon,
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  icon: ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card padding="lg" className="h-full">
+      <div className="space-y-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">{eyebrow}</p>
+            <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.03em] text-text">{title}</h2>
+            <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
+          </div>
+        </div>
+        <div className="space-y-4">{children}</div>
+      </div>
+    </Card>
   );
 }
