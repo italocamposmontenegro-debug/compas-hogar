@@ -193,25 +193,25 @@ export function DashboardPage() {
     <div className="space-y-8 lg:space-y-12 animate-in fade-in duration-700">
 
       {/* ── Page header ──────────────────────────────────── */}
-      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col items-center justify-center text-center gap-8 py-10">
         <div>
-          <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
             <PlanBadge>{planName}</PlanBadge>
             <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: C.onSurfaceVariant }}>
               {formatMonthYear(year, month)}
             </span>
           </div>
           <h1
-            className="text-4xl lg:text-5xl font-bold tracking-tight"
-            style={{ fontFamily: C.fontHeadline, color: C.onSurface, lineHeight: 1.1 }}
+            className="text-5xl lg:text-7xl font-bold tracking-tight mb-6"
+            style={{ fontFamily: C.fontHeadline, color: C.onSurface, lineHeight: 1.05 }}
           >
             Resumen del hogar
           </h1>
-          <p className="mt-4 text-sm max-w-xl leading-relaxed opacity-70" style={{ color: C.onSurfaceVariant }}>
+          <p className="text-base max-w-2xl mx-auto leading-relaxed opacity-60" style={{ color: C.onSurfaceVariant }}>
             Una lectura simple del mes para saber qué mirar primero y dónde conviene actuar.
           </p>
         </div>
-        <Button onClick={() => navigate('/app/movimientos?create=expense')}>
+        <Button size="lg" onClick={() => navigate('/app/movimientos?create=expense')}>
           Registrar movimiento
         </Button>
       </header>
@@ -249,23 +249,23 @@ export function DashboardPage() {
 
         {/* Atención hoy */}
         <M3Card>
-          <div className="flex items-center justify-between gap-4 mb-8">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
-                Atención inmediata
-              </p>
-              <h2 className="mt-2 text-2xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
-                Qué requiere atención hoy
-              </h2>
-            </div>
+          <div className="flex flex-col items-center justify-center text-center gap-3 mb-12">
             {pendingPayments.length > 0 && (
               <span
-                className="inline-flex items-center justify-center text-xs font-bold w-7 h-7 rounded-full shadow-ambient"
+                className="inline-flex items-center justify-center text-xs font-bold w-10 h-10 rounded-full shadow-ambient animate-bounce mb-2"
                 style={{ background: C.error, color: C.onPrimary }}
               >
                 {pendingPayments.length}
               </span>
             )}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
+                Atención inmediata
+              </p>
+              <h2 className="mt-1 text-3xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
+                Qué requiere atención hoy
+              </h2>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -326,20 +326,20 @@ export function DashboardPage() {
 
         {/* Panorama del mes */}
         <M3Card>
-          <div className="flex items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col items-center justify-center text-center gap-3 mb-12">
+            {showFinancialHealth && light && (
+              <span className={`traffic-light traffic-light-${light.status === 'order' ? 'order' : light.status === 'tension' ? 'tension' : 'risk'} mb-2`}>
+                {light.label}
+              </span>
+            )}
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60" style={{ color: C.onSurfaceVariant }}>
                 Panorama mensual
               </p>
-              <h2 className="mt-2 text-2xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
+              <h2 className="mt-1 text-3xl font-bold" style={{ fontFamily: C.fontHeadline, color: C.onSurface }}>
                 Estado del mes
               </h2>
             </div>
-            {showFinancialHealth && light && (
-              <span className={`traffic-light traffic-light-${light.status === 'order' ? 'order' : light.status === 'tension' ? 'tension' : 'risk'}`}>
-                {light.label}
-              </span>
-            )}
           </div>
 
           <div className="space-y-1">
@@ -379,13 +379,13 @@ export function DashboardPage() {
             <button
               type="button"
               onClick={() => navigate('/app/reparto')}
-              className="mt-8 block w-full rounded-2xl p-6 text-left transition-all cursor-pointer hover:bg-black/5"
+              className="mt-12 block w-full rounded-[2rem] p-8 text-center transition-all cursor-pointer hover:bg-black/5"
               style={{ background: C.surfaceHigh }}
             >
               <p className="text-[10px] uppercase tracking-[0.16em] font-bold opacity-60 mb-3" style={{ color: C.onSurfaceVariant }}>
                 Reparto del hogar
               </p>
-              <p className="text-sm leading-relaxed" style={{ color: C.onSurface }}>{splitSummary}</p>
+              <p className="text-base leading-relaxed font-medium" style={{ color: C.onSurface }}>{splitSummary}</p>
             </button>
           )}
 
@@ -548,15 +548,15 @@ function M3MetricRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-6 px-4 py-4 pr-[25%] rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
+      className="flex flex-col items-center justify-center gap-2 w-full py-8 rounded-[2rem] text-center transition-all cursor-pointer hover:bg-black/5"
     >
-      <span className="text-sm font-medium opacity-70" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
       <span
-        className="text-sm font-bold tracking-tight text-right flex-1 min-w-[120px]"
-        style={{ color: emphasis ? 'var(--color-s-primary)' : 'var(--color-s-text)' }}
+        className="text-4xl font-bold tracking-tighter"
+        style={{ color: emphasis ? 'var(--color-s-primary)' : 'var(--color-s-text)', fontFamily: 'var(--font-headline)' }}
       >
         {value}
       </span>
+      <span className="text-xs font-bold uppercase tracking-widest opacity-40 italic" style={{ color: 'var(--color-s-text-muted)' }}>{label}</span>
     </button>
   );
 }
@@ -575,13 +575,11 @@ function M3ActionRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-start justify-between gap-6 px-4 py-4 pr-[25%] rounded-xl text-left transition-all cursor-pointer hover:bg-black/5"
+      className="flex flex-col items-center justify-center gap-3 w-full py-8 rounded-[2rem] text-center transition-all cursor-pointer hover:bg-black/5"
     >
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold tracking-tight mb-1" style={{ color: 'var(--color-s-text)' }}>{label}</span>
-        <span className="block text-[11px] leading-relaxed opacity-60" style={{ color: 'var(--color-s-text-muted)' }}>{detail}</span>
-      </span>
-      <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-right min-w-[100px] mt-1" style={{ color: valueColor }}>{value}</span>
+      <span className="text-xl font-bold tracking-tight text-right mt-1" style={{ color: valueColor }}>{value}</span>
+      <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--color-s-text)' }}>{label}</span>
+      <span className="text-[11px] font-medium opacity-50 uppercase tracking-wider" style={{ color: 'var(--color-s-text-muted)' }}>{detail}</span>
     </button>
   );
 }
