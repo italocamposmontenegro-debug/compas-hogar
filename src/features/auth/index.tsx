@@ -1,44 +1,44 @@
-// ============================================
-// Casa Clara — Auth Pages
-// ============================================
-
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Home, Shield, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { Button, InputField, AlertBanner } from '../../components/ui';
+import { AlertBanner, Button, InputField } from '../../components/ui';
 import { APP_NAME, APP_TAGLINE } from '../../lib/constants';
 import { trackEvent } from '../../lib/analytics';
 import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
-import { Home, ArrowLeft, Sparkles, Shield, Users } from 'lucide-react';
 
-const AUTH_LAYOUT_TEXTS = {
+const AUTH_TEXTS = {
   login: {
-    eyebrow: 'Bienvenido',
-    title: 'Retoma el orden del hogar.',
-    description: 'Accede para ver el estado de tus cuentas y metas.',
+    title: 'Entra al hogar con claridad.',
+    description: 'Accede para revisar el mes y seguir lo que requiere atención.',
   },
   register: {
-    eyebrow: 'Comienza hoy',
-    title: 'Crea tu hogar con claridad.',
-    description: 'Un solo espacio para ingresos, gastos y acuerdos.',
+    title: 'Crea tu hogar.',
+    description: 'Empieza con una base clara para ingresos, pagos, metas y acuerdos.',
   },
   forgotPassword: {
-    eyebrow: 'Recuperación',
     title: 'Recupera tu acceso.',
-    description: 'Te enviaremos un enlace para recuperar tu clave.',
+    description: 'Te enviaremos un enlace para restablecer tu contraseña.',
   },
   resetPassword: {
-    eyebrow: 'Nueva clave',
-    title: 'Actualiza tu seguridad.',
-    description: 'Elige una contraseña nueva para tu cuenta.',
+    title: 'Define una contraseña nueva.',
+    description: 'Usa una clave segura y vuelve al hogar sin fricción.',
   },
 };
 
-function AuthLayout({ children }: { children: React.ReactNode }) {
+function AuthLayout({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="min-h-screen bg-bg px-4 py-8 lg:px-6 lg:py-10">
-      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
-        <div className="paper-panel hidden rounded-[2.2rem] px-8 py-8 lg:flex lg:flex-col lg:justify-between">
+    <main className="min-h-screen bg-bg px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="ui-panel ui-panel-subtle hidden p-8 lg:flex lg:flex-col lg:justify-between">
           <div>
             <div className="eyebrow">
               <Sparkles className="h-4 w-4" />
@@ -49,55 +49,72 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
                 <Home className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-lg font-bold text-text">{APP_NAME}</p>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Sistema de claridad compartida</p>
+                <p className="text-lg font-semibold text-text">{APP_NAME}</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Sistema de claridad compartida</p>
               </div>
             </div>
-            <h1 className="display-heading mt-8 text-5xl leading-[0.98] text-text">
-              Una entrada serena a la vida cotidiana del hogar.
-            </h1>
-            <p className="mt-5 max-w-md text-base leading-7 text-text-muted">
-              {APP_TAGLINE}
-            </p>
+            <h1 className="section-heading mt-8 text-5xl text-text">Una entrada clara y confiable al hogar.</h1>
+            <p className="mt-5 max-w-md text-base leading-7 text-text-muted">{APP_TAGLINE}</p>
           </div>
 
           <div className="space-y-4">
-            <AuthSignal icon={<Users className="h-4 w-4" />} title="Mismo hogar, misma lectura" description="Cada persona ve el mismo mes, con menos espacio para confusiones y supuestos." />
-            <AuthSignal icon={<Shield className="h-4 w-4" />} title="Orden antes que fricción" description="Empieza con una base clara y suma más visión solo cuando el hogar realmente lo necesite." />
+            <AuthSignal
+              icon={<Users className="h-4 w-4" />}
+              title="La misma lectura para cada persona"
+              description="Menos confusión y más acuerdo sobre lo que está pasando en el hogar."
+            />
+            <AuthSignal
+              icon={<Shield className="h-4 w-4" />}
+              title="Una base sobria y segura"
+              description="Accede, registra y sigue el mes en un entorno claro, estable y fácil de usar."
+            />
           </div>
-        </div>
+        </section>
 
-        <div className="w-full max-w-md lg:max-w-none lg:self-center lg:justify-self-end">
-          <div className="flex items-center justify-center gap-2.5 mb-8 lg:hidden">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <Home className="h-5 w-5 text-white" />
+        <section className="mx-auto flex w-full max-w-lg items-center lg:max-w-none">
+          <div className="ui-panel w-full p-6 sm:p-8">
+            <div className="mb-8 lg:hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
+                  <Home className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-text">{APP_NAME}</p>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Control financiero del hogar</p>
+                </div>
+              </div>
             </div>
-            <span className="text-xl font-bold text-text">{APP_NAME}</span>
+
+            <header>
+              <h1 className="section-heading text-3xl text-text">{title}</h1>
+              <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
+            </header>
+            <div className="mt-8">{children}</div>
           </div>
-          <div className="paper-panel rounded-[2rem] p-8">
-            {children}
-          </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
 
-function AuthSignal({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function AuthSignal({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="rounded-[1.5rem] border border-border bg-white/72 px-4 py-4 shadow-xs">
-      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary-bg text-primary">
-        {icon}
-      </div>
-      <p className="mt-3 text-sm font-semibold text-text">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-text-muted">{description}</p>
+    <div className="ui-panel overflow-hidden p-5">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-bg text-primary">{icon}</div>
+      <h2 className="mt-4 text-lg font-semibold tracking-tight text-text">{title}</h2>
+      <p className="mt-2 text-sm leading-7 text-text-muted">{description}</p>
     </div>
   );
 }
 
-// ============================================
-// Login
-// ============================================
 export function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -109,60 +126,78 @@ export function LoginPage() {
   const redirect = searchParams.get('redirect');
   const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/app/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
 
     const emailCheck = validateEmail(email);
-    if (!emailCheck.valid) return setError(emailCheck.error!);
-    const pwCheck = validatePassword(password);
-    if (!pwCheck.valid) return setError(pwCheck.error!);
+    if (!emailCheck.valid) return setError(emailCheck.error || 'Revisa el email.');
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) return setError(passwordCheck.error || 'Revisa la contraseña.');
 
     setLoading(true);
     try {
       const { error: authError } = await signIn(email, password);
-
       if (authError) {
-        setError(authError === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : authError);
+        setError(authError === 'Invalid login credentials' ? 'Email o contraseña incorrectos.' : authError);
       } else {
         navigate(redirectTarget);
       }
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <AuthLayout>
-      <h2 className="text-xl font-bold text-text mb-2">{AUTH_LAYOUT_TEXTS.login.title}</h2>
-      <p className="text-sm text-text-muted mb-6">{AUTH_LAYOUT_TEXTS.login.description}</p>
+    <AuthLayout title={AUTH_TEXTS.login.title} description={AUTH_TEXTS.login.description}>
+      <div className="space-y-5">
+        {error ? <AlertBanner type="danger" message={error} /> : null}
 
-      {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="tu@email.com"
+            autoComplete="email"
+            required
+          />
+          <InputField
+            label="Contraseña"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            required
+          />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <InputField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
-        <InputField label="Contraseña" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+          <div className="flex justify-end">
+            <Link to="/recuperar-clave" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
 
-        <div className="text-right">
-          <Link to="/recuperar-clave" className="text-xs text-primary hover:text-primary-light">
-            ¿Olvidaste tu contraseña?
+          <Button type="submit" className="w-full" loading={loading}>
+            Iniciar sesión
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-text-muted">
+          ¿No tienes cuenta?{' '}
+          <Link
+            to={`/registro${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Crear cuenta
           </Link>
-        </div>
-
-        <Button type="submit" className="w-full" loading={loading}>Iniciar sesión</Button>
-      </form>
-
-      <p className="text-sm text-text-muted text-center mt-6">
-        ¿No tienes cuenta?{' '}
-        <Link to={`/registro${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary font-medium hover:text-primary-light">Regístrate</Link>
-      </p>
+        </p>
+      </div>
     </AuthLayout>
   );
 }
 
-// ============================================
-// Register
-// ============================================
 export function RegisterPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -176,22 +211,21 @@ export function RegisterPage() {
   const redirect = searchParams.get('redirect');
   const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/onboarding';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
 
     const nameCheck = validateRequired(fullName, 'Tu nombre');
-    if (!nameCheck.valid) return setError(nameCheck.error!);
+    if (!nameCheck.valid) return setError(nameCheck.error || 'Completa tu nombre.');
     const emailCheck = validateEmail(email);
-    if (!emailCheck.valid) return setError(emailCheck.error!);
-    const pwCheck = validatePassword(password);
-    if (!pwCheck.valid) return setError(pwCheck.error!);
+    if (!emailCheck.valid) return setError(emailCheck.error || 'Revisa el email.');
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) return setError(passwordCheck.error || 'Revisa la contraseña.');
 
     trackEvent('signup_started', { source: 'register-page', redirect: redirectTarget });
     setLoading(true);
     try {
       const { error: authError, needsEmailConfirmation } = await signUp(email, password, fullName);
-
       if (authError) {
         setError(authError);
       } else if (needsEmailConfirmation) {
@@ -204,20 +238,21 @@ export function RegisterPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   if (success) {
     return (
-      <AuthLayout>
-        <div className="text-center">
-          <div className="h-16 w-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
-            <Home className="h-8 w-8 text-success" />
-          </div>
-          <h2 className="text-xl font-bold text-text mb-2">Revisa tu correo</h2>
-          <p className="text-sm text-text-muted mb-6">
-            Te enviamos un enlace de verificación a <strong>{email}</strong>.
+      <AuthLayout title="Revisa tu correo." description="Tu cuenta ya quedó creada. Solo falta verificar el email para entrar al hogar.">
+        <div className="rounded-2xl border border-success/18 bg-success-bg px-5 py-5">
+          <p className="text-sm leading-7 text-text-secondary">
+            Enviamos un enlace de verificación a <strong>{email}</strong>.
           </p>
-          <Link to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary text-sm font-medium hover:text-primary-light">
+        </div>
+        <div className="mt-6">
+          <Link
+            to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
             Ir a iniciar sesión
           </Link>
         </div>
@@ -226,31 +261,58 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout>
-      <h2 className="text-xl font-bold text-text mb-2">{AUTH_LAYOUT_TEXTS.register.title}</h2>
-      <p className="text-sm text-text-muted mb-6">{AUTH_LAYOUT_TEXTS.register.description}</p>
+    <AuthLayout title={AUTH_TEXTS.register.title} description={AUTH_TEXTS.register.description}>
+      <div className="space-y-5">
+        {error ? <AlertBanner type="danger" message={error} /> : null}
 
-      {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <InputField
+            label="Nombre completo"
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            placeholder="Ej: Ana Pérez"
+            autoComplete="name"
+            required
+          />
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="tu@email.com"
+            autoComplete="email"
+            required
+          />
+          <InputField
+            label="Contraseña"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            hint="Usa al menos 8 caracteres."
+            autoComplete="new-password"
+            required
+          />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <InputField label="Nombre completo" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Ej: Ana Pérez" />
-        <InputField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
-        <InputField label="Contraseña" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" hint="Mínimo 8 caracteres" />
+          <Button type="submit" className="w-full" loading={loading}>
+            Crear cuenta
+          </Button>
+        </form>
 
-        <Button type="submit" className="w-full" loading={loading}>Crear cuenta</Button>
-      </form>
-
-      <p className="text-sm text-text-muted text-center mt-6">
-        ¿Ya tienes cuenta?{' '}
-        <Link to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary font-medium hover:text-primary-light">Inicia sesión</Link>
-      </p>
+        <p className="text-center text-sm text-text-muted">
+          ¿Ya tienes cuenta?{' '}
+          <Link
+            to={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Iniciar sesión
+          </Link>
+        </p>
+      </div>
     </AuthLayout>
   );
 }
 
-// ============================================
-// Forgot Password
-// ============================================
 export function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
@@ -258,57 +320,61 @@ export function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
 
-    const check = validateEmail(email);
-    if (!check.valid) return setError(check.error!);
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) return setError(emailCheck.error || 'Revisa el email.');
 
     setLoading(true);
     try {
-      const { error: err } = await resetPassword(email);
-
-      if (err) setError(err);
+      const { error: resetError } = await resetPassword(email);
+      if (resetError) setError(resetError);
       else setSent(true);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <AuthLayout>
-      <Link to="/login" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text mb-4">
-        <ArrowLeft className="h-4 w-4" /> Volver
-      </Link>
+    <AuthLayout title={AUTH_TEXTS.forgotPassword.title} description={AUTH_TEXTS.forgotPassword.description}>
+      <div className="space-y-5">
+        <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium text-text-muted underline-offset-4 hover:text-text hover:underline">
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Link>
 
-      {sent ? (
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-text mb-2">Revisa tu correo</h2>
-          <p className="text-sm text-text-muted">
-            Si existe una cuenta con <strong>{email}</strong>, recibirás un enlace para recuperar tu acceso.
-          </p>
-        </div>
-      ) : (
-        <>
-          <h2 className="text-xl font-bold text-text mb-2">{AUTH_LAYOUT_TEXTS.forgotPassword.title}</h2>
-          <p className="text-sm text-text-muted mb-6">{AUTH_LAYOUT_TEXTS.forgotPassword.description}</p>
-
-          {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <InputField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
-            <Button type="submit" className="w-full" loading={loading}>Enviar enlace</Button>
-          </form>
-        </>
-      )}
+        {sent ? (
+          <div className="rounded-2xl border border-success/18 bg-success-bg px-5 py-5">
+            <p className="text-sm leading-7 text-text-secondary">
+              Si existe una cuenta con <strong>{email}</strong>, recibirás un enlace para restablecer el acceso.
+            </p>
+          </div>
+        ) : (
+          <>
+            {error ? <AlertBanner type="danger" message={error} /> : null}
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <InputField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="tu@email.com"
+                autoComplete="email"
+                required
+              />
+              <Button type="submit" className="w-full" loading={loading}>
+                Enviar enlace
+              </Button>
+            </form>
+          </>
+        )}
+      </div>
     </AuthLayout>
   );
 }
 
-// ============================================
-// Reset Password
-// ============================================
 export function ResetPasswordPage() {
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
@@ -317,44 +383,57 @@ export function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
 
-    const check = validatePassword(password);
-    if (!check.valid) return setError(check.error!);
-    if (password !== confirm) return setError('Las contraseñas no coinciden');
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) return setError(passwordCheck.error || 'Revisa la contraseña.');
+    if (password !== confirm) return setError('Las contraseñas no coinciden.');
 
     setLoading(true);
     try {
-      const { error: err } = await updatePassword(password);
-
-      if (err) setError(err);
+      const { error: updateError } = await updatePassword(password);
+      if (updateError) setError(updateError);
       else navigate('/app/dashboard');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <AuthLayout>
-      <h2 className="text-xl font-bold text-text mb-2">{AUTH_LAYOUT_TEXTS.resetPassword.title}</h2>
-      <p className="text-sm text-text-muted mb-6">{AUTH_LAYOUT_TEXTS.resetPassword.description}</p>
+    <AuthLayout title={AUTH_TEXTS.resetPassword.title} description={AUTH_TEXTS.resetPassword.description}>
+      <div className="space-y-5">
+        {error ? <AlertBanner type="danger" message={error} /> : null}
 
-      {error && <div className="mb-4"><AlertBanner type="danger" message={error} /></div>}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <InputField label="Nueva contraseña" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
-        <InputField label="Confirmar contraseña" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repetir contraseña" />
-        <Button type="submit" className="w-full" loading={loading}>Guardar contraseña</Button>
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <InputField
+            label="Nueva contraseña"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            required
+          />
+          <InputField
+            label="Confirmar contraseña"
+            type="password"
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+            placeholder="Repite la contraseña"
+            autoComplete="new-password"
+            required
+          />
+          <Button type="submit" className="w-full" loading={loading}>
+            Guardar contraseña
+          </Button>
+        </form>
+      </div>
     </AuthLayout>
   );
 }
 
-// ============================================
-// Verify Email
-// ============================================
 export function VerifyEmailPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -362,15 +441,11 @@ export function VerifyEmailPage() {
   const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/login';
 
   return (
-    <AuthLayout>
-      <div className="text-center">
-        <div className="h-16 w-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
-          <Home className="h-8 w-8 text-success" />
-        </div>
-        <h2 className="text-xl font-bold text-text mb-2">Correo verificado</h2>
-        <p className="text-sm text-text-muted mb-6">
-          Tu cuenta ya está lista. Ya puedes entrar a {APP_NAME}.
-        </p>
+    <AuthLayout title="Correo verificado." description="Tu cuenta ya está lista para entrar a Compás Hogar.">
+      <div className="rounded-2xl border border-success/18 bg-success-bg px-5 py-5">
+        <p className="text-sm leading-7 text-text-secondary">Ya puedes iniciar sesión y entrar al hogar.</p>
+      </div>
+      <div className="mt-6">
         <Button onClick={() => navigate(redirectTarget)}>Iniciar sesión</Button>
       </div>
     </AuthLayout>

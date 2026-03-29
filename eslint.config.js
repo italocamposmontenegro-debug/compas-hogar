@@ -9,6 +9,9 @@ export default defineConfig([
   globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,

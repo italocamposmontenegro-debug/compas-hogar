@@ -7,8 +7,10 @@
     "dev": "vite --configLoader native",
     "build": "vite build --configLoader native",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview --configLoader native",
-    "test": "node --experimental-strip-types tests/plans.test.ts"
+    "test": "node --experimental-strip-types tests/plans.test.ts",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.3",

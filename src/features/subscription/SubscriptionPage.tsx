@@ -208,7 +208,7 @@ export function SubscriptionPage() {
   }, [autoSyncedSubscriptionId, household, isOwner, subscription?.provider_subscription_id, subscription?.status, syncSubscriptionStatus]);
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:gap-8 lg:px-8 lg:py-8">
+    <div className="app-page max-w-7xl mx-auto">
       <section className="ui-panel overflow-hidden">
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
           <div className="border-b border-border-light p-6 lg:p-8 xl:border-b-0 xl:border-r xl:border-border-light">
@@ -399,6 +399,7 @@ export function SubscriptionPage() {
               <button
                 type="button"
                 onClick={() => setAnnual(false)}
+                aria-pressed={!annual}
                 className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${!annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
               >
                 Mensual
@@ -406,6 +407,7 @@ export function SubscriptionPage() {
               <button
                 type="button"
                 onClick={() => setAnnual(true)}
+                aria-pressed={annual}
                 className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
               >
                 Anual

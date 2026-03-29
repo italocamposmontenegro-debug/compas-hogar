@@ -1,46 +1,42 @@
-// ============================================
-// Casa Clara — Onboarding Page
-// ============================================
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CheckCircle, DollarSign, Home, Link as LinkIcon, Scale, Target, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
-import { Button, InputField, Card, AlertBanner } from '../../components/ui';
-import { SPLIT_RULE_LABELS, SPLIT_RULE_DESCRIPTIONS, type SplitRuleType } from '../../lib/constants';
+import { AlertBanner, Button, Card, InputField } from '../../components/ui';
+import { SPLIT_RULE_DESCRIPTIONS, SPLIT_RULE_LABELS, type SplitRuleType } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 import { trackEvent } from '../../lib/analytics';
-import { Home, ArrowRight, ArrowLeft, Users, DollarSign, Scale, Target, CheckCircle, Link as LinkIcon } from 'lucide-react';
-import { validateHouseholdName, validateAmount, validateEmail } from '../../utils/validators';
+import { validateAmount, validateEmail, validateHouseholdName } from '../../utils/validators';
 import { formatCLP } from '../../utils/format-clp';
 
 const STEPS = [
-  { id: 'hogar', label: 'Crear hogar', icon: Home },
-  { id: 'ingresos', label: 'Ingresos', icon: DollarSign },
-  { id: 'reparto', label: 'Regla de reparto', icon: Scale },
-  { id: 'meta', label: 'Primera meta', icon: Target },
-  { id: 'invitar', label: 'Invitar pareja', icon: Users },
+  { id: 'hogar', label: 'Crea el hogar', hint: 'Ponle nombre al espacio compartido.', icon: Home },
+  { id: 'ingresos', label: 'Define el ingreso base', hint: 'Esto da contexto a la lectura del mes.', icon: DollarSign },
+  { id: 'reparto', label: 'Deja una regla inicial', hint: 'La base del reparto puede ajustarse después.', icon: Scale },
+  { id: 'meta', label: 'Si quieres, suma una meta', hint: 'Una meta visible ayuda a decidir mejor.', icon: Target },
+  { id: 'invitar', label: 'Invita a otro miembro', hint: 'Puedes hacerlo ahora o más adelante.', icon: Users },
 ];
 
 export function OnboardingPage() {
   const { user } = useAuth();
   const { refetch } = useHousehold();
   const navigate = useNavigate();
+
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Form data
   const [householdName, setHouseholdName] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [splitRule] = useState<SplitRuleType>('fifty_fifty');
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
   const [goalDate, setGoalDate] = useState('');
-  const [partnerEmail, setPartnerEmail] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
   const [skipInvite, setSkipInvite] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const [inviteMessage, setInviteMessage] = useState('');
 
   const currentStep = STEPS[step];
 
@@ -48,26 +44,29 @@ export function OnboardingPage() {
     if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
-      setInviteMessage('Enlace copiado. Ya puedes compartirlo con tu pareja.');
+      setSuccessMessage('Enlace copiado. Ya puedes compartirlo.');
     } catch {
-      window.prompt('Copia este enlace para invitar a tu pareja:', inviteLink);
+      window.prompt('Copia este enlace para compartirlo:', inviteLink);
     }
   }
 
-  const handleNext = async () => {
+  async function handleNext() {
     setError('');
+    setSuccessMessage('');
 
     if (step === 0) {
-      const check = validateHouseholdName(householdName);
-      if (!check.valid) return setError(check.error!);
+      const householdCheck = validateHouseholdName(householdName);
+      if (!householdCheck.valid) return setError(householdCheck.error || 'Revisa el nombre del hogar.');
     }
+
     if (step === 1) {
-      const check = validateAmount(monthlyIncome);
-      if (!check.valid) return setError(check.error!);
+      const amountCheck = validateAmount(monthlyIncome);
+      if (!amountCheck.valid) return setError(amountCheck.error || 'Revisa el ingreso mensual.');
     }
-    if (step === 4 && !skipInvite && partnerEmail.trim()) {
-      const check = validateEmail(partnerEmail);
-      if (!check.valid) return setError(check.error!);
+
+    if (step === 4 && !skipInvite && memberEmail.trim()) {
+      const emailCheck = validateEmail(memberEmail);
+      if (!emailCheck.valid) return setError(emailCheck.error || 'Revisa el email.');
     }
 
     if (step === STEPS.length - 1) {
@@ -75,48 +74,47 @@ export function OnboardingPage() {
       return;
     }
 
-    setStep(s => s + 1);
-  };
+    setStep((value) => value + 1);
+  }
 
-  const finishOnboarding = async () => {
+  async function finishOnboarding() {
     if (!user) return;
+
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       let rpcError: { message?: string } | null = null;
       let invitationTokenId: string | null = null;
       let newHouseholdId: string | null = null;
 
-      // Retry logic for Supabase GoTrue "Lock stolen" race conditions
-      for (let i = 0; i < 3; i++) {
-        const { data, error } = await supabase.rpc('create_household_setup', {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { data, error: rpcResultError } = await supabase.rpc('create_household_setup', {
           p_name: householdName,
           p_split_rule: splitRule,
-          p_monthly_income: parseInt(monthlyIncome) || 0,
+          p_monthly_income: Number.parseInt(monthlyIncome, 10) || 0,
           p_goal_name: goalName || null,
-          p_goal_amount: parseInt(goalAmount) || 0,
-          p_goal_date: goalDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
-          p_partner_email: (!skipInvite && partnerEmail) ? partnerEmail : null
+          p_goal_amount: Number.parseInt(goalAmount, 10) || 0,
+          p_goal_date:
+            goalDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+          p_partner_email: !skipInvite && memberEmail ? memberEmail : null,
         });
-        
-        rpcError = error;
+
+        rpcError = rpcResultError;
         invitationTokenId = data?.invitation_token_id ?? null;
         newHouseholdId = data?.household_id ?? null;
-        
-        // If success, or error is NOT a Lock issue, break out of loop
-        if (!error || !(error.message && error.message.includes('Lock'))) break;
-        
-        // Wait 800ms before retrying
-        await new Promise(resolve => setTimeout(resolve, 800));
+
+        if (!rpcResultError || !rpcResultError.message?.includes('Lock')) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 800));
       }
 
-      if (rpcError) throw new Error(rpcError.message || 'No pudimos crear el hogar');
+      if (rpcError) throw new Error(rpcError.message || 'No pudimos crear el hogar.');
 
       await refetch();
       trackEvent('onboarding_completed', {
         household_id: newHouseholdId,
-        invited_partner: (!skipInvite && !!partnerEmail) || !!invitationTokenId,
+        invited_partner: !skipInvite && !!memberEmail,
       });
 
       if (invitationTokenId) {
@@ -131,145 +129,218 @@ export function OnboardingPage() {
         }
 
         setInviteLink(`${window.location.origin}/invitacion/${tokenData.token}`);
-        setInviteMessage('Hogar listo. Comparte el enlace para sumar a tu pareja.');
+        setSuccessMessage('Hogar listo. Comparte este enlace para sumar al otro miembro.');
         return;
       }
 
       navigate('/app/dashboard?welcome=1');
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'No pudimos completar la configuración');
+    } catch (unknownError) {
+      setError(
+        unknownError instanceof Error ? unknownError.message : 'No pudimos completar la configuración.',
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
-        {/* Progress */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {STEPS.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-2">
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                i < step ? 'bg-success text-white' :
-                i === step ? 'bg-primary text-white' :
-                'bg-border text-text-muted'
-              }`}>
-                {i < step ? <CheckCircle className="h-4 w-4" /> : i + 1}
-              </div>
-              {i < STEPS.length - 1 && (
-                <div className={`w-8 h-0.5 ${i < step ? 'bg-success' : 'bg-border'}`} />
-              )}
+    <main className="min-h-screen bg-bg px-4 py-6 sm:px-6 sm:py-8">
+      <div className="page-shell flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="w-full max-w-3xl">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Configuración inicial</p>
+              <h1 className="section-heading mt-2 text-3xl text-text">Pon el hogar en marcha.</h1>
             </div>
-          ))}
-        </div>
-
-        <Card padding="lg">
-          <div className="flex items-center gap-3 mb-6">
-            {currentStep && <currentStep.icon className="h-6 w-6 text-primary" />}
-            <h2 className="text-xl font-bold text-text">{currentStep?.label}</h2>
+            <p className="text-sm text-text-muted">
+              Paso {step + 1} de {STEPS.length}
+            </p>
           </div>
 
-          {error && <p className="text-sm text-danger mb-4">{error}</p>}
-          {inviteMessage && <div className="mb-4"><AlertBanner type="success" message={inviteMessage} onClose={() => setInviteMessage('')} /></div>}
-
-          {/* Step content */}
-          {inviteLink ? (
-            <div className="space-y-4">
-              <p className="text-sm text-text-muted">
-                Hogar listo. Comparte el enlace para sumar a tu pareja.
-              </p>
-              <InputField label="Enlace de invitación" value={inviteLink} onChange={() => {}} readOnly />
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={() => navigate('/app/dashboard?welcome=1')}>
-                  Ir al panel <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button variant="secondary" onClick={copyInviteLink}>
-                  <LinkIcon className="h-4 w-4" /> Copiar enlace
-                </Button>
-                <Button variant="ghost" onClick={() => navigate('/app/suscripcion')}>
-                  Ver planes
-                </Button>
-              </div>
-              <p className="text-xs text-text-muted">
-                El siguiente paso útil es registrar el primer movimiento o crear una meta. El enlace también quedará disponible en Configuración.
-              </p>
-            </div>
-          ) : (
-            <>
-              {step === 0 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-muted">Nombra tu hogar para comenzar el orden compartido.</p>
-                  <InputField label="Nombre del hogar" value={householdName} onChange={e => setHouseholdName(e.target.value)} placeholder='Ej: "Hogar Pérez-González"' />
-                </div>
-              )}
-
-              {step === 1 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-muted">Define el ingreso mensual para la lectura del mes.</p>
-                  <InputField label="Ingreso mensual (CLP)" type="number" value={monthlyIncome} onChange={e => setMonthlyIncome(e.target.value)} placeholder="Ej: 1200000" />
-                  {monthlyIncome && parseInt(monthlyIncome) > 0 && (
-                    <p className="text-xs text-text-muted">= {formatCLP(parseInt(monthlyIncome))}</p>
-                  )}
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-muted">Regla base de reparto para el primer mes.</p>
-                  <div className="rounded-xl border border-border bg-surface p-4">
-                    <p className="font-medium text-text text-sm">{SPLIT_RULE_LABELS[splitRule]}</p>
-                    <p className="text-xs text-text-muted mt-1">{SPLIT_RULE_DESCRIPTIONS[splitRule]}</p>
-                  </div>
-                  <AlertBanner
-                    type="info"
-                    message="Las reglas flexibles se habilitan desde Esencial. Por ahora tu hogar quedará con 50/50."
-                  />
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-muted">Opcional: Define una meta inicial para el hogar.</p>
-                  <InputField label="Nombre de la meta" value={goalName} onChange={e => setGoalName(e.target.value)} placeholder='Ej: "Vacaciones", "Fondo de emergencia"' />
-                  <InputField label="Monto objetivo (CLP)" type="number" value={goalAmount} onChange={e => setGoalAmount(e.target.value)} placeholder="Ej: 500000" />
-                  <InputField label="Fecha objetivo" type="date" value={goalDate} onChange={e => setGoalDate(e.target.value)} />
-                </div>
-              )}
-
-              {step === 4 && (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-muted">Suma a tu pareja para ver el mes con claridad.</p>
-                  {!skipInvite ? (
-                    <>
-                      <InputField label="Email de tu pareja" type="email" value={partnerEmail} onChange={e => setPartnerEmail(e.target.value)} placeholder="pareja@email.com" />
-                      <button onClick={() => setSkipInvite(true)} className="text-xs text-text-muted hover:text-text cursor-pointer">
-                        Omitir por ahora →
-                      </button>
-                    </>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-text-muted mb-2">Podrás invitar a tu pareja después desde Configuración.</p>
-                      <button onClick={() => setSkipInvite(false)} className="text-xs text-primary cursor-pointer">
-                        ← Quiero invitar ahora
-                      </button>
+          <ol className="mb-6 grid gap-3 sm:grid-cols-5" aria-label="Progreso del onboarding">
+            {STEPS.map((item, index) => {
+              const isCurrent = index === step;
+              const isCompleted = index < step;
+              return (
+                <li key={item.id}>
+                  <div
+                    className={`ui-panel p-4 ${isCurrent ? 'border-primary/25 bg-primary-bg/45' : 'ui-panel-subtle'} ${
+                      isCompleted ? 'border-success/20 bg-success-bg' : ''
+                    }`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+                          isCompleted
+                            ? 'bg-success text-white'
+                            : isCurrent
+                              ? 'bg-primary text-white'
+                              : 'bg-surface text-text-muted'
+                        }`}
+                      >
+                        {isCompleted ? <CheckCircle className="h-4 w-4" /> : <item.icon className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text">{item.label}</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
 
-              <div className="flex items-center justify-between mt-8">
-                <Button variant="ghost" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}>
-                  <ArrowLeft className="h-4 w-4" /> Atrás
-                </Button>
-                <Button onClick={handleNext} loading={loading}>
-                  {step === STEPS.length - 1 ? 'Entrar al hogar' : 'Siguiente'} <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </>
-          )}
-        </Card>
+          <Card padding="lg">
+            <header className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Paso actual</p>
+              <h2 className="section-heading mt-2 text-2xl text-text">{currentStep.label}</h2>
+              <p className="mt-3 text-sm leading-7 text-text-muted">{currentStep.hint}</p>
+            </header>
+
+            <div className="space-y-4">
+              {error ? <AlertBanner type="danger" message={error} onClose={() => setError('')} /> : null}
+              {successMessage ? (
+                <AlertBanner type="success" message={successMessage} onClose={() => setSuccessMessage('')} />
+              ) : null}
+
+              {inviteLink ? (
+                <div className="space-y-5">
+                  <InputField label="Enlace de invitación" value={inviteLink} onChange={() => {}} readOnly />
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button onClick={() => navigate('/app/dashboard?welcome=1')}>
+                      Ir al panel
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" onClick={copyInviteLink}>
+                      <LinkIcon className="h-4 w-4" />
+                      Copiar enlace
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {step === 0 ? (
+                    <InputField
+                      label="Nombre del hogar"
+                      value={householdName}
+                      onChange={(event) => setHouseholdName(event.target.value)}
+                      placeholder='Ej: "Hogar Pérez-González"'
+                      required
+                    />
+                  ) : null}
+
+                  {step === 1 ? (
+                    <div className="space-y-4">
+                      <InputField
+                        label="Ingreso mensual (CLP)"
+                        type="number"
+                        value={monthlyIncome}
+                        onChange={(event) => setMonthlyIncome(event.target.value)}
+                        placeholder="Ej: 1200000"
+                        required
+                      />
+                      {monthlyIncome && Number.parseInt(monthlyIncome, 10) > 0 ? (
+                        <p className="text-sm text-text-muted">Base del mes: {formatCLP(Number.parseInt(monthlyIncome, 10))}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {step === 2 ? (
+                    <div className="space-y-4">
+                      <div className="ui-panel ui-panel-subtle p-5">
+                        <p className="text-sm font-medium text-text">{SPLIT_RULE_LABELS[splitRule]}</p>
+                        <p className="mt-2 text-sm leading-7 text-text-muted">{SPLIT_RULE_DESCRIPTIONS[splitRule]}</p>
+                      </div>
+                      <AlertBanner
+                        type="info"
+                        message="La base inicial queda en 50/50. Si el hogar necesita reglas más flexibles, se habilitan desde un plan superior."
+                      />
+                    </div>
+                  ) : null}
+
+                  {step === 3 ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <InputField
+                        label="Nombre de la meta"
+                        value={goalName}
+                        onChange={(event) => setGoalName(event.target.value)}
+                        placeholder='Ej: "Fondo de emergencia"'
+                      />
+                      <InputField
+                        label="Monto objetivo (CLP)"
+                        type="number"
+                        value={goalAmount}
+                        onChange={(event) => setGoalAmount(event.target.value)}
+                        placeholder="Ej: 500000"
+                      />
+                      <div className="sm:col-span-2">
+                        <InputField
+                          label="Fecha objetivo"
+                          type="date"
+                          value={goalDate}
+                          onChange={(event) => setGoalDate(event.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {step === 4 ? (
+                    <div className="space-y-4">
+                      {!skipInvite ? (
+                        <>
+                          <InputField
+                            label="Email del nuevo miembro"
+                            type="email"
+                            value={memberEmail}
+                            onChange={(event) => setMemberEmail(event.target.value)}
+                            placeholder="miembro@email.com"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSkipInvite(true)}
+                            className="text-sm font-medium text-text-muted underline-offset-4 hover:text-text hover:underline"
+                          >
+                            Lo haré después
+                          </button>
+                        </>
+                      ) : (
+                        <div className="ui-panel ui-panel-subtle p-5">
+                          <p className="text-sm leading-7 text-text-muted">
+                            Podrás invitar al otro miembro desde Configuración cuando el hogar ya esté andando.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setSkipInvite(false)}
+                            className="mt-3 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            Invitar ahora
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setStep((value) => Math.max(0, value - 1))}
+                      disabled={step === 0 || loading}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Atrás
+                    </Button>
+                    <Button onClick={handleNext} loading={loading}>
+                      {step === STEPS.length - 1 ? 'Entrar al hogar' : 'Siguiente'}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

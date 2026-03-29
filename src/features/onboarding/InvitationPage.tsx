@@ -102,16 +102,17 @@ export function InvitationPage() {
   if (status === 'loading') return <LoadingPage />;
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <Card padding="lg" className="max-w-md text-center">
+    <main className="min-h-screen bg-bg px-4 py-6 sm:px-6 sm:py-8">
+      <div className="page-shell flex min-h-[70vh] items-center justify-center">
+        <Card padding="lg" className="max-w-lg text-center">
         {status === 'valid' && (
           <>
-            <Home className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-text mb-2">Invitación lista</h2>
-            <p className="text-sm text-text-muted mb-6">
-              Unete a <strong>{householdName}</strong>. Accederás con <strong>{invitedEmail}</strong>.
+            <Home className="mx-auto mb-4 h-12 w-12 text-primary" />
+            <h1 className="section-heading text-2xl text-text">Invitación lista</h1>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              Únete a <strong>{householdName}</strong>. Entrarás con <strong>{invitedEmail}</strong>.
             </p>
-            <Button onClick={acceptInvitation} className="w-full">
+            <Button onClick={acceptInvitation} className="mt-6 w-full">
               Aceptar invitación
             </Button>
           </>
@@ -119,12 +120,12 @@ export function InvitationPage() {
 
         {status === 'needs_auth' && (
           <>
-            <Home className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-text mb-2">Te invitaron a {householdName}</h2>
-            <p className="text-sm text-text-muted mb-6">
+            <Home className="mx-auto mb-4 h-12 w-12 text-primary" />
+            <h1 className="section-heading text-2xl text-text">Te invitaron a {householdName}</h1>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
               Invitación enviada a <strong>{invitedEmail}</strong>. Inicia sesión con este correo.
             </p>
-            <div className="space-y-3">
+            <div className="mt-6 space-y-3">
               <Button onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/invitacion/${token}`)}`)} className="w-full">
                 <LogIn className="h-4 w-4" /> Iniciar sesión
               </Button>
@@ -137,10 +138,10 @@ export function InvitationPage() {
 
         {status === 'wrong_account' && (
           <>
-            <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-text mb-2">Usa la cuenta correcta</h2>
-            <p className="text-sm text-text-muted mb-6">{errorMsg}</p>
-            <div className="space-y-3">
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-warning" />
+            <h1 className="section-heading text-2xl text-text">Usa la cuenta correcta</h1>
+            <p className="mt-3 text-sm leading-7 text-text-muted">{errorMsg}</p>
+            <div className="mt-6 space-y-3">
               <Button onClick={switchAccount} className="w-full">
                 Cambiar de cuenta
               </Button>
@@ -153,25 +154,26 @@ export function InvitationPage() {
 
         {status === 'accepted' && (
           <>
-            <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-text mb-2">Invitación aceptada</h2>
-            <p className="text-sm text-text-muted">Entrando a tu hogar...</p>
+            <CheckCircle className="mx-auto mb-4 h-12 w-12 text-success" />
+            <h1 className="section-heading text-2xl text-text">Invitación aceptada</h1>
+            <p className="mt-3 text-sm leading-7 text-text-muted">Entrando a tu hogar…</p>
           </>
         )}
 
         {(status === 'invalid' || status === 'error' || status === 'expired' || status === 'already_used') && (
           <>
-            <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-text mb-2">Invitación no disponible</h2>
-            <p className="text-sm text-text-muted mb-6">
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-warning" />
+            <h1 className="section-heading text-2xl text-text">Invitación no disponible</h1>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
               {errorMsg || 'Esta invitación no existe, ya fue usada o expiró.'}
             </p>
-            <Button variant="secondary" onClick={() => navigate(user ? '/app/dashboard' : '/')}>
+            <Button variant="secondary" onClick={() => navigate(user ? '/app/dashboard' : '/')} className="mt-6">
               {user ? 'Ir al dashboard' : 'Ir al inicio'}
             </Button>
           </>
         )}
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </main>
   );
 }
