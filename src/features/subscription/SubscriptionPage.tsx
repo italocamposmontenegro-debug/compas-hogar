@@ -255,22 +255,22 @@ export function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-border-light bg-surface/40 p-12 lg:p-14 space-y-8 backdrop-blur-sm">
-          <header className="px-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-light/60">Resumen</p>
+        <div className="rounded-[2.5rem] border border-border-light bg-surface/40 p-16 lg:p-20 space-y-12 backdrop-blur-sm shadow-xl">
+          <header className="px-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-light/60">Resumen</p>
           </header>
           
-          <div className="space-y-6 px-4">
+          <div className="space-y-10 px-6">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Etapa actual</p>
-              <p className="text-base font-bold text-text leading-tight">{currentPlanPromise}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-light/50 mb-3">Etapa actual</p>
+              <p className="text-lg font-bold text-text leading-tight">{currentPlanPromise}</p>
             </div>
             
-            <div className="h-px bg-border-light/50 w-full" />
+            <div className="h-px bg-border-light/40 w-full" />
             
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-text-light/50 mb-2">Gestión</p>
-              <p className="text-sm font-bold text-text-secondary">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-light/50 mb-3">Gestión</p>
+              <p className="text-base font-bold text-text-secondary">
                 {isOwner ? "Administra tu plan" : "Solo lectura"}
               </p>
             </div>
@@ -367,28 +367,28 @@ export function SubscriptionPage() {
             return (
               <Card 
                 key={tier} 
-                className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-3xl ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
+                className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-[3rem] ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
               >
-                <div className="p-10 lg:p-12 space-y-10 flex-1">
-                  <header className="space-y-6">
-                    <div className="flex items-center justify-between px-6">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70">{labels[tier]}</p>
+                <div className="p-14 lg:p-16 space-y-12 flex-1">
+                  <header className="space-y-8">
+                    <div className="flex items-center justify-between px-8">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/70">{labels[tier]}</p>
                       {isCurrent && <PlanBadge>Actual</PlanBadge>}
                       {!isCurrent && tier === 'essential' && <PlanBadge>Recomendado</PlanBadge>}
                     </div>
-                    <h3 className="display-heading text-3xl text-text px-6">{plan.name}</h3>
+                    <h3 className="display-heading text-4xl text-text px-8">{plan.name}</h3>
                   </header>
 
-                  <div className="space-y-3 px-6">
-                    <p className="text-sm font-bold text-text leading-snug">{phrases[tier]}</p>
+                  <div className="space-y-4 px-8">
+                    <p className="text-base font-bold text-text leading-snug">{phrases[tier]}</p>
                     <p className="text-sm text-text-muted leading-relaxed line-clamp-2">
                       {descriptions[tier]}
                     </p>
                   </div>
 
-                  <div className="py-6 border-y border-border-light/30 mx-6">
+                  <div className="py-10 border-y border-border-light/30 mx-8">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black tracking-tight text-text">
+                      <span className="text-4xl font-black tracking-tight text-text">
                         {price === null ? 'Gratis' : formatCLP(price)}
                       </span>
                       {price !== null && (
@@ -399,25 +399,25 @@ export function SubscriptionPage() {
                     </div>
                   </div>
 
-                  <ul className="space-y-4 pt-2 px-6">
+                  <ul className="space-y-5 pt-4 px-8">
                     {plan.featureHighlights.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <CheckCircle className="h-4 w-4 shrink-0 text-text-light/40 mt-0.5" />
-                        <span className="text-sm font-medium text-text-secondary leading-tight">{feature}</span>
+                      <li key={feature} className="flex items-start gap-4">
+                        <CheckCircle className="h-5 w-5 shrink-0 text-text-light/40 mt-1" />
+                        <span className="text-base font-medium text-text-secondary leading-tight">{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="p-10 lg:p-12 pt-0">
+                <div className="p-14 lg:p-16 pt-0">
                   {isCurrent ? (
-                    <Button variant="secondary" className="w-full opacity-60" disabled>
+                    <Button variant="secondary" className="w-full h-14 opacity-60" disabled>
                       Plan actual
                     </Button>
                   ) : tier === 'free' ? (
                     <Button
                       variant="secondary"
-                      className="w-full"
+                      className="w-full h-14 font-black"
                       onClick={handleDowngradeToFree}
                       loading={loading}
                       disabled={!isOwner || !isActivePaidPlan}
@@ -427,7 +427,7 @@ export function SubscriptionPage() {
                   ) : (
                     <Button
                       variant={tier === 'strategic' ? 'primary' : 'secondary'}
-                      className="w-full"
+                      className="w-full h-14 font-black text-base"
                       onClick={() => plan.billingPlanCode && handleSelectPlan(plan.billingPlanCode as BillingPlanCode)}
                       loading={loading}
                       disabled={!isOwner}
@@ -463,13 +463,13 @@ function SubscriptionSignal({
   description: string;
 }) {
   return (
-    <div className="rounded-3xl border border-border-light bg-surface/30 p-10 lg:p-12 space-y-6 backdrop-blur-xs">
-      <div className="px-4">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-light/50">{label}</p>
+    <div className="rounded-[3rem] border border-border-light bg-surface/30 p-16 lg:p-20 space-y-8 backdrop-blur-xs min-h-[220px] flex flex-col justify-center">
+      <div className="px-8">
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-text-light/50">{label}</p>
       </div>
-      <div className="space-y-3 px-4">
-        <p className="text-xl font-black text-text tracking-tight">{value}</p>
-        <p className="text-xs text-text-muted leading-tight">{description}</p>
+      <div className="space-y-4 px-8">
+        <p className="text-3xl font-black text-text tracking-tighter">{value}</p>
+        <p className="text-xs text-text-muted leading-tight max-w-[180px]">{description}</p>
       </div>
     </div>
   );
