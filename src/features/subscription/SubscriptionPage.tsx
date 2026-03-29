@@ -257,7 +257,7 @@ export function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="rounded-[1.8rem] border border-border-light bg-surface/40 p-8 lg:p-10 space-y-8 backdrop-blur-sm">
+        <div className="rounded-[2rem] border border-border-light bg-surface/40 p-10 lg:p-12 space-y-8 backdrop-blur-sm">
           <header>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-text-light/60">Resumen</p>
           </header>
@@ -371,9 +371,9 @@ export function SubscriptionPage() {
                 key={tier} 
                 className={`flex flex-col overflow-hidden border-border-light/40 hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] ${isCurrent ? 'ring-2 ring-primary/20' : ''}`}
               >
-                <div className="p-8 lg:p-10 space-y-8 flex-1">
-                  <header className="space-y-4">
-                    <div className="flex items-center justify-between">
+                <div className="p-10 lg:p-12 space-y-10 flex-1">
+                  <header className="space-y-6">
+                    <div className="flex items-center justify-between px-1">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">{labels[tier]}</p>
                       {isCurrent && <PlanBadge>Actual</PlanBadge>}
                       {!isCurrent && tier === 'essential' && <PlanBadge>Recomendado</PlanBadge>}
@@ -411,7 +411,7 @@ export function SubscriptionPage() {
                   </ul>
                 </div>
 
-                <div className="p-8 lg:p-10 pt-0">
+                <div className="p-10 lg:p-12 pt-0">
                   {isCurrent ? (
                     <Button variant="secondary" className="w-full opacity-60" disabled>
                       Plan actual
@@ -465,10 +465,12 @@ function SubscriptionSignal({
   description: string;
 }) {
   return (
-    <div className="rounded-[1.4rem] border border-border bg-bg/72 px-4 py-4">
-      <p className="text-xs uppercase tracking-[0.18em] text-text-light">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-text">{value}</p>
-      <p className="mt-1 text-sm leading-6 text-text-muted">{description}</p>
+    <div className="rounded-[1.8rem] border border-border-light bg-surface/30 p-8 lg:p-10 space-y-5 backdrop-blur-xs">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-light/50">{label}</p>
+      <div className="space-y-2">
+        <p className="text-2xl font-black text-text tracking-tight">{value}</p>
+        <p className="text-xs text-text-muted leading-tight">{description}</p>
+      </div>
     </div>
   );
 }
