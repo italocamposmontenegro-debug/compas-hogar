@@ -209,7 +209,7 @@ export function SubscriptionPage() {
 
   return (
     <div className="app-page max-w-7xl mx-auto">
-      <section className="ui-panel overflow-hidden">
+      <section className="ui-panel overflow-hidden" aria-labelledby="subscription-overview-title">
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
           <div className="border-b border-border-light p-6 lg:p-8 xl:border-b-0 xl:border-r xl:border-border-light">
             <div className="flex flex-wrap items-center gap-3">
@@ -219,7 +219,7 @@ export function SubscriptionPage() {
               </span>
             </div>
 
-            <h1 className="mt-4 max-w-xl text-[clamp(1.9rem,2.3vw,2.45rem)] font-semibold tracking-[-0.04em] text-text">
+            <h1 id="subscription-overview-title" className="mt-4 max-w-xl text-[clamp(1.85rem,2.2vw,2.35rem)] font-semibold tracking-[-0.04em] text-text">
               Plan y dirección del hogar
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
@@ -296,11 +296,11 @@ export function SubscriptionPage() {
         <AlertBanner type="info" message="Solo el owner puede cambiar la suscripción." />
       )}
 
-      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="subscription-progress-title">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Progresión del hogar</p>
-            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+            <h2 id="subscription-progress-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
               {planTier === 'free'
                 ? 'El hogar ya empezó con una lectura básica.'
                 : planTier === 'essential'
@@ -382,11 +382,11 @@ export function SubscriptionPage() {
         />
       )}
 
-      <section id="planes-disponibles" className="ui-panel overflow-hidden p-6 lg:p-7">
+      <section id="planes-disponibles" className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="subscription-plans-title">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Planes disponibles</p>
-            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+            <h2 id="subscription-plans-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
               {isActivePaidPlan ? 'Cambia tu plan' : 'Elige un plan para comenzar'}
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-text-muted">
@@ -395,12 +395,12 @@ export function SubscriptionPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-bg/80 px-1 py-1">
+            <div className="inline-flex min-h-12 items-center gap-1 rounded-full border border-border bg-bg/80 px-1 py-1">
               <button
                 type="button"
                 onClick={() => setAnnual(false)}
                 aria-pressed={!annual}
-                className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${!annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${!annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
               >
                 Mensual
               </button>
@@ -408,7 +408,7 @@ export function SubscriptionPage() {
                 type="button"
                 onClick={() => setAnnual(true)}
                 aria-pressed={annual}
-                className={`rounded-full px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${annual ? 'bg-surface text-text shadow-xs' : 'text-text-muted hover:text-text'}`}
               >
                 Anual
               </button>
@@ -452,7 +452,7 @@ function SubscriptionSignal({
   description: string;
 }) {
   return (
-    <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
+    <div className="ui-panel ui-panel-subtle flex h-full flex-col overflow-hidden p-6 shadow-none">
       <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">{label}</p>
       <p className="mt-3 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">{value}</p>
       <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
@@ -530,12 +530,12 @@ function PlanOptionCard({
         </div>
 
         <div className="mt-4">
-          <p className="max-w-sm text-sm leading-6 text-text-muted">{description}</p>
+          <p className="max-w-[30ch] text-sm leading-6 text-text-muted">{description}</p>
         </div>
 
         <div className="mt-5 border-t border-border pt-5">
           <div className="flex items-end gap-1.5">
-            <span className="text-4xl font-semibold tracking-[-0.04em] text-text">
+            <span className="text-[2.35rem] font-semibold tracking-[-0.04em] text-text">
               {price === null ? 'Gratis' : formatCLP(price)}
             </span>
             {price !== null && (

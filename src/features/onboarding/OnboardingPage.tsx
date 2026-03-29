@@ -146,7 +146,7 @@ export function OnboardingPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-6 sm:px-6 sm:py-8">
       <div className="page-shell flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-4xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Configuración inicial</p>
@@ -157,14 +157,14 @@ export function OnboardingPage() {
             </p>
           </div>
 
-          <ol className="mb-6 grid gap-3 sm:grid-cols-5" aria-label="Progreso del onboarding">
+          <ol className="mb-6 grid gap-3 lg:grid-cols-5" aria-label="Progreso del onboarding">
             {STEPS.map((item, index) => {
               const isCurrent = index === step;
               const isCompleted = index < step;
               return (
                 <li key={item.id}>
                   <div
-                    className={`ui-panel p-4 ${isCurrent ? 'border-primary/25 bg-primary-bg/45' : 'ui-panel-subtle'} ${
+                    className={`ui-panel h-full p-4 ${isCurrent ? 'border-primary/25 bg-primary-bg/45' : 'ui-panel-subtle'} ${
                       isCompleted ? 'border-success/20 bg-success-bg' : ''
                     }`}
                     aria-current={isCurrent ? 'step' : undefined}
@@ -321,7 +321,7 @@ export function OnboardingPage() {
                     </div>
                   ) : null}
 
-                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border-light pt-6 sm:flex-row sm:items-center sm:justify-between">
                     <Button
                       variant="ghost"
                       onClick={() => setStep((value) => Math.max(0, value - 1))}

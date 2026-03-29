@@ -18,6 +18,7 @@ import {
   CircleDollarSign,
   PiggyBank,
   Target,
+  Wallet,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -180,20 +181,20 @@ export function DashboardPage() {
 
   return (
     <div className="app-page max-w-7xl">
-      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-overview-title">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-3xl">
             <div className="flex flex-wrap items-center gap-3">
               <PlanBadge>{planName}</PlanBadge>
               <span className="text-xs uppercase tracking-[0.18em] text-text-light">
                 {formatMonthYear(year, month)}
               </span>
             </div>
-            <h1 className="mt-4 max-w-2xl text-[clamp(1.95rem,2.7vw,2.8rem)] font-semibold tracking-[-0.04em] text-text">
+            <h1 id="dashboard-overview-title" className="mt-4 max-w-2xl text-[clamp(1.95rem,2.7vw,2.8rem)] font-semibold tracking-[-0.04em] text-text">
               Control del hogar
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Una lectura clara del mes para saber cómo está el hogar, qué requiere atención y dónde conviene actuar ahora.
+              Saldo, pagos y decisiones del mes en una sola lectura clara.
             </p>
           </div>
 
@@ -202,19 +203,19 @@ export function DashboardPage() {
               Registrar movimiento
             </Button>
             <Button variant="secondary" onClick={() => navigate('/app/calendario')}>
-              Ver calendario
+              Abrir calendario
             </Button>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-3" aria-label="Resumen principal del hogar">
         <DashboardSummaryCard
           label="Saldo del mes"
           value={formatCLP(balance)}
           note={balance >= 0 ? 'Disponible después de gastos registrados' : 'El gasto ya superó el ingreso registrado'}
           tone={balance >= 0 ? 'success' : 'danger'}
-          icon={balance >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          icon={balance >= 0 ? <Wallet className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
           onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}`)}
         />
         <DashboardSummaryCard
@@ -236,15 +237,15 @@ export function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
-        <div className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-attention-title">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Atención inmediata</p>
-              <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+              <h2 id="dashboard-attention-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
                 Qué requiere atención hoy
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-                Lo urgente aparece primero para que el hogar actúe antes de que el mes se desordene.
+                Lo más urgente aparece primero para decidir sin ruido.
               </p>
             </div>
             {showFinancialHealth && light && (
@@ -310,14 +311,14 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="ui-panel overflow-hidden p-6 lg:p-7">
+        <div className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-month-title">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Panorama del mes</p>
-            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+            <h2 id="dashboard-month-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
               Cómo va el hogar
             </h2>
             <p className="mt-3 text-sm leading-7 text-text-muted">
-              Ingresos, gastos y señales clave del mes en una sola lectura.
+              Ingresos, gastos y señales clave en una sola vista.
             </p>
           </div>
 
@@ -369,13 +370,13 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-goal-title">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-center">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">
               {primaryGoal ? 'Meta principal' : 'Dirección del ahorro'}
             </p>
-            <h2 className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
+            <h2 id="dashboard-goal-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
               {primaryGoal ? primaryGoal.name : 'Todavía no hay una meta principal'}
             </h2>
             <p className="mt-3 text-sm leading-7 text-text-muted">
@@ -428,13 +429,16 @@ export function DashboardPage() {
         />
       )}
 
-      <section className="ui-panel overflow-hidden p-6 lg:p-7">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-actions-title">
         <div className="flex items-end justify-between gap-4">
-          <div>
+          <div className="max-w-2xl">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Acciones rápidas</p>
-            <h2 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
+            <h2 id="dashboard-actions-title" className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
               Qué conviene hacer ahora
             </h2>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              Entradas directas a las tareas que más se repiten durante el mes.
+            </p>
           </div>
         </div>
 
@@ -494,7 +498,7 @@ function DashboardSummaryCard({
         <div className="min-w-0">
           <p className="metric-label">{label}</p>
           <p className={`metric-value ${getValueToneClass(tone)}`}>{value}</p>
-          <p className="metric-subvalue">{note}</p>
+          <p className="metric-subvalue max-w-[22rem]">{note}</p>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
           {icon}
@@ -521,7 +525,7 @@ function AttentionRow({
     <button
       type="button"
       onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start gap-4 overflow-hidden p-5 text-left cursor-pointer"
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full flex-col gap-4 overflow-hidden p-5 text-left cursor-pointer sm:flex-row sm:items-start"
     >
       <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${getToneSoftClass(tone)}`}>
         <AlertTriangle className="h-4 w-4" />
@@ -530,7 +534,7 @@ function AttentionRow({
         <p className="text-base font-semibold tracking-tight text-text">{title}</p>
         <p className="mt-1 text-sm leading-6 text-text-muted">{detail}</p>
       </div>
-      <div className={`shrink-0 text-right text-sm font-semibold ${getValueToneClass(tone)}`}>
+      <div className={`shrink-0 self-start text-sm font-semibold sm:self-auto sm:text-right ${getValueToneClass(tone)}`}>
         {value}
       </div>
     </button>
@@ -552,7 +556,7 @@ function MetricRow({
     <button
       type="button"
       onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-center justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer"
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full flex-col items-start justify-between gap-2 overflow-hidden p-5 text-left cursor-pointer sm:flex-row sm:items-center sm:gap-4"
     >
       <span className="text-sm font-medium text-text-secondary">{label}</span>
       <span className={`text-lg font-semibold tracking-tight ${getValueToneClass(valueTone)}`}>{value}</span>
@@ -599,7 +603,7 @@ function QuickActionCard({
     <button
       type="button"
       onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer"
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer min-h-[124px]"
     >
       <div className="min-w-0">
         <p className="text-sm font-semibold tracking-tight text-text">{label}</p>

@@ -66,7 +66,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex min-w-[44px] items-center justify-center gap-2 rounded-xl border font-semibold tracking-tight transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-60 disabled:shadow-none disabled:hover:translate-y-0';
+    'inline-flex min-w-[44px] items-center justify-center gap-2 rounded-xl border font-semibold tracking-tight transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-60 disabled:shadow-none disabled:hover:translate-y-0';
 
   const variants = {
     primary:
@@ -145,7 +145,7 @@ export function InputField({
         required={required}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={describedBy}
-        className={`w-full rounded-xl border bg-surface text-text shadow-none transition-colors duration-150 placeholder:text-text-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
+        className={`w-full rounded-xl border bg-surface text-text shadow-none transition-colors duration-150 placeholder:text-text-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
           error
             ? 'border-danger/50 pr-4'
             : 'border-border hover:border-border-strong focus:border-primary'
@@ -221,7 +221,7 @@ export function SelectField({
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={describedBy}
           onChange={(event) => onChange(event.target.value)}
-          className={`w-full appearance-none rounded-xl border bg-surface px-4 py-3 pr-11 text-base text-text shadow-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
+          className={`w-full appearance-none rounded-xl border bg-surface px-4 py-3 pr-11 text-base text-text shadow-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
             error
               ? 'border-danger/50'
               : 'border-border hover:border-border-strong focus:border-primary'
@@ -445,7 +445,7 @@ export function AlertBanner({ type, message, action, onClose }: AlertBannerProps
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-2xl border px-4 py-4 sm:flex-row sm:items-start sm:justify-between ${tones[type]}`}
+      className={`flex flex-col gap-4 rounded-2xl border px-5 py-4 sm:flex-row sm:items-start sm:justify-between ${tones[type]}`}
       role={type === 'danger' || type === 'warning' ? 'alert' : 'status'}
       aria-live={type === 'danger' ? 'assertive' : 'polite'}
     >
@@ -453,7 +453,7 @@ export function AlertBanner({ type, message, action, onClose }: AlertBannerProps
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/60">
           {icons[type]}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-3xl">
           <p className="text-sm font-semibold tracking-tight">{labels[type]}</p>
           <p className="mt-1 text-sm leading-6 text-text-secondary">{message}</p>
         </div>
@@ -689,7 +689,7 @@ export function RestrictedBanner({
 
 export function PlanBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex min-h-7 items-center rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
+    <span className="inline-flex min-h-8 items-center rounded-full border border-primary/15 bg-primary/8 px-3.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
       {children}
     </span>
   );
@@ -741,7 +741,7 @@ export function UpgradePromptCard({
           {highlights.length > 0 ? (
             <ul className={`mt-5 grid gap-3 ${compact ? 'sm:grid-cols-1' : 'sm:grid-cols-2'}`}>
               {highlights.map((item) => (
-                <li key={item} className="flex items-start gap-3 rounded-2xl border border-border bg-surface-low px-4 py-3">
+                <li key={item} className="flex items-start gap-3 rounded-2xl border border-border bg-surface-low px-4 py-3.5">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary-lighter" aria-hidden="true" />
                   <span className="text-sm leading-6 text-text-secondary">{item}</span>
                 </li>
@@ -788,7 +788,7 @@ export function Tabs({
               aria-selected={selected}
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.id)}
-              className={`min-h-10 min-w-[88px] rounded-full px-4 text-sm font-medium transition-colors ${
+              className={`min-h-11 min-w-[96px] rounded-full px-4 text-sm font-medium transition-colors ${
                 selected
                   ? 'bg-surface text-text shadow-sm'
                   : 'text-text-muted hover:bg-bg hover:text-text'

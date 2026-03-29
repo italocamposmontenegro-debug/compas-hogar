@@ -74,20 +74,20 @@ export function LandingPage() {
 
       <main>
         <section className="page-shell pt-8 lg:pt-12">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,520px)] lg:items-center">
-            <div className="min-w-0">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,520px)] lg:items-center xl:gap-14">
+            <div className="min-w-0 lg:pr-3">
               <div className="eyebrow">
                 <Sparkles className="h-4 w-4" />
                 Claridad, control y seguimiento real
               </div>
-              <h1 className="display-heading mt-6 text-[clamp(2.75rem,7vw,5.5rem)] text-text">
+              <h1 className="display-heading mt-6 max-w-[11ch] text-[clamp(2.7rem,6vw,5rem)] text-text">
                 Todo lo importante del hogar, en una sola vista.
               </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-text-secondary">
+              <p className="mt-5 max-w-xl text-lg leading-8 text-text-secondary">
                 Saldo, pagos y acuerdos en una referencia clara para decidir a tiempo.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" onClick={() => handlePrimaryCta('hero')}>
                   Crear cuenta
                   <ArrowRight className="h-4 w-4" />
@@ -98,11 +98,11 @@ export function LandingPage() {
               </div>
             </div>
 
-            <div id="hero-mockup" className="ui-panel overflow-hidden p-6 sm:p-7">
+            <div id="hero-mockup" className="ui-panel overflow-hidden p-6 sm:p-7" aria-labelledby="landing-mockup-title">
               <div className="flex items-center justify-between gap-3 border-b border-border-light pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Estado del hogar</p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-tight text-text">Marzo 2026</h2>
+                  <h2 id="landing-mockup-title" className="mt-2 text-xl font-semibold tracking-tight text-text">Marzo 2026</h2>
                 </div>
                 <span className="traffic-light traffic-light-order">En control</span>
               </div>
@@ -161,7 +161,7 @@ export function LandingPage() {
         <section className="page-shell pt-2">
           <div className="grid gap-4 lg:grid-cols-3">
             {VALUE_PILLARS.map((pillar) => (
-              <article key={pillar.title} className="ui-panel ui-panel-subtle p-5 sm:p-6">
+              <article key={pillar.title} className="ui-panel ui-panel-subtle h-full p-5 sm:p-6">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-bg text-primary">
                   <pillar.icon className="h-5 w-5" />
                 </div>
@@ -176,7 +176,7 @@ export function LandingPage() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Planes</p>
-              <h2 className="section-heading mt-2 text-4xl text-text">Elige el nivel de control que necesita tu hogar</h2>
+              <h2 className="section-heading mt-2 text-[clamp(2rem,3vw,2.75rem)] text-text">Elige el nivel de control que necesita tu hogar</h2>
               <p className="mt-3 text-sm leading-7 text-text-muted">
                 Empieza simple, ordena el mes y suma más visión cuando el hogar necesite anticiparse mejor.
               </p>
@@ -278,42 +278,44 @@ function PricingCard({
           : ''
       }`}
     >
-      <div className="flex min-h-[28px] items-start justify-between gap-3">
-        <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-text-light">{metaLabel}</p>
-        {badge ? <PlanBadge>{badge}</PlanBadge> : <span className="inline-block h-7" aria-hidden="true" />}
-      </div>
-
-      <div className="mt-3">
-        <h3 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-text">{plan.name}</h3>
-        <p className="mt-2 text-sm font-medium text-primary">{plan.promise}</p>
-      </div>
-
-      <p className="mt-4 text-sm leading-6 text-text-muted">{description}</p>
-
-      <div className="mt-5 border-t border-border pt-5">
-        <div className="flex items-end gap-1.5">
-          <span className="text-4xl font-semibold tracking-[-0.04em] text-text">
-            {price === null ? 'Gratis' : formatCLP(price)}
-          </span>
-          {price !== null ? (
-            <span className="pb-1 text-sm text-text-muted">/{annual ? 'año' : 'mes'}</span>
-          ) : null}
+      <div className="flex h-full flex-col">
+        <div className="flex min-h-[28px] items-start justify-between gap-3">
+          <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-text-light">{metaLabel}</p>
+          {badge ? <PlanBadge>{badge}</PlanBadge> : <span className="inline-block h-7" aria-hidden="true" />}
         </div>
-      </div>
 
-      <ul className="mt-5 space-y-3">
-        {plan.featureHighlights.slice(0, 4).map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
-            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary-lighter" />
-            <span className="text-sm leading-6 text-text-secondary">{feature}</span>
-          </li>
-        ))}
-      </ul>
+        <div className="mt-3">
+          <h3 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-text">{plan.name}</h3>
+          <p className="mt-2 text-sm font-medium text-primary">{plan.promise}</p>
+        </div>
 
-      <div className="mt-6">
-        <Button variant={tier === 'essential' ? 'primary' : 'secondary'} className="w-full" onClick={onSelect}>
-          {tier === 'free' ? 'Empezar gratis' : tier === 'essential' ? 'Elegir Esencial' : 'Elegir Estratégico'}
-        </Button>
+        <p className="mt-4 text-sm leading-6 text-text-muted">{description}</p>
+
+        <div className="mt-5 border-t border-border pt-5">
+          <div className="flex items-end gap-1.5">
+            <span className="text-4xl font-semibold tracking-[-0.04em] text-text">
+              {price === null ? 'Gratis' : formatCLP(price)}
+            </span>
+            {price !== null ? (
+              <span className="pb-1 text-sm text-text-muted">/{annual ? 'año' : 'mes'}</span>
+            ) : null}
+          </div>
+        </div>
+
+        <ul className="mt-5 flex-1 space-y-3">
+          {plan.featureHighlights.slice(0, 4).map((feature) => (
+            <li key={feature} className="flex items-start gap-3">
+              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary-lighter" />
+              <span className="text-sm leading-6 text-text-secondary">{feature}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6">
+          <Button variant={tier === 'essential' ? 'primary' : 'secondary'} className="w-full" onClick={onSelect}>
+            {tier === 'free' ? 'Empezar gratis' : tier === 'essential' ? 'Elegir Esencial' : 'Elegir Estratégico'}
+          </Button>
+        </div>
       </div>
     </article>
   );

@@ -38,7 +38,7 @@ function AuthLayout({
   return (
     <main className="min-h-screen bg-bg px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="ui-panel ui-panel-subtle hidden p-8 lg:flex lg:flex-col lg:justify-between">
+        <section className="ui-panel ui-panel-subtle hidden p-8 lg:flex lg:flex-col lg:justify-between xl:p-10">
           <div>
             <div className="eyebrow">
               <Sparkles className="h-4 w-4" />
@@ -53,7 +53,9 @@ function AuthLayout({
                 <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Sistema de claridad compartida</p>
               </div>
             </div>
-            <h1 className="section-heading mt-8 text-5xl text-text">Una entrada clara y confiable al hogar.</h1>
+            <h1 className="section-heading mt-8 max-w-[11ch] text-[clamp(2.35rem,4vw,4rem)] text-text">
+              Una entrada clara y confiable al hogar.
+            </h1>
             <p className="mt-5 max-w-md text-base leading-7 text-text-muted">{APP_TAGLINE}</p>
           </div>
 
@@ -72,7 +74,7 @@ function AuthLayout({
         </section>
 
         <section className="mx-auto flex w-full max-w-lg items-center lg:max-w-none">
-          <div className="ui-panel w-full p-6 sm:p-8">
+          <div className="ui-panel w-full p-6 sm:p-8 lg:p-9">
             <div className="mb-8 lg:hidden">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
@@ -85,7 +87,7 @@ function AuthLayout({
               </div>
             </div>
 
-            <header>
+            <header className="max-w-xl">
               <h1 className="section-heading text-3xl text-text">{title}</h1>
               <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
             </header>
@@ -150,10 +152,10 @@ export function LoginPage() {
 
   return (
     <AuthLayout title={AUTH_TEXTS.login.title} description={AUTH_TEXTS.login.description}>
-      <div className="space-y-5">
+      <div className="space-y-6">
         {error ? <AlertBanner type="danger" message={error} /> : null}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <InputField
             label="Email"
             type="email"
@@ -262,10 +264,10 @@ export function RegisterPage() {
 
   return (
     <AuthLayout title={AUTH_TEXTS.register.title} description={AUTH_TEXTS.register.description}>
-      <div className="space-y-5">
+      <div className="space-y-6">
         {error ? <AlertBanner type="danger" message={error} /> : null}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <InputField
             label="Nombre completo"
             value={fullName}
