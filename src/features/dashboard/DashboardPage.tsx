@@ -15,9 +15,11 @@ import { getFeatureUpgradeCopy } from '../../lib/constants';
 import {
   AlertTriangle,
   CalendarClock,
+  CheckCircle2,
   CircleDollarSign,
   PiggyBank,
   Target,
+  Users,
   Wallet,
   TrendingDown,
   TrendingUp,
@@ -134,6 +136,8 @@ export function DashboardPage() {
   const primaryGoalProgress = primaryGoal && primaryGoal.target_amount_clp > 0
     ? Math.round((primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100)
     : 0;
+  const hasPartner = members.some((member) => member.role === 'member' && member.invitation_status === 'accepted');
+  const showGettingStarted = !hasTransactions || !hasPartner || !primaryGoal || payments.length === 0;
 
   const urgentAlerts = showSmartAlerts
     ? insights.alerts.filter((a) => a.severity === 'danger' || a.severity === 'warning').slice(0, 3)
@@ -235,6 +239,57 @@ export function DashboardPage() {
           onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : `/app/movimientos?month=${currentMonthParam}&type=expense`)}
         />
       </section>
+
+      {showGettingStarted ? (
+        <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-getting-started-title">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Primeros pasos</p>
+              <h2 id="dashboard-getting-started-title" className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
+                Cómo empezar
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-text-muted">
+                Haz estas cuatro cosas para que el hogar empiece a leerse solo.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <GettingStartedStep
+              title="Registra tu primer movimiento"
+              description={hasTransactions ? 'Ya tienes movimientos registrados para leer el mes.' : 'Empieza con un gasto o ingreso puntual.'}
+              actionLabel={hasTransactions ? 'Ver movimientos' : 'Registrar movimiento'}
+              onAction={() => navigate(hasTransactions ? `/app/movimientos?month=${currentMonthParam}` : '/app/movimientos?create=expense')}
+              done={hasTransactions}
+              icon={<CircleDollarSign className="h-4 w-4" />}
+            />
+            <GettingStartedStep
+              title="Invita a tu pareja"
+              description={hasPartner ? 'Ya comparten el mismo hogar con cuentas separadas.' : 'Compartan el mismo hogar con cuentas separadas.'}
+              actionLabel={hasPartner ? 'Ver miembros' : 'Abrir invitación'}
+              onAction={() => navigate(hasPartner ? '/app/configuracion' : '/app/configuracion#invite-partner')}
+              done={hasPartner}
+              icon={<Users className="h-4 w-4" />}
+            />
+            <GettingStartedStep
+              title="Crea una meta"
+              description={primaryGoal ? 'Ya hay una meta guiando las decisiones del mes.' : 'Define un objetivo para orientar el mes.'}
+              actionLabel={primaryGoal ? 'Ver metas' : 'Crear meta'}
+              onAction={() => navigate(primaryGoal ? '/app/metas' : '/app/metas?create=1')}
+              done={!!primaryGoal}
+              icon={<Target className="h-4 w-4" />}
+            />
+            <GettingStartedStep
+              title="Revisa el calendario"
+              description={payments.length > 0 ? 'Ya tienes pagos visibles para ordenar el mes.' : 'Ordena pagos pendientes y vencimientos.'}
+              actionLabel="Abrir calendario"
+              onAction={() => navigate('/app/calendario')}
+              done={payments.length > 0}
+              icon={<CalendarClock className="h-4 w-4" />}
+            />
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
         <div className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-attention-title">
@@ -469,6 +524,41 @@ export function DashboardPage() {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+function GettingStartedStep({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  done,
+  icon,
+}: {
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+  done: boolean;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="ui-panel ui-panel-subtle overflow-hidden p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold tracking-tight text-text">{title}</p>
+          <p className="mt-3 text-sm leading-6 text-text-muted">{description}</p>
+        </div>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${done ? 'bg-success-bg text-success' : 'bg-bg text-text-light'}`}>
+          {done ? <CheckCircle2 className="h-4 w-4" /> : icon}
+        </div>
+      </div>
+      <div className="mt-5">
+        <Button size="sm" variant={done ? 'secondary' : 'primary'} onClick={onAction}>
+          {actionLabel}
+        </Button>
+      </div>
     </div>
   );
 }

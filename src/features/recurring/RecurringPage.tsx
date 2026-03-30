@@ -1,5 +1,6 @@
 // Casa Clara — Recurring Transactions Page (Plus)
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { Card, Button, InputField, SelectField, Modal, EmptyState, FeatureGate, AlertBanner, ConfirmDialog } from '../../components/ui';
@@ -14,6 +15,7 @@ import { Repeat, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 export function RecurringPage() {
   const { household, members, currentMember } = useHousehold();
   const { canWrite } = useSubscription();
+  const navigate = useNavigate();
   const { year, month } = getCurrentMonthYear();
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -245,11 +247,27 @@ export function RecurringPage() {
 
   return (
     <FeatureGate feature="recurring_transactions">
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-text">Gastos recurrentes</h1>
-          {canWrite && <Button icon={<Plus className="h-4 w-4" />} onClick={openCreateModal} size="sm">Nuevo</Button>}
-        </div>
+      <div className="app-page max-w-6xl">
+        <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="recurring-title">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Recurrencias</p>
+              <h1 id="recurring-title" className="mt-3 text-[clamp(1.85rem,2.5vw,2.4rem)] font-semibold tracking-[-0.04em] text-text">
+                Pagos recurrentes
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+                Para pagos que se repiten cada mes. Los movimientos puntuales se registran en Movimientos.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button variant="secondary" onClick={() => navigate('/app/movimientos')}>
+                Ver movimientos
+              </Button>
+              {canWrite ? <Button icon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>Nueva recurrencia</Button> : null}
+            </div>
+          </div>
+        </section>
 
         {msg && (
           <div className="mb-6">
@@ -270,9 +288,9 @@ export function RecurringPage() {
           <EmptyState
             icon={<Repeat className="h-8 w-8" />}
             eyebrow="Continuidad del hogar"
-            title="Todavía no hay reglas recurrentes"
-            description="Las recurrencias sirven para que el hogar no tenga que recordar ni registrar desde cero los mismos pagos todos los meses."
-            secondaryText="Empieza por los gastos que siempre vuelven: arriendo, colegio, suscripciones o cuentas fijas."
+            title="Aún no hay pagos recurrentes"
+            description="Crea aquí los pagos que se repiten cada mes."
+            secondaryText="Usa Movimientos para gastos puntuales y Recurrencias para arriendo, internet, colegio o suscripciones."
             action={canWrite ? { label: 'Crear recurrencia', onClick: openCreateModal } : undefined}
           />
         ) : (

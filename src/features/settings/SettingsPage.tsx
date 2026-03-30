@@ -9,9 +9,11 @@ import { MAX_HOUSEHOLD_MEMBERS, SPLIT_RULE_LABELS, type SplitRuleType } from '..
 import { validateEmail, validateHouseholdName, validateRequired } from '../../utils/validators';
 import type { HouseholdMember } from '../../types/database';
 import {
+  Copy,
   Home,
   Link as LinkIcon,
   Mail,
+  MessageCircle,
   PencilLine,
   PiggyBank,
   ShieldCheck,
@@ -62,6 +64,18 @@ export function SettingsPage() {
         : null,
     [isOwner, members],
   );
+  const invitationHelpMessage = useMemo(() => {
+    if (!pendingInvitation?.invitation_url) return '';
+
+    return [
+      `Te invito a Compás Hogar para llevar ${household?.name || 'nuestro hogar'} en conjunto.`,
+      '',
+      `Abre este enlace: ${pendingInvitation.invitation_url}`,
+      '',
+      `Entra con tu propio correo y tu propia contraseña.`,
+      `Si aún no tienes cuenta, créala con este mismo correo: ${pendingInvitation.invited_email}.`,
+    ].join('\n');
+  }, [household?.name, pendingInvitation]);
 
   async function saveSettings() {
     const displayNameCheck = validateRequired(displayName, 'Tu nombre visible');
@@ -134,6 +148,15 @@ export function SettingsPage() {
     void loadInvitation();
   }, [loadInvitation]);
 
+  useEffect(() => {
+    if (window.location.hash !== '#invite-partner') return;
+    const section = document.getElementById('invite-partner');
+    if (!section) return;
+    window.requestAnimationFrame(() => {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [pendingInvitation, isOwner]);
+
   async function copyInvitationLink() {
     if (!pendingInvitation?.invitation_url) return;
 
@@ -144,6 +167,23 @@ export function SettingsPage() {
     } catch {
       window.prompt('Copia este enlace para invitar al nuevo miembro:', pendingInvitation.invitation_url);
     }
+  }
+
+  async function copyInvitationMessage() {
+    if (!invitationHelpMessage) return;
+
+    try {
+      await navigator.clipboard.writeText(invitationHelpMessage);
+      setMsgType('success');
+      setMsg('Mensaje copiado. Ya puedes pegarlo y enviarlo a tu pareja.');
+    } catch {
+      window.prompt('Copia este mensaje para compartir la invitación:', invitationHelpMessage);
+    }
+  }
+
+  function shareInvitationOnWhatsApp() {
+    if (!invitationHelpMessage) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(invitationHelpMessage)}`, '_blank', 'noopener,noreferrer');
   }
 
   async function createInvitation() {
@@ -420,33 +460,57 @@ export function SettingsPage() {
           </div>
 
           {isOwner && !partnerMember ? (
-            <p className="text-sm leading-6 text-text-muted">
-              Cuando otra persona acepte la invitación, podrás gestionar sus datos desde aquí.
-            </p>
+            <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+              <p className="text-sm font-semibold text-text">Aún no hay otra persona en este hogar.</p>
+              <p className="mt-2 text-sm leading-6 text-text-muted">
+                Invita a tu pareja para compartir gastos, metas y pagos con cuentas separadas.
+              </p>
+              <div className="mt-4">
+                <Button size="sm" variant="secondary" onClick={() => navigate('/app/configuracion#invite-partner')}>
+                  Ir a invitación
+                </Button>
+              </div>
+            </div>
           ) : null}
         </SettingsCard>
 
         {isOwner ? (
           <SettingsCard
+            id="invite-partner"
             icon={<Mail className="h-5 w-5" />}
             eyebrow="Invitación"
-            title="Invitar miembro nuevo"
-            description="Comparte un enlace directo para sumar a otra persona al hogar."
+            title="Invitar a tu pareja"
+            description="Suma a otra persona para llevar el hogar en conjunto."
           >
             {pendingInvitation ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
                   <p className="text-sm font-semibold text-text">{pendingInvitation.invited_email}</p>
                   <p className="mt-2 text-sm leading-6 text-text-muted">
-                    Invitación pendiente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. Puedes compartir este enlace por el medio que prefieras.
+                    Invitación pendiente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. El siguiente paso es compartir este enlace.
                   </p>
                 </div>
 
                 <InputField label="Enlace de invitación" value={pendingInvitation.invitation_url} onChange={() => {}} readOnly />
 
+                <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                  <p className="text-sm font-semibold text-text">Qué hacer ahora</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-text-muted">
+                    <li>Envía este enlace a tu pareja por el medio que prefieras.</li>
+                    <li>Tu pareja debe entrar con su propio correo y su propia contraseña.</li>
+                    <li>Si aún no tiene cuenta, puede crearla con ese mismo correo.</li>
+                  </ul>
+                </div>
+
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Button icon={<LinkIcon className="h-3.5 w-3.5" />} onClick={copyInvitationLink}>
                     Copiar enlace
+                  </Button>
+                  <Button variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={copyInvitationMessage}>
+                    Copiar mensaje
+                  </Button>
+                  <Button variant="secondary" icon={<MessageCircle className="h-3.5 w-3.5" />} onClick={shareInvitationOnWhatsApp}>
+                    Compartir por WhatsApp
                   </Button>
                   <Button variant="secondary" onClick={refreshInvitation} loading={inviteLoading}>
                     Renovar enlace
@@ -464,15 +528,21 @@ export function SettingsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm leading-7 text-text-muted">
-                  Genera un enlace para sumar a otra persona al hogar.
-                </p>
+                <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                  <p className="text-sm font-semibold text-text">Cómo funciona</p>
+                  <ol className="mt-3 space-y-2 text-sm leading-6 text-text-muted">
+                    <li>1. Ingresa su correo.</li>
+                    <li>2. Genera el enlace.</li>
+                    <li>3. Compártelo con tu pareja.</li>
+                  </ol>
+                </div>
                 <InputField
                   label="Email"
                   type="email"
                   value={inviteEmail}
                   onChange={(event) => setInviteEmail(event.target.value)}
                   placeholder="ej@email.com"
+                  hint="Tu pareja debe entrar o crear su cuenta con este mismo correo."
                 />
                 <Button onClick={createInvitation} loading={inviteLoading}>
                   Crear invitación
@@ -566,12 +636,14 @@ export function SettingsPage() {
 }
 
 function SettingsCard({
+  id,
   icon,
   eyebrow,
   title,
   description,
   children,
 }: {
+  id?: string;
   icon: ReactNode;
   eyebrow: string;
   title: string;
@@ -580,7 +652,7 @@ function SettingsCard({
 }) {
   return (
     <Card padding="lg" className="h-full">
-      <div className="space-y-5">
+      <div id={id} className="scroll-mt-24 space-y-5">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
             {icon}

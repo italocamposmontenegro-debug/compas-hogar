@@ -110,7 +110,7 @@ export function InvitationPage() {
             <Home className="mx-auto mb-4 h-12 w-12 text-primary" />
             <h1 className="section-heading text-2xl text-text">Invitación lista</h1>
             <p className="mt-3 text-sm leading-7 text-text-muted">
-              Únete a <strong>{householdName}</strong>. Entrarás con <strong>{invitedEmail}</strong>.
+              Esta invitación fue enviada a <strong>{invitedEmail}</strong>. Si ese es tu correo, puedes unirte ahora a <strong>{householdName}</strong>.
             </p>
             <Button onClick={acceptInvitation} className="mt-6 w-full">
               Aceptar invitación
@@ -123,14 +123,22 @@ export function InvitationPage() {
             <Home className="mx-auto mb-4 h-12 w-12 text-primary" />
             <h1 className="section-heading text-2xl text-text">Te invitaron a {householdName}</h1>
             <p className="mt-3 text-sm leading-7 text-text-muted">
-              Invitación enviada a <strong>{invitedEmail}</strong>. Inicia sesión con este correo.
+              Esta invitación fue enviada a <strong>{invitedEmail}</strong>.
             </p>
+            <div className="mt-5 rounded-2xl border border-border bg-bg/70 px-4 py-4 text-left">
+              <p className="text-sm font-semibold text-text">Qué debes hacer</p>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-text-muted">
+                <li>Si ya tienes cuenta, inicia sesión con ese mismo correo.</li>
+                <li>Si no tienes cuenta, créala con ese mismo correo.</li>
+                <li>No uses la cuenta de otra persona.</li>
+              </ul>
+            </div>
             <div className="mt-6 space-y-3">
               <Button onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/invitacion/${token}`)}`)} className="w-full">
-                <LogIn className="h-4 w-4" /> Iniciar sesión
+                <LogIn className="h-4 w-4" /> Ya tengo cuenta
               </Button>
               <Button variant="secondary" onClick={() => navigate(`/registro?redirect=${encodeURIComponent(`/invitacion/${token}`)}`)} className="w-full">
-                <UserPlus className="h-4 w-4" /> Crear cuenta
+                <UserPlus className="h-4 w-4" /> Crear cuenta con este correo
               </Button>
             </div>
           </>
@@ -140,7 +148,18 @@ export function InvitationPage() {
           <>
             <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-warning" />
             <h1 className="section-heading text-2xl text-text">Usa la cuenta correcta</h1>
-            <p className="mt-3 text-sm leading-7 text-text-muted">{errorMsg}</p>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              Esta invitación fue enviada a <strong>{invitedEmail}</strong>.
+            </p>
+            <div className="mt-5 rounded-2xl border border-border bg-bg/70 px-4 py-4 text-left">
+              <p className="text-sm font-semibold text-text">Cuenta actual</p>
+              <p className="mt-2 text-sm leading-6 text-text-muted">{user?.email}</p>
+              <p className="mt-4 text-sm font-semibold text-text">Siguiente paso</p>
+              <ul className="mt-2 space-y-2 text-sm leading-6 text-text-muted">
+                <li>Debes entrar o crear una cuenta con ese mismo correo.</li>
+                <li>No uses la cuenta de otra persona.</li>
+              </ul>
+            </div>
             <div className="mt-6 space-y-3">
               <Button onClick={switchAccount} className="w-full">
                 Cambiar de cuenta

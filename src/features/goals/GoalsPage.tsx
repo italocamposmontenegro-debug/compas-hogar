@@ -268,7 +268,7 @@ export function GoalsPage() {
               Metas de ahorro
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Define una dirección visible para que el ahorro del hogar no quede disperso.
+              Usa metas para decidir hacia dónde quieres llevar el ahorro del mes.
             </p>
           </div>
 
@@ -321,9 +321,9 @@ export function GoalsPage() {
         <EmptyState
           icon={<Target className="h-8 w-8" />}
           eyebrow="Dirección compartida"
-          title="Tu ahorro todavía no tiene una meta visible"
-          description="Una meta clara convierte la intención del hogar en una decisión concreta."
-          secondaryText="Empieza por una sola meta. Después podrás ordenar el resto con más criterio."
+          title="Aún no hay metas"
+          description="Crea una para orientar el mes."
+          secondaryText="Una sola meta ya basta para ordenar decisiones y dar contexto al ahorro del hogar."
           action={canCreateGoal ? { label: 'Crear meta', onClick: openCreate } : undefined}
         />
       ) : null}

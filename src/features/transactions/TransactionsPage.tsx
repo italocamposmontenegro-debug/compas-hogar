@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import {
@@ -43,6 +43,7 @@ const C = {
 export function TransactionsPage() {
   const { household, members, currentMember } = useHousehold();
   const { canWrite, hasFeature } = useSubscription();
+  const navigate = useNavigate();
   const { year, month } = getCurrentMonthYear();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -283,15 +284,20 @@ export function TransactionsPage() {
               Registro del mes
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Ingresos y gastos en una sola vista para entender rápido cómo se está moviendo el hogar.
+              Para gastos e ingresos puntuales. Si algo se repite cada mes, conviene llevarlo a Recurrencias.
             </p>
           </div>
 
-          {canWrite ? (
-            <Button icon={<Plus className="h-4 w-4" />} onClick={openCreate}>
-              Registrar movimiento
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={() => navigate('/app/recurrencias')}>
+              Ver recurrencias
             </Button>
-          ) : null}
+            {canWrite ? (
+              <Button icon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+                Registrar movimiento
+              </Button>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -393,9 +399,9 @@ export function TransactionsPage() {
             <EmptyState
               icon={<ArrowUpDown className="h-8 w-8" />}
               eyebrow="Lectura inicial"
-              title="Todavía no hay movimientos en este período"
-              description="Cuando registres ingresos o gastos, esta vista empezará a mostrar cómo se está moviendo el hogar."
-              secondaryText="El primer movimiento ya sirve para convertir intuición en una referencia concreta."
+              title="Aún no hay movimientos"
+              description="Registra aquí gastos o ingresos puntuales."
+              secondaryText="Si un pago se repite cada mes, llévalo a Recurrencias para no ingresarlo desde cero cada vez."
               action={canWrite ? { label: 'Registrar movimiento', onClick: openCreate } : undefined}
             />
           </div>

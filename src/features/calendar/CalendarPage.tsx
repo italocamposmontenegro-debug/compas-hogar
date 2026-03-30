@@ -276,7 +276,7 @@ export function CalendarPage() {
               Pagos del mes
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Reúne vencimientos y pagos registrados para que nada importante quede solo en la memoria.
+              Usa el calendario para ordenar pagos pendientes, vencidos y registrados.
             </p>
           </div>
 
@@ -345,9 +345,9 @@ export function CalendarPage() {
         <EmptyState
           icon={<CalendarClock className="h-8 w-8" />}
           eyebrow="Seguimiento del mes"
-          title="Todavía no hay pagos programados en este período"
-          description="Cuando registres vencimientos o pagos fijos, esta vista empezará a mostrar qué requiere atención antes de que se te pase."
-          secondaryText="El calendario sirve para sacar pagos de la memoria y convertirlos en una referencia visible del mes."
+          title="Aún no hay pagos registrados"
+          description="Usa el calendario para ordenar vencimientos."
+          secondaryText="Empieza por los pagos que no quieres volver a recordar de memoria."
           action={
             canManageCalendar
               ? { label: 'Agregar pago', onClick: openCreateModal }
