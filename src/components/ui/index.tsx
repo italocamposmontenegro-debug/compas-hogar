@@ -304,6 +304,11 @@ export function Modal({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const lastActiveElementRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -313,7 +318,7 @@ export function Modal({
     document.body.style.overflow = 'hidden';
 
     const dialog = dialogRef.current;
-    window.requestAnimationFrame(() => {
+    const focusFrame = window.requestAnimationFrame(() => {
       const autofocusTarget = dialog?.querySelector<HTMLElement>('[data-autofocus="true"]');
       if (autofocusTarget) {
         autofocusTarget.focus();
@@ -333,7 +338,7 @@ export function Modal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -362,11 +367,12 @@ export function Modal({
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      lastActiveElementRef.current?.focus();
+      lastActiveElementRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

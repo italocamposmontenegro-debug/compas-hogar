@@ -95,6 +95,10 @@ export function GoalsPage() {
     setShowForm(true);
   }, [canCreateGoal]);
 
+  const closeForm = useCallback(() => {
+    setShowForm(false);
+  }, []);
+
   useEffect(() => {
     if (searchParams.get('create') !== '1' || !canCreateGoal) return;
     openCreate();
@@ -176,7 +180,7 @@ export function GoalsPage() {
     if (!editing && !canCreateGoal) {
       setMsgType('info');
       setMsg('Tu plan actual permite solo una meta activa. Actualiza para trabajar varias metas al mismo tiempo.');
-      setShowForm(false);
+      closeForm();
       return;
     }
 
@@ -237,7 +241,7 @@ export function GoalsPage() {
         setMsg('Meta creada correctamente.');
       }
 
-      setShowForm(false);
+      closeForm();
       await load();
     } catch {
       setMsgType('danger');
@@ -567,7 +571,7 @@ export function GoalsPage() {
         </section>
       ) : null}
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'Editar meta' : 'Nueva meta'} size="sm">
+      <Modal open={showForm} onClose={closeForm} title={editing ? 'Editar meta' : 'Nueva meta'} size="sm">
         <div className="space-y-5">
           <p className="text-sm leading-7 text-text-muted">
             Define una meta clara y un plazo realista para que el hogar pueda seguirla sin fricción.
@@ -599,7 +603,7 @@ export function GoalsPage() {
           />
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={() => setShowForm(false)}>
+            <Button variant="secondary" onClick={closeForm}>
               Cancelar
             </Button>
             <Button onClick={handleSave} loading={saving}>

@@ -36,6 +36,10 @@ export function CategoriesPage() {
 
   useEffect(() => { void loadCategories(); }, [loadCategories]);
 
+  const closeForm = useCallback(() => {
+    setShowForm(false);
+  }, []);
+
   function openCreate() { setEditing(null); setName(''); setIcon('📦'); setColor('#6B7280'); setShowForm(true); }
   function openEdit(c: Category) { setEditing(c); setName(c.name); setIcon(c.icon); setColor(c.color); setShowForm(true); }
 
@@ -52,7 +56,7 @@ export function CategoriesPage() {
       if (error) throw error;
       setMsgType('success');
       setMsg(editing ? 'Categoría actualizada correctamente.' : 'Categoría creada correctamente.');
-      setShowForm(false);
+      closeForm();
       await loadCategories();
     } catch (error) {
       setMsgType('danger');
@@ -111,13 +115,13 @@ export function CategoriesPage() {
         <EmptyState icon={<Tags className="h-8 w-8" />} title="Sin categorías" description="Las categorías se crearán automáticamente durante el onboarding." />
       )}
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'Editar categoría' : 'Nueva categoría'} size="sm">
+      <Modal open={showForm} onClose={closeForm} title={editing ? 'Editar categoría' : 'Nueva categoría'} size="sm">
         <div className="space-y-4">
           <InputField label="Nombre" value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Mascota" />
           <InputField label="Ícono (emoji)" value={icon} onChange={e => setIcon(e.target.value)} placeholder="🐾" />
           <InputField label="Color" type="color" value={color} onChange={e => setColor(e.target.value)} />
           <div className="flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={closeForm}>Cancelar</Button>
             <Button onClick={handleSave} loading={saving}>{editing ? 'Guardar' : 'Crear'}</Button>
           </div>
         </div>

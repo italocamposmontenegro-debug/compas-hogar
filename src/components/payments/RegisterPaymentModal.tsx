@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Modal, Button, InputField, SelectField, AlertBanner } from '../ui';
 import { supabase } from '../../lib/supabase';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -48,6 +48,10 @@ export function RegisterPaymentModal({
     setError('');
   }, [defaultPaidBy, item, members]);
 
+  const handleClose = useCallback(() => {
+    if (!saving) onClose();
+  }, [onClose, saving]);
+
   const getMemberName = (id: string) => members.find(member => member.id === id)?.display_name || 'miembro';
 
   async function handleSubmit() {
@@ -72,7 +76,7 @@ export function RegisterPaymentModal({
       if (invokeError) throw invokeError;
 
       await onSaved('Pago registrado. Ya quedó reflejado como gasto del hogar.');
-      onClose();
+      handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos registrar el pago.');
     } finally {
@@ -81,7 +85,7 @@ export function RegisterPaymentModal({
   }
 
   return (
-    <Modal open={open} onClose={() => !saving && onClose()} title="Registrar pago" size="md">
+    <Modal open={open} onClose={handleClose} title="Registrar pago" size="md">
       <div className="space-y-4">
         {error && (
           <AlertBanner
@@ -161,7 +165,7 @@ export function RegisterPaymentModal({
           placeholder={`Ej: Pagado por ${paidBy ? getMemberName(paidBy) : 'miembro'} desde cuenta corriente`}
         />
         <div className="flex gap-3 justify-end">
-          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button variant="secondary" onClick={handleClose}>Cancelar</Button>
           <Button onClick={handleSubmit} loading={saving}>Registrar pago</Button>
         </div>
       </div>

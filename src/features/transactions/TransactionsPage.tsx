@@ -147,6 +147,10 @@ export function TransactionsPage() {
     setShowForm(true);
   }, [currentMember?.id]);
 
+  const closeForm = useCallback(() => {
+    setShowForm(false);
+  }, []);
+
   useEffect(() => {
     const createIntent = searchParams.get('create');
     if (!createIntent || !canWrite) return;
@@ -229,7 +233,7 @@ export function TransactionsPage() {
         setMsgType('success');
         setMsg(formType === 'income' ? 'Ingreso creado correctamente.' : 'Gasto creado correctamente.');
       }
-      setShowForm(false);
+      closeForm();
       await loadData();
     } catch (error) {
       setMsgType('danger');
@@ -466,7 +470,7 @@ export function TransactionsPage() {
 
       <Modal
         open={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={closeForm}
         title={
           editingTx
             ? formType === 'income'
@@ -595,7 +599,7 @@ export function TransactionsPage() {
                   icon={<Trash2 className="h-3.5 w-3.5" />}
                   className="text-danger hover:border-danger/10 hover:bg-danger-bg hover:text-danger"
                   onClick={() => {
-                    setShowForm(false);
+                    closeForm();
                     setDeleteId(editingTx.id);
                   }}
                 >
@@ -605,7 +609,7 @@ export function TransactionsPage() {
             ) : null}
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button variant="secondary" onClick={() => setShowForm(false)}>
+              <Button variant="secondary" onClick={closeForm}>
                 Cancelar
               </Button>
               <Button onClick={handleSave} loading={saving}>
