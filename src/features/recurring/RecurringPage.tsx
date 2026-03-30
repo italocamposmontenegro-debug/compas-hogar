@@ -8,9 +8,9 @@ import { RegisterPaymentModal } from '../../components/payments/RegisterPaymentM
 import { supabase } from '../../lib/supabase';
 import { syncRecurringItems } from '../../lib/recurring';
 import { formatCLP } from '../../utils/format-clp';
-import { getCurrentMonthYear, getMonthRange, formatDate } from '../../utils/dates-chile';
+import { getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
 import type { RecurringTransaction, Category, PaymentCalendarItem } from '../../types/database';
-import { Repeat, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Repeat, Plus } from 'lucide-react';
 
 export function RecurringPage() {
   const { household, members, currentMember } = useHousehold();
@@ -234,17 +234,6 @@ export function RecurringPage() {
   const getCatName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getMemberName = (id: string) => members.find(m => m.id === id)?.display_name || '—';
   const getMonthPayment = (recurringId: string) => monthPayments.find(item => item.recurring_source_id === recurringId) || null;
-  const paymentBadge = {
-    pending: 'badge-warning',
-    paid: 'badge-success',
-    overdue: 'badge-danger',
-  } as const;
-  const paymentIcon = {
-    pending: <Clock className="h-3.5 w-3.5 text-warning" />,
-    paid: <CheckCircle className="h-3.5 w-3.5 text-success" />,
-    overdue: <AlertTriangle className="h-3.5 w-3.5 text-danger" />,
-  } as const;
-
   return (
     <FeatureGate feature="recurring_transactions">
       <div className="app-page max-w-6xl">
@@ -279,7 +268,7 @@ export function RecurringPage() {
           <div className="mb-6">
             <AlertBanner
               type="info"
-              message="Desactivar pausa la recurrencia y evita nuevos pagos futuros. Eliminar borra la regla por completo y también quita el pago pendiente del mes si aún no estaba registrado."
+              message="Desactivar pausa la recurrencia. Eliminar regla la borra por completo."
             />
           </div>
         )}
@@ -298,61 +287,53 @@ export function RecurringPage() {
             {items.map(item => {
               const monthPayment = getMonthPayment(item.id);
               return (
-              <Card key={item.id} padding="sm" className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium text-text text-sm">{item.description}</p>
-                  <p className="text-xs text-text-muted">Día {item.day_of_month} · {getCatName(item.category_id)} · {getMemberName(item.paid_by_member_id)}</p>
-                  <p className="mt-1 text-xs text-text-muted">
-                    {item.is_active
-                      ? 'Desactiva si solo quieres pausarla. Elimínala solo si ya no quieres conservar esta regla.'
-                      : 'Está pausada. Puedes reactivarla para volver a generar pagos automáticos.'}
+              <Card key={item.id} padding="sm" className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-semibold tracking-tight text-text">{item.description}</p>
+                    <span className={`badge ${item.is_active ? 'badge-success' : 'badge-danger'}`}>
+                      {item.is_active ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-xs text-text-muted">
+                    Mensual · Día {item.day_of_month} · {getCatName(item.category_id)} · {getMemberName(item.paid_by_member_id)}
                   </p>
-                  {monthPayment ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {paymentIcon[monthPayment.status]}
-                      <span className={`badge ${paymentBadge[monthPayment.status]}`}>
-                        {monthPayment.status === 'paid' ? 'Pagado' : monthPayment.status === 'overdue' ? 'Vencido' : 'Pendiente'}
-                      </span>
-                      <span className="text-xs text-text-muted">
-                        Pago de este mes: {formatDate(monthPayment.due_date)}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-xs text-text-muted">
-                      Aún no hay pago generado para este mes.
-                    </p>
-                  )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-medium text-text">{formatCLP(item.amount_clp)}</span>
-                  <span className={`badge ${item.is_active ? 'badge-success' : 'badge-danger'}`}>
-                    {item.is_active ? 'Activo' : 'Inactivo'}
-                  </span>
-                  {canWrite && (
-                    <Button size="sm" variant="ghost" onClick={() => openEditModal(item)}>
-                      Editar
-                    </Button>
-                  )}
-                  {canWrite && (
-                    <Button size="sm" variant="ghost" onClick={() => setToggleItem(item)}>
-                      {item.is_active ? 'Desactivar' : 'Reactivar'}
-                    </Button>
-                  )}
-                  {canWrite && (
-                    <Button size="sm" variant="ghost" onClick={() => setDeletingItem(item)}>
-                      Eliminar regla
-                    </Button>
-                  )}
-                  {item.is_active && monthPayment && monthPayment.status !== 'paid' && canWrite && (
-                    <Button size="sm" variant="ghost" onClick={() => setPayingItem(monthPayment)}>
-                      Marcar pagado
-                    </Button>
-                  )}
-                  {item.is_active && monthPayment?.status === 'paid' && monthPayment.paid_transaction_id && canWrite && (
-                    <Button size="sm" variant="ghost" onClick={() => setUndoingItem(monthPayment)}>
-                      Deshacer pago
-                    </Button>
-                  )}
+
+                <div className="flex w-full flex-col gap-4 lg:w-[280px] lg:items-end">
+                  <div className="rounded-2xl border border-border bg-bg/70 px-4 py-3 lg:min-w-[168px] lg:text-right">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Monto</p>
+                    <p className="mt-2 text-lg font-semibold tracking-tight text-text">{formatCLP(item.amount_clp)}</p>
+                  </div>
+
+                  <div className="flex w-full flex-wrap gap-3 lg:justify-end">
+                    {canWrite && (
+                      <Button size="sm" variant="ghost" onClick={() => openEditModal(item)}>
+                        Editar
+                      </Button>
+                    )}
+                    {canWrite && (
+                      <Button size="sm" variant="ghost" onClick={() => setToggleItem(item)}>
+                        {item.is_active ? 'Desactivar' : 'Reactivar'}
+                      </Button>
+                    )}
+                    {canWrite && (
+                      <Button size="sm" variant="ghost" onClick={() => setDeletingItem(item)}>
+                        Eliminar regla
+                      </Button>
+                    )}
+                    {item.is_active && monthPayment && monthPayment.status !== 'paid' && canWrite && (
+                      <Button size="sm" variant="ghost" onClick={() => setPayingItem(monthPayment)}>
+                        Marcar pagado
+                      </Button>
+                    )}
+                    {item.is_active && monthPayment?.status === 'paid' && monthPayment.paid_transaction_id && canWrite && (
+                      <Button size="sm" variant="ghost" onClick={() => setUndoingItem(monthPayment)}>
+                        Deshacer pago
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
               );
