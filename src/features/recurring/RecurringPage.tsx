@@ -8,9 +8,9 @@ import { RegisterPaymentModal } from '../../components/payments/RegisterPaymentM
 import { supabase } from '../../lib/supabase';
 import { syncRecurringItems } from '../../lib/recurring';
 import { formatCLP } from '../../utils/format-clp';
-import { getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
+import { getCurrentMonthYear, getMonthRange, formatDate } from '../../utils/dates-chile';
 import type { RecurringTransaction, Category, PaymentCalendarItem } from '../../types/database';
-import { Repeat, Plus } from 'lucide-react';
+import { Repeat, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
 export function RecurringPage() {
   const { household, members, currentMember } = useHousehold();
@@ -234,6 +234,22 @@ export function RecurringPage() {
   const getCatName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getMemberName = (id: string) => members.find(m => m.id === id)?.display_name || '—';
   const getMonthPayment = (recurringId: string) => monthPayments.find(item => item.recurring_source_id === recurringId) || null;
+  const paymentBadge = {
+    pending: 'badge-warning',
+    paid: 'badge-success',
+    overdue: 'badge-danger',
+  } as const;
+  const paymentIcon = {
+    pending: <Clock className="h-3.5 w-3.5 text-warning" aria-hidden="true" />,
+    paid: <CheckCircle className="h-3.5 w-3.5 text-success" aria-hidden="true" />,
+    overdue: <AlertTriangle className="h-3.5 w-3.5 text-danger" aria-hidden="true" />,
+  } as const;
+  const paymentLabel = {
+    pending: 'Pendiente',
+    paid: 'Pagado',
+    overdue: 'Vencido',
+  } as const;
+
   return (
     <FeatureGate feature="recurring_transactions">
       <div className="app-page max-w-6xl">
@@ -268,7 +284,7 @@ export function RecurringPage() {
           <div className="mb-6">
             <AlertBanner
               type="info"
-              message="Desactivar pausa la recurrencia. Eliminar regla la borra por completo."
+              message="Desactivar pausa la recurrencia y evita nuevos pagos futuros. Eliminar regla borra la recurrencia por completo y también quita el pago pendiente del mes si aún no estaba registrado."
             />
           </div>
         )}
@@ -287,55 +303,79 @@ export function RecurringPage() {
             {items.map(item => {
               const monthPayment = getMonthPayment(item.id);
               return (
-              <Card key={item.id} padding="sm" className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-semibold tracking-tight text-text">{item.description}</p>
-                    <span className={`badge ${item.is_active ? 'badge-success' : 'badge-danger'}`}>
-                      {item.is_active ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </div>
+                <Card key={item.id} padding="md" className="overflow-hidden">
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg font-semibold tracking-tight text-text">{item.description}</p>
+                        <p className="mt-2 text-sm leading-6 text-text-muted">
+                          Mensual · Día {item.day_of_month} · {getCatName(item.category_id)} · {getMemberName(item.paid_by_member_id)}
+                        </p>
+                        {monthPayment ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                            <span className="inline-flex shrink-0 items-center gap-2 text-text">
+                              {paymentIcon[monthPayment.status]}
+                              <span className={`badge ${paymentBadge[monthPayment.status]}`}>
+                                {paymentLabel[monthPayment.status]}
+                              </span>
+                            </span>
+                            <span className="text-text-secondary">
+                              Pago de este mes: {formatDate(monthPayment.due_date)}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
 
-                  <p className="mt-2 text-xs text-text-muted">
-                    Mensual · Día {item.day_of_month} · {getCatName(item.category_id)} · {getMemberName(item.paid_by_member_id)}
-                  </p>
-                </div>
+                      <div className="shrink-0">
+                        <span className={`badge ${item.is_active ? 'badge-success' : 'badge-warning'}`}>
+                          {item.is_active ? 'Activa' : 'Pausada'}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="flex w-full flex-col gap-4 lg:w-[280px] lg:items-end">
-                  <div className="rounded-2xl border border-border bg-bg/70 px-4 py-3 lg:min-w-[168px] lg:text-right">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">Monto</p>
-                    <p className="mt-2 text-lg font-semibold tracking-tight text-text">{formatCLP(item.amount_clp)}</p>
-                  </div>
+                    <div className="flex flex-col gap-4 border-t border-border pt-4 lg:flex-row lg:items-end lg:justify-between">
+                      <div className="order-2 flex min-w-0 flex-col gap-2 lg:order-1 lg:flex-1">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                          {canWrite && (
+                            <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => openEditModal(item)}>
+                              Editar
+                            </Button>
+                          )}
+                          {canWrite && (
+                            <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setToggleItem(item)}>
+                              {item.is_active ? 'Desactivar' : 'Reactivar'}
+                            </Button>
+                          )}
+                          {canWrite && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full border-danger/15 text-danger hover:border-danger/20 hover:bg-danger-bg hover:text-danger sm:w-auto"
+                              onClick={() => setDeletingItem(item)}
+                            >
+                              Eliminar regla
+                            </Button>
+                          )}
+                          {item.is_active && monthPayment && monthPayment.status !== 'paid' && canWrite && (
+                            <Button size="sm" className="w-full sm:w-auto" onClick={() => setPayingItem(monthPayment)}>
+                              Marcar pagado
+                            </Button>
+                          )}
+                          {item.is_active && monthPayment?.status === 'paid' && monthPayment.paid_transaction_id && canWrite && (
+                            <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => setUndoingItem(monthPayment)}>
+                              Deshacer pago
+                            </Button>
+                          )}
+                        </div>
+                      </div>
 
-                  <div className="flex w-full flex-wrap gap-3 lg:justify-end">
-                    {canWrite && (
-                      <Button size="sm" variant="ghost" onClick={() => openEditModal(item)}>
-                        Editar
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button size="sm" variant="ghost" onClick={() => setToggleItem(item)}>
-                        {item.is_active ? 'Desactivar' : 'Reactivar'}
-                      </Button>
-                    )}
-                    {canWrite && (
-                      <Button size="sm" variant="ghost" onClick={() => setDeletingItem(item)}>
-                        Eliminar regla
-                      </Button>
-                    )}
-                    {item.is_active && monthPayment && monthPayment.status !== 'paid' && canWrite && (
-                      <Button size="sm" variant="ghost" onClick={() => setPayingItem(monthPayment)}>
-                        Marcar pagado
-                      </Button>
-                    )}
-                    {item.is_active && monthPayment?.status === 'paid' && monthPayment.paid_transaction_id && canWrite && (
-                      <Button size="sm" variant="ghost" onClick={() => setUndoingItem(monthPayment)}>
-                        Deshacer pago
-                      </Button>
-                    )}
+                      <div className="order-1 rounded-2xl border border-border bg-surface-low px-4 py-3 lg:order-2 lg:min-w-[182px] lg:text-right">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Monto mensual</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-tight text-text">{formatCLP(item.amount_clp)}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
               );
             })}
           </div>
