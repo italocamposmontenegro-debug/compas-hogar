@@ -4,6 +4,7 @@ export type SubscriptionStatus = 'active' | 'pending' | 'cancelled' | 'expired' 
 export type MercadoPagoAutoRecurring = {
   frequency: number;
   frequency_type: 'months';
+  end_date: string;
   transaction_amount: number;
   currency_id: 'CLP';
 };
@@ -123,9 +124,13 @@ export function mapMercadoPagoSubscriptionStatus(status: string | null | undefin
 }
 
 export function buildAutoRecurring(planCode: PlanCode, billingCycle: BillingCycle): MercadoPagoAutoRecurring {
+  const endDate = new Date();
+  endDate.setUTCFullYear(endDate.getUTCFullYear() + 10);
+
   return {
     frequency: getSubscriptionFrequency(planCode, billingCycle),
     frequency_type: 'months',
+    end_date: endDate.toISOString(),
     transaction_amount: getSubscriptionPrice(planCode, billingCycle),
     currency_id: 'CLP',
   };

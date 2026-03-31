@@ -44,6 +44,27 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;');
 }
 
+function looksLikePlaceholder(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  return (
+    normalized === 'tu_host'
+    || normalized === 'tu_usuario'
+    || normalized === 'tu_pass'
+    || normalized === 'tu_password'
+    || normalized === 'tu_correo'
+    || normalized === 'tu-correo@dominio.com'
+    || normalized === 'your-smtp-user'
+    || normalized === 'your-smtp-password'
+    || normalized === 'your-smtp-host'
+    || normalized === 'your@email.com'
+    || normalized === 'smtp.example.com'
+    || normalized.startsWith('your-')
+    || normalized.startsWith('tu_')
+    || normalized.includes('example.com')
+  );
+}
+
 function getSmtpConfig(): SmtpConfig | null {
   const host = Deno.env.get('SMTP_HOST')?.trim();
   const portRaw = Deno.env.get('SMTP_PORT')?.trim();
@@ -52,7 +73,17 @@ function getSmtpConfig(): SmtpConfig | null {
   const fromEmail = Deno.env.get('SMTP_FROM_EMAIL')?.trim();
   const fromName = Deno.env.get('SMTP_FROM_NAME')?.trim() || 'Compás Hogar';
 
-  if (!host || !portRaw || !user || !pass || !fromEmail) {
+  if (
+    !host
+    || !portRaw
+    || !user
+    || !pass
+    || !fromEmail
+    || looksLikePlaceholder(host)
+    || looksLikePlaceholder(user)
+    || looksLikePlaceholder(pass)
+    || looksLikePlaceholder(fromEmail)
+  ) {
     return null;
   }
 
