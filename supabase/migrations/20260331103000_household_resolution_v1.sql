@@ -99,8 +99,8 @@ BEGIN
   )
   SELECT COUNT(*)
     INTO v_active_count
-  FROM accepted_candidates
-  WHERE subscription_status = 'active';
+  FROM accepted_candidates ac
+  WHERE ac.subscription_status = 'active';
 
   IF v_active_count > 1 THEN
     RAISE EXCEPTION 'Tu cuenta tiene más de un hogar con suscripción activa. Compás Hogar v1 admite un solo hogar operativo por usuario.';
@@ -139,22 +139,22 @@ BEGIN
         AND hm.invitation_status = 'accepted'
     )
     SELECT
-      membership_id,
-      household_id,
-      role,
-      display_name,
-      email,
-      monthly_income,
-      household_name,
-      subscription_id,
-      subscription_status,
-      subscription_plan_code,
-      subscription_billing_cycle,
+      ac.membership_id,
+      ac.household_id,
+      ac.role,
+      ac.display_name,
+      ac.email,
+      ac.monthly_income,
+      ac.household_name,
+      ac.subscription_id,
+      ac.subscription_status,
+      ac.subscription_plan_code,
+      ac.subscription_billing_cycle,
       v_accepted_count AS accepted_household_count,
       v_active_count AS active_household_count,
       'single_active_subscription'::TEXT AS resolution_reason
-    FROM accepted_candidates
-    WHERE subscription_status = 'active'
+    FROM accepted_candidates ac
+    WHERE ac.subscription_status = 'active'
     LIMIT 1;
 
     RETURN;
@@ -193,21 +193,21 @@ BEGIN
         AND hm.invitation_status = 'accepted'
     )
     SELECT
-      membership_id,
-      household_id,
-      role,
-      display_name,
-      email,
-      monthly_income,
-      household_name,
-      subscription_id,
-      subscription_status,
-      subscription_plan_code,
-      subscription_billing_cycle,
+      ac.membership_id,
+      ac.household_id,
+      ac.role,
+      ac.display_name,
+      ac.email,
+      ac.monthly_income,
+      ac.household_name,
+      ac.subscription_id,
+      ac.subscription_status,
+      ac.subscription_plan_code,
+      ac.subscription_billing_cycle,
       v_accepted_count AS accepted_household_count,
       v_active_count AS active_household_count,
       'single_accepted_membership'::TEXT AS resolution_reason
-    FROM accepted_candidates
+    FROM accepted_candidates ac
     LIMIT 1;
 
     RETURN;
@@ -218,6 +218,8 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.resolve_current_household_context(UUID) TO authenticated;
+
+DROP FUNCTION IF EXISTS public.create_household_setup(TEXT, TEXT, INTEGER, TEXT, INTEGER, DATE, TEXT);
 
 CREATE OR REPLACE FUNCTION public.create_household_setup(
   p_name TEXT,
