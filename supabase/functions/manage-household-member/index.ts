@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
+import { requireOperationalOwnerHouseholdId } from '../_shared/current-household.ts';
 
 const supabase = createServiceClient();
 
@@ -32,21 +33,11 @@ function parseMonthlyIncome(value: unknown) {
 }
 
 async function getOwnerHouseholdId(userId: string) {
-  const { data, error } = await supabase
-    .from('household_members')
-    .select('household_id')
-    .eq('user_id', userId)
-    .eq('role', 'owner')
-    .eq('invitation_status', 'accepted')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) {
-    throw new Error('Solo el owner del hogar puede gestionar a su pareja.');
-  }
-
-  return data.household_id as string;
+  return requireOperationalOwnerHouseholdId(
+    supabase,
+    userId,
+    'Solo el owner del hogar puede gestionar a su pareja.',
+  );
 }
 
 async function getTargetMember(householdId: string, memberId: string) {

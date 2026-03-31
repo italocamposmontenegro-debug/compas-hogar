@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
+import { listAcceptedHouseholdIds } from '../_shared/current-household.ts';
 
 const supabase = createServiceClient();
 const MAX_HOUSEHOLD_MEMBERS = 2;
@@ -69,16 +70,11 @@ serve(async (req) => {
       || user.email
       || invitation.invited_email;
 
-    const { data: existingMember } = await supabase
-      .from('household_members')
-      .select('id, household_id, invitation_status')
-      .eq('user_id', user.id)
-      .eq('invitation_status', 'accepted')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const acceptedHouseholdIds = await listAcceptedHouseholdIds(supabase, user.id);
+    const alreadyAcceptedInTargetHousehold = acceptedHouseholdIds.includes(invitation.household_id);
+    const hasAcceptedHouseholdConflict = acceptedHouseholdIds.some((householdId) => householdId !== invitation.household_id);
 
-    if (existingMember && existingMember.household_id !== invitation.household_id) {
+    if (hasAcceptedHouseholdConflict) {
       throw new Error('Tu cuenta ya pertenece a otro hogar. Usa otra cuenta o sal de ese hogar antes de aceptar esta invitación.');
     }
 
@@ -89,11 +85,11 @@ serve(async (req) => {
       .eq('invitation_status', 'accepted');
 
     if (countError) throw countError;
-    if (!existingMember && (acceptedMembersCount ?? 0) >= MAX_HOUSEHOLD_MEMBERS) {
+    if (!alreadyAcceptedInTargetHousehold && (acceptedMembersCount ?? 0) >= MAX_HOUSEHOLD_MEMBERS) {
       throw new Error('Este hogar ya alcanzó el máximo de miembros.');
     }
 
-    if (!existingMember || existingMember.household_id === invitation.household_id) {
+    if (!alreadyAcceptedInTargetHousehold) {
       const { error: memberError } = await supabase.from('household_members').upsert(
         {
           household_id: invitation.household_id,

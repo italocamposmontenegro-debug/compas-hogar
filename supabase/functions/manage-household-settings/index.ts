@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
+import { requireOperationalHouseholdContext } from '../_shared/current-household.ts';
 import { getHouseholdPlanTier } from '../_shared/entitlements.ts';
 import { hasFeature } from '../../../shared/plans.ts';
 
@@ -55,20 +56,7 @@ function parseSplitRule(value: unknown) {
 }
 
 async function getAcceptedMember(userId: string) {
-  const { data, error } = await supabase
-    .from('household_members')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('invitation_status', 'accepted')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) {
-    throw new Error('No encontramos tu hogar activo.');
-  }
-
-  return data;
+  return requireOperationalHouseholdContext(supabase, userId);
 }
 
 serve(async (req) => {
@@ -105,7 +93,7 @@ serve(async (req) => {
     };
 
     const member = await getAcceptedMember(user.id);
-    const planTier = await getHouseholdPlanTier(supabase, member.household_id);
+    const planTier = await getHouseholdPlanTier(supabase, member.householdId);
     const nextDisplayName = parseDisplayName(displayName);
     const nextMonthlyIncome = parseMonthlyIncome(monthlyIncome);
 
@@ -115,7 +103,7 @@ serve(async (req) => {
         display_name: nextDisplayName,
         monthly_income: nextMonthlyIncome,
       })
-      .eq('id', member.id)
+      .eq('id', member.membershipId)
       .select('id, display_name, monthly_income')
       .single();
 
@@ -138,7 +126,7 @@ serve(async (req) => {
           name: nextHouseholdName,
           split_rule_type: nextSplitRule,
         })
-        .eq('id', member.household_id)
+        .eq('id', member.householdId)
         .select('id, name, split_rule_type')
         .single();
 

@@ -511,6 +511,25 @@ export interface Database {
           invitation_token_id: string | null;
         }>;
       };
+      resolve_current_household_context: {
+        Args: FunctionArgs<{ p_user_id?: string }>;
+        Returns: FunctionReturns<{
+          membership_id: string;
+          household_id: string;
+          role: string;
+          display_name: string;
+          email: string;
+          monthly_income: number;
+          household_name: string;
+          subscription_id: string | null;
+          subscription_status: string | null;
+          subscription_plan_code: string | null;
+          subscription_billing_cycle: string | null;
+          accepted_household_count: number;
+          active_household_count: number;
+          resolution_reason: string;
+        }>[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
