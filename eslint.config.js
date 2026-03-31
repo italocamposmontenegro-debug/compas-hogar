@@ -6,9 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'artifacts']),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'shared/**/*.ts', 'tests/**/*.ts'],
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
     },
@@ -21,6 +21,23 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+  },
+  {
+    files: ['supabase/functions/**/*.ts'],
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.browser,
+        Deno: 'readonly',
+      },
     },
   },
 ])

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --configLoader native",
     "build": "vite build --configLoader native",
-    "lint": "eslint .",
+    "lint": "eslint src shared tests supabase/functions",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview --configLoader native",
     "test": "node --experimental-strip-types tests/plans.test.ts",

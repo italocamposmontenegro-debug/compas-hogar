@@ -57,3 +57,6 @@ verify_jwt = false
 
 [functions.save-monthly-review]
 verify_jwt = false
+
+[functions.admin-overview]
+verify_jwt = false

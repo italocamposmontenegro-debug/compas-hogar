@@ -1,9 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
 import {
+  buildSubscriptionManageUrl,
   getMercadoPagoAccessToken,
   mapMercadoPagoSubscriptionStatus,
 } from '../_shared/subscription.ts';
+import { recordSubscriptionEvent } from '../_shared/subscription-events.ts';
 
 const supabase = createServiceClient();
 
@@ -92,6 +94,17 @@ serve(async (req) => {
       .eq('household_id', household_id);
 
     if (updateError) throw updateError;
+
+    await recordSubscriptionEvent(supabase, {
+      householdId: household_id,
+      eventType: 'subscription_synced',
+      providerEventId: typeof mpData?.id === 'string' ? mpData.id : subscription.provider_subscription_id,
+      metadata: {
+        status: localStatus,
+        provider_status: providerStatus,
+        manage_url: buildSubscriptionManageUrl(),
+      },
+    });
 
     return new Response(JSON.stringify({
       success: true,

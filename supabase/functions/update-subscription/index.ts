@@ -10,6 +10,7 @@ import {
   normalizeBillingCycle,
   normalizePlanCode,
 } from '../_shared/subscription.ts';
+import { recordSubscriptionEvent } from '../_shared/subscription-events.ts';
 
 const supabase = createServiceClient();
 
@@ -106,6 +107,18 @@ serve(async (req) => {
       }, { onConflict: 'household_id' });
 
     if (updateError) throw updateError;
+
+    await recordSubscriptionEvent(supabase, {
+      householdId: household_id,
+      eventType: 'checkout_restarted',
+      providerEventId: typeof mpData.id === 'string' ? mpData.id : null,
+      metadata: {
+        previous_provider_subscription_id: sub?.provider_subscription_id ?? null,
+        plan_code: normalizedPlan,
+        billing_cycle: normalizedCycle,
+        provider_status: mpData.status ?? 'pending',
+      },
+    });
 
     return new Response(JSON.stringify({
       success: true,

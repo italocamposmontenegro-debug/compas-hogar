@@ -14,6 +14,8 @@ export type MercadoPagoPreapprovalResponse = {
   external_reference?: string;
 };
 
+const APP_NAME = 'Compás Hogar';
+
 const PLAN_PRICES: Record<PlanCode, Record<BillingCycle, number>> = {
   base: {
     monthly: 2990,
@@ -72,7 +74,32 @@ export function getSubscriptionFrequency(planCode: PlanCode, billingCycle: Billi
 export function buildSubscriptionReason(planCode: PlanCode, billingCycle: BillingCycle) {
   const planLabel = planCode === 'base' ? 'Base' : 'Plus';
   const cycleLabel = billingCycle === 'monthly' ? 'mensual' : 'anual';
-  return `Casa Clara ${planLabel} ${cycleLabel}`;
+  return `${APP_NAME} ${planLabel} ${cycleLabel}`;
+}
+
+function normalizeUrl(rawValue: string) {
+  const url = new URL(rawValue);
+  return url.toString().replace(/\/$/, '');
+}
+
+export function getAppBaseUrl() {
+  const baseUrl = Deno.env.get('APP_BASE_URL');
+  if (!baseUrl) return null;
+
+  try {
+    return normalizeUrl(baseUrl);
+  } catch {
+    throw new Error('APP_BASE_URL no es válida');
+  }
+}
+
+export function buildSubscriptionManageUrl() {
+  const appBaseUrl = getAppBaseUrl();
+  if (appBaseUrl) {
+    return new URL('/app/suscripcion', appBaseUrl).toString();
+  }
+
+  return 'http://localhost:5173/app/suscripcion';
 }
 
 export function mapMercadoPagoSubscriptionStatus(status: string | null | undefined): SubscriptionStatus {
@@ -111,7 +138,14 @@ export function getSubscriptionProviderAccountLabel() {
 export function buildSubscriptionBackUrl() {
   const returnUrl = Deno.env.get('MP_BACK_URL');
   if (returnUrl) {
-    const url = new URL(returnUrl);
+    const url = new URL(normalizeUrl(returnUrl));
+    url.searchParams.set('status', 'success');
+    return url.toString();
+  }
+
+  const appBaseUrl = getAppBaseUrl();
+  if (appBaseUrl) {
+    const url = new URL('/app/suscripcion', appBaseUrl);
     url.searchParams.set('status', 'success');
     return url.toString();
   }
@@ -123,10 +157,9 @@ export function buildSubscriptionBackUrl() {
     return url.toString();
   }
 
-  const baseUrl = Deno.env.get('APP_BASE_URL') ?? 'http://localhost:5173';
-  const url = new URL('/app/suscripcion', baseUrl);
-  url.searchParams.set('status', 'success');
-  return url.toString();
+  const fallbackUrl = new URL('/app/suscripcion', 'http://localhost:5173');
+  fallbackUrl.searchParams.set('status', 'success');
+  return fallbackUrl.toString();
 }
 
 export function getMercadoPagoWebhookUrl() {

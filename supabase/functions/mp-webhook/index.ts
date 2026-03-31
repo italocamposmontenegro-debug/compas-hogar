@@ -1,6 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
-import { getMercadoPagoAccessToken, mapMercadoPagoSubscriptionStatus } from '../_shared/subscription.ts';
+import {
+  buildSubscriptionManageUrl,
+  getMercadoPagoAccessToken,
+  mapMercadoPagoSubscriptionStatus,
+} from '../_shared/subscription.ts';
+import { getHouseholdName, getHouseholdOwnerContact } from '../_shared/household.ts';
+import { sendSubscriptionLifecycleEmail } from '../_shared/email.ts';
+import { recordSubscriptionEvent } from '../_shared/subscription-events.ts';
 
 const supabase = createServiceClient();
 
@@ -158,6 +165,35 @@ serve(async (req) => {
       );
 
     if (subErr) throw subErr;
+
+    await recordSubscriptionEvent(supabase, {
+      householdId,
+      eventType: `webhook_${newStatus}`,
+      providerEventId: preapprovalId,
+      metadata: {
+        resource_type: normalizedType,
+        provider_status: mpStatus,
+        provider_subscription_id: preapprovalData.id ?? preapprovalId,
+      },
+    });
+
+    if (newStatus === 'active' || newStatus === 'failed') {
+      const [householdName, ownerContact] = await Promise.all([
+        getHouseholdName(supabase, householdId),
+        getHouseholdOwnerContact(supabase, householdId),
+      ]);
+
+      if (ownerContact.email) {
+        await sendSubscriptionLifecycleEmail({
+          recipientEmail: ownerContact.email,
+          householdName,
+          planName: (subscriptionRow?.plan_code ?? 'base') === 'plus' ? 'Estratégico' : 'Esencial',
+          billingCycleLabel: (subscriptionRow?.billing_cycle ?? 'monthly') === 'yearly' ? 'anual' : 'mensual',
+          manageUrl: buildSubscriptionManageUrl(),
+          type: newStatus === 'active' ? 'activated' : 'payment_issue',
+        });
+      }
+    }
 
     await supabase
       .from('webhook_events')

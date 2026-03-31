@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { buildSubscriptionManageUrl } from '../_shared/subscription.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -21,11 +22,12 @@ serve(async (req) => {
   const url = new URL(req.url);
   const status = url.searchParams.get('status') ?? 'success';
   const preapprovalId = url.searchParams.get('preapproval_id') ?? url.searchParams.get('preapproval') ?? '';
+  const manageUrl = buildSubscriptionManageUrl();
 
-  const title = status === 'success' ? 'Suscripcion procesada' : 'Volver a Casa Clara';
+  const title = status === 'success' ? 'Suscripción procesada' : 'Volver a Compás Hogar';
   const description = status === 'success'
-    ? 'Mercado Pago ya termino el flujo. Vuelve a tu app local de Casa Clara y recarga la pantalla de suscripcion.'
-    : 'El flujo de Mercado Pago termino con un estado distinto. Vuelve a tu app local y revisa el estado de la suscripcion.';
+    ? 'Mercado Pago ya terminó el flujo. Vuelve a Compás Hogar para revisar el estado del plan y confirmar el acceso.'
+    : 'El flujo de Mercado Pago terminó con un estado distinto. Vuelve a Compás Hogar para revisar la suscripción.';
 
   const html = `<!doctype html>
 <html lang="es">
@@ -40,7 +42,7 @@ serve(async (req) => {
         --card: #fffdf8;
         --text: #173b45;
         --muted: #5c7177;
-        --accent: #1278a6;
+        --accent: #0f5963;
         --border: #d8d0bf;
       }
       * { box-sizing: border-box; }
@@ -81,14 +83,27 @@ serve(async (req) => {
         color: var(--text);
         font-size: 14px;
       }
-      ol {
-        margin: 24px 0 0;
-        padding-left: 20px;
-        color: var(--text);
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
       }
-      li {
-        margin-bottom: 12px;
-        line-height: 1.5;
+      a.button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 12px;
+        background: var(--accent);
+        color: white;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      p.helper {
+        margin-top: 16px;
+        font-size: 14px;
       }
     </style>
   </head>
@@ -97,11 +112,15 @@ serve(async (req) => {
       <h1>${escapeHtml(title)}</h1>
       <p>${escapeHtml(description)}</p>
       ${preapprovalId ? `<p>ID de suscripcion: <code>${escapeHtml(preapprovalId)}</code></p>` : ''}
-      <ol>
-        <li>Vuelve a la pestaña donde tienes abierta tu app local de Casa Clara.</li>
-        <li>Recarga la pantalla de suscripcion o entra de nuevo a <code>http://localhost:5173/app/suscripcion</code>.</li>
-        <li>Si el cobro ya fue autorizado, el estado se actualizara por webhook.</li>
-      </ol>
+      <div class="actions">
+        <a class="button" href="${escapeHtml(manageUrl)}">Abrir suscripción</a>
+      </div>
+      <p class="helper">Si el cobro ya fue autorizado, el estado debería actualizarse por webhook. Si no ves el cambio, usa la opción de sincronizar estado dentro de la app.</p>
+      <script>
+        window.setTimeout(() => {
+          window.location.href = ${JSON.stringify(manageUrl)};
+        }, 3500);
+      </script>
     </main>
   </body>
 </html>`;

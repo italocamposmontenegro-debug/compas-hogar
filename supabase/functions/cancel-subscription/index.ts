@@ -1,6 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
-import { getMercadoPagoAccessToken } from '../_shared/subscription.ts';
+import { buildSubscriptionManageUrl, getMercadoPagoAccessToken } from '../_shared/subscription.ts';
+import { getHouseholdName, getHouseholdOwnerContact } from '../_shared/household.ts';
+import { sendSubscriptionLifecycleEmail } from '../_shared/email.ts';
+import { recordSubscriptionEvent } from '../_shared/subscription-events.ts';
 
 const supabase = createServiceClient();
 
@@ -79,6 +82,34 @@ serve(async (req) => {
       .eq('household_id', household_id);
 
     if (updateError) throw updateError;
+
+    await recordSubscriptionEvent(supabase, {
+      householdId: household_id,
+      eventType: 'subscription_cancelled',
+      providerEventId: sub.provider_subscription_id,
+      metadata: {
+        provider: sub.provider,
+        provider_account_label: sub.provider_account_label,
+        plan_code: sub.plan_code,
+        billing_cycle: sub.billing_cycle,
+      },
+    });
+
+    const [householdName, ownerContact] = await Promise.all([
+      getHouseholdName(supabase, household_id),
+      getHouseholdOwnerContact(supabase, household_id),
+    ]);
+
+    if (ownerContact.email) {
+      await sendSubscriptionLifecycleEmail({
+        recipientEmail: ownerContact.email,
+        householdName,
+        planName: sub.plan_code === 'plus' ? 'Estratégico' : 'Esencial',
+        billingCycleLabel: sub.billing_cycle === 'yearly' ? 'anual' : 'mensual',
+        manageUrl: buildSubscriptionManageUrl(),
+        type: 'cancelled',
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, status: 'cancelled' }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
