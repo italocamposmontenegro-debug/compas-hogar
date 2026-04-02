@@ -1,3 +1,18 @@
+[auth]
+site_url = "https://www.compashogar.cl"
+additional_redirect_urls = [
+  "https://www.compashogar.cl/verificar-email",
+  "https://www.compashogar.cl/restablecer-clave",
+  "https://compashogar.cl/verificar-email",
+  "https://compashogar.cl/restablecer-clave",
+  "https://compas-hogar.vercel.app/verificar-email",
+  "https://compas-hogar.vercel.app/restablecer-clave",
+  "https://compas-hogar-ajco.vercel.app/verificar-email",
+  "https://compas-hogar-ajco.vercel.app/restablecer-clave",
+  "http://localhost:5173/verificar-email",
+  "http://localhost:5173/restablecer-clave",
+]
+
 [functions.accept-invitation]
 verify_jwt = false
 
