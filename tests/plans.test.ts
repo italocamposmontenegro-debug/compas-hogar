@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import {
+  COMMERCIAL_PLAN_INFO,
+  COMMERCIAL_PLAN_ORDER,
   PLAN_LIMITS,
   canCreateGoal,
+  getCommercialPlanInfo,
   getFeatureRequiredPlan,
   getFeatureUpgradeCopy,
+  getPlanName,
   getPlanCapabilities,
   hasFeature,
   mapBillingPlanCodeToTier,
+  mapTierToCommercialPlan,
   resolvePlanTier,
 } from '../shared/plans.ts';
 
@@ -35,6 +40,18 @@ run('mapBillingPlanCodeToTier keeps billing codes isolated from app tiers', () =
   assert.equal(mapBillingPlanCodeToTier(null), 'free');
 });
 
+run('commercial plan layer exposes only free and premium while preserving internal compatibility', () => {
+  assert.deepEqual(COMMERCIAL_PLAN_ORDER, ['free', 'premium']);
+  assert.equal(COMMERCIAL_PLAN_INFO.free.billingPlanCode, null);
+  assert.equal(COMMERCIAL_PLAN_INFO.premium.billingPlanCode, 'plus');
+  assert.equal(mapTierToCommercialPlan('free'), 'free');
+  assert.equal(mapTierToCommercialPlan('essential'), 'premium');
+  assert.equal(mapTierToCommercialPlan('strategic'), 'premium');
+  assert.equal(getPlanName('essential'), 'Premium');
+  assert.equal(getPlanName('strategic'), 'Premium');
+  assert.equal(getCommercialPlanInfo('premium').prices.monthly, 4990);
+});
+
 run('hasFeature enforces free, essential and strategic boundaries', () => {
   assert.equal(hasFeature('free', 'categories_custom'), false);
   assert.equal(hasFeature('essential', 'categories_custom'), true);
@@ -48,11 +65,15 @@ run('getFeatureRequiredPlan and upgrade copy point to the correct tier', () => {
 
   const essentialUpgrade = getFeatureUpgradeCopy('categories_custom');
   assert.equal(essentialUpgrade.requiredPlan, 'essential');
-  assert.match(essentialUpgrade.route, /plan=essential/);
+  assert.equal(essentialUpgrade.commercialPlan, 'premium');
+  assert.equal(essentialUpgrade.badge, 'Disponible en Premium');
+  assert.equal(essentialUpgrade.actionLabel, 'Desbloquear Premium');
+  assert.match(essentialUpgrade.route, /plan=premium/);
 
   const strategicUpgrade = getFeatureUpgradeCopy('recommendations');
   assert.equal(strategicUpgrade.requiredPlan, 'strategic');
-  assert.match(strategicUpgrade.route, /plan=strategic/);
+  assert.equal(strategicUpgrade.commercialPlan, 'premium');
+  assert.match(strategicUpgrade.route, /plan=premium/);
 });
 
 run('free plan keeps a single active goal limit', () => {

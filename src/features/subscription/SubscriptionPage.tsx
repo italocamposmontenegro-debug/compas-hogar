@@ -7,13 +7,15 @@ import { AlertBanner, Button, PlanBadge, UpgradePromptCard } from '../../compone
 import { trackEvent, trackOnce } from '../../lib/analytics';
 import {
   APP_NAME,
+  COMMERCIAL_PLAN_INFO,
+  COMMERCIAL_PLAN_ORDER,
   PUBLIC_PLAN_INFO,
   SUBSCRIPTION_STATUS_LABELS,
   getFeatureUpgradeCopy,
   mapBillingPlanCodeToTier,
   getPlanName,
-  getPlanPromise,
   type BillingPlanCode,
+  type CommercialPlanTier,
   type FeatureKey,
   type PlanTier,
 } from '../../lib/constants';
@@ -28,13 +30,16 @@ export function SubscriptionPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [autoSyncedSubscriptionId, setAutoSyncedSubscriptionId] = useState<string | null>(null);
   const isOwner = currentMember?.role === 'owner';
   const currentPlanName = getPlanName(planTier);
   const currentCycleLabel = billingCycle === 'monthly' ? 'Mensual' : billingCycle === 'yearly' ? 'Anual' : '—';
-  const currentPlanPromise = getPlanPromise(planTier);
+  const currentPlanPromise = planTier === 'free' ? COMMERCIAL_PLAN_INFO.free.promise : PUBLIC_PLAN_INFO[planTier].promise;
+  const currentPlanHighlights = planTier === 'free'
+    ? COMMERCIAL_PLAN_INFO.free.featureHighlights
+    : PUBLIC_PLAN_INFO[planTier].featureHighlights;
   const featureUpgrade = useMemo(() => {
     const feature = searchParams.get('feature') as FeatureKey | null;
     return feature ? getFeatureUpgradeCopy(feature) : null;
@@ -269,7 +274,7 @@ export function SubscriptionPage() {
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Lectura rápida</p>
                 <p className="mt-3 text-lg font-semibold tracking-tight text-text">{currentPlanPromise}</p>
                 <ul className="mt-4 space-y-3">
-                  {PUBLIC_PLAN_INFO[planTier].featureHighlights.slice(0, 3).map((feature) => (
+                  {currentPlanHighlights.slice(0, 3).map((feature) => (
                     <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-text-secondary">
                       <CheckCircle className="mt-1 h-4 w-4 shrink-0 text-primary-lighter" />
                       <span>{feature}</span>
@@ -304,14 +309,14 @@ export function SubscriptionPage() {
               {planTier === 'free'
                 ? 'El hogar ya empezó con una lectura básica.'
                 : planTier === 'essential'
-                  ? 'El hogar ya tiene orden operativo real.'
-                  : 'El hogar ya está en la etapa más alta disponible.'}
+                  ? 'El hogar ya está en una configuración pagada activa.'
+                  : 'El hogar ya tiene Premium completo activo.'}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-text-muted">
               {planTier === 'free'
-                ? 'El siguiente salto natural es Esencial cuando el hogar ya necesita categorías propias, seguimiento más claro y más de una meta para sostener el mes.'
+                ? 'El siguiente salto natural es Premium cuando el hogar ya necesita categorías propias, más de una meta y mejor seguimiento para sostener el mes.'
                 : planTier === 'essential'
-                  ? 'El siguiente salto natural es Estratégico cuando ya no basta con registrar: conviene anticiparse, comparar y decidir con más contexto.'
+                  ? 'Tu configuración pagada actual sigue funcionando. Si el hogar necesita proyección, alertas y comparación, puedes actualizar a Premium completo desde aquí.'
                   : 'Ahora el foco no está en subir de plan, sino en aprovechar mejor la proyección, las alertas y las recomendaciones para conducir el hogar con continuidad.'}
             </p>
           </div>
@@ -320,9 +325,9 @@ export function SubscriptionPage() {
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Siguiente paso útil</p>
             <p className="mt-3 text-base font-semibold tracking-tight text-text">
               {planTier === 'free'
-                ? 'Subir a Esencial cuando el mes ya pide más seguimiento.'
+                ? 'Subir a Premium cuando el mes ya pide más seguimiento.'
                 : planTier === 'essential'
-                  ? 'Subir a Estratégico cuando el hogar necesita anticiparse.'
+                  ? 'Actualizar a Premium completo cuando el hogar necesita anticiparse.'
                   : 'Mantener continuidad y usar mejor las señales del mes.'}
             </p>
             <p className="mt-3 text-sm leading-7 text-text-muted">
@@ -347,10 +352,10 @@ export function SubscriptionPage() {
         />
       )}
 
-      {!featureUpgrade && requestedPlan && (requestedPlan === 'essential' || requestedPlan === 'strategic') && (
+      {!featureUpgrade && requestedPlan && (requestedPlan === 'essential' || requestedPlan === 'strategic' || requestedPlan === 'premium') && (
         <AlertBanner
           type="info"
-          message={`Actualiza a ${getPlanName(requestedPlan as PlanTier)} para desbloquear esta función.`}
+          message="Actualiza a Premium para desbloquear esta función."
         />
       )}
 
@@ -364,11 +369,11 @@ export function SubscriptionPage() {
 
       {planTier === 'free' && (
         <UpgradePromptCard
-          badge="Disponible al subir de plan"
+          badge="Premium"
           title="Free sirve para partir. El siguiente salto es ordenar el mes."
-          description="Sube a Esencial si ya necesitas categorías propias, reparto y múltiples metas. Sube a Estratégico si además quieres comparación, proyección y alertas."
-          highlights={['Categorías personalizadas', 'Calendario completo', 'Comparación y proyección']}
-          actionLabel="Ver planes"
+          description="Sube a Premium cuando ya necesitas categorías propias, metas múltiples, calendario completo y mejor anticipación."
+          highlights={['Categorías personalizadas', 'Metas múltiples', 'Calendario completo y proyección']}
+          actionLabel="Ver Premium"
           onAction={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           trackingContext="subscription-free-upgrade"
         />
@@ -387,10 +392,10 @@ export function SubscriptionPage() {
           <div className="max-w-3xl">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Planes disponibles</p>
             <h2 id="subscription-plans-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-              {isActivePaidPlan ? 'Cambia tu plan' : 'Elige un plan para comenzar'}
+              {isActivePaidPlan ? 'Gestiona tu plan' : 'Elige un plan para comenzar'}
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-text-muted">
-              Free sirve para empezar con claridad. Esencial ordena el funcionamiento cotidiano del hogar. Estratégico añade anticipación, alertas y mejor criterio para decidir.
+              Free sirve para empezar con claridad. Premium concentra la oferta pagada visible y mantiene el checkout nuevo en el plan más completo.
             </p>
           </div>
 
@@ -417,9 +422,9 @@ export function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
-          {(['free', 'essential', 'strategic'] as const).map((tier: PlanTier) => {
-            const plan = PUBLIC_PLAN_INFO[tier];
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:gap-8">
+          {COMMERCIAL_PLAN_ORDER.map((tier: CommercialPlanTier) => {
+            const plan = COMMERCIAL_PLAN_INFO[tier];
             return (
               <PlanOptionCard
                 key={tier}
@@ -472,8 +477,8 @@ function PlanOptionCard({
   onDowngrade,
   onSelect,
 }: {
-  tier: PlanTier;
-  plan: (typeof PUBLIC_PLAN_INFO)[PlanTier];
+  tier: CommercialPlanTier;
+  plan: (typeof COMMERCIAL_PLAN_INFO)[CommercialPlanTier];
   annual: boolean;
   billingCycle: 'monthly' | 'yearly' | null;
   currentPlanTier: PlanTier;
@@ -485,33 +490,31 @@ function PlanOptionCard({
 }) {
   const price = annual ? plan.prices.yearly : plan.prices.monthly;
   const currentCycle = annual ? 'yearly' : 'monthly';
-  const isCurrent = tier === currentPlanTier && (tier === 'free' || billingCycle === currentCycle);
+  const isCurrent =
+    tier === 'free'
+      ? currentPlanTier === 'free'
+      : currentPlanTier === 'strategic' && billingCycle === currentCycle;
   const billingPlanCode = plan.billingPlanCode as BillingPlanCode | null;
-  const metaLabel =
-    tier === 'free' ? 'Primer paso' : tier === 'essential' ? 'Orden operativo' : 'Más visión';
+  const metaLabel = tier === 'free' ? 'Primer paso' : 'Premium';
   const badge =
     isCurrent
       ? 'Actual'
-      : tier === 'essential'
-        ? 'Más razonable'
-        : tier === 'strategic'
-          ? 'Premium'
-          : null;
+      : tier === 'premium'
+        ? 'Recomendado'
+        : null;
   const description =
     tier === 'free'
       ? 'Empieza con una vista simple del mes, una meta visible y los movimientos esenciales.'
-      : tier === 'essential'
-        ? 'Suma categorías propias, seguimiento más claro y una operación mensual mejor conducida.'
-        : 'Añade comparación, alertas y proyección para decidir con más anticipación.';
+      : currentPlanTier === 'essential'
+        ? 'Actualiza tu configuración pagada al checkout Premium visible para sumar proyección, alertas y comparación.'
+        : 'Desbloquea la capa pagada completa para ordenar mejor el mes y decidir con más anticipación.';
 
   return (
     <div
       className={`ui-panel overflow-hidden ${
-        tier === 'essential'
+        tier === 'premium'
           ? 'border-primary/35 bg-linear-to-br from-primary-bg/28 to-surface shadow-[0_16px_36px_rgba(23,59,69,0.08)]'
-          : tier === 'strategic'
-            ? 'border-border bg-linear-to-br from-bg to-surface'
-            : 'border-border bg-surface'
+          : 'border-border bg-surface'
       }`}
     >
       <div className="flex h-full flex-col p-6 lg:p-7">
@@ -575,13 +578,13 @@ function PlanOptionCard({
             </Button>
           ) : (
             <Button
-              variant={tier === 'strategic' ? 'primary' : 'secondary'}
+              variant="primary"
               className="w-full"
               onClick={() => billingPlanCode && onSelect(billingPlanCode)}
               loading={loading}
               disabled={!isOwner}
             >
-              {isActivePaidPlan ? `Cambiar a ${plan.name}` : `Elegir ${plan.name}`}
+              {isActivePaidPlan ? `Actualizar a ${plan.name}` : `Elegir ${plan.name}`}
               <ArrowRight className="h-4 w-4" />
             </Button>
           )}

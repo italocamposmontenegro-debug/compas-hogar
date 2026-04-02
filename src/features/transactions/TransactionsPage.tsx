@@ -306,7 +306,7 @@ export function TransactionsPage() {
       {!canUseSplitManual ? (
         <AlertBanner
           type="info"
-          message="En Free registras movimientos básicos. El reparto manual y quién pagó qué se habilitan desde Esencial."
+            message="En Free registras movimientos básicos. El reparto manual y quién pagó qué se habilitan con Premium."
         />
       ) : null}
 

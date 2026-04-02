@@ -2,6 +2,7 @@ export type PlanTier = 'free' | 'essential' | 'strategic';
 export type BillingPlanCode = 'base' | 'plus' | 'admin';
 export type BillingCycle = 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'pending' | 'cancelled' | 'expired' | 'failed' | 'inactive';
+export type CommercialPlanTier = 'free' | 'premium';
 
 export type FeatureKey =
   | 'dashboard_basic'
@@ -156,6 +157,22 @@ export interface PublicPlanInfo {
   };
 }
 
+export interface CommercialPlanInfo {
+  tier: CommercialPlanTier;
+  billingPlanCode: Exclude<BillingPlanCode, 'admin'> | null;
+  name: string;
+  promise: string;
+  description: string;
+  featureHighlights: string[];
+  prices: {
+    monthly: number | null;
+    yearly: number | null;
+  };
+  savings: {
+    yearly: number;
+  };
+}
+
 interface FeatureUpgradeContent {
   title: string;
   description: string;
@@ -201,6 +218,37 @@ export const PUBLIC_PLAN_INFO: Record<PlanTier, PublicPlanInfo> = {
       'Recurrencias e importación',
       'Proyección y alertas',
       'Comparación mensual',
+    ],
+    prices: { monthly: 4990, yearly: 49900 },
+    savings: { yearly: 9980 },
+  },
+};
+
+export const COMMERCIAL_PLAN_INFO: Record<CommercialPlanTier, CommercialPlanInfo> = {
+  free: {
+    tier: 'free',
+    billingPlanCode: null,
+    name: 'Free',
+    promise: 'Lectura básica del mes',
+    description: 'Empieza a ordenar tu hogar sin fricción.',
+    featureHighlights: [
+      'Movimientos manuales',
+      '1 meta visible',
+      'Referencia compartida',
+    ],
+    prices: { monthly: null, yearly: null },
+    savings: { yearly: 0 },
+  },
+  premium: {
+    tier: 'premium',
+    billingPlanCode: 'plus',
+    name: 'Premium',
+    promise: 'Más claridad para decidir y anticiparte a tiempo.',
+    description: 'Una capa pagada única para ordenar mejor el mes y sumar visión cuando el hogar lo necesite.',
+    featureHighlights: [
+      'Categorías personalizadas y múltiples metas',
+      'Calendario completo y seguimiento compartido',
+      'Recurrencias, proyección, alertas e importación',
     ],
     prices: { monthly: 4990, yearly: 49900 },
     savings: { yearly: 9980 },
@@ -341,6 +389,7 @@ const FEATURE_UPGRADE_CONTENT: Record<FeatureKey, FeatureUpgradeContent> = {
 };
 
 export const PLAN_TIER_ORDER: readonly PlanTier[] = ['free', 'essential', 'strategic'] as const;
+export const COMMERCIAL_PLAN_ORDER: readonly CommercialPlanTier[] = ['free', 'premium'] as const;
 
 export function getPlanRank(plan: PlanTier) {
   return PLAN_TIER_ORDER.indexOf(plan);
@@ -375,6 +424,15 @@ export function mapBillingPlanCodeToTier(planCode: BillingPlanCode | null | unde
   }
 }
 
+export function mapTierToCommercialPlan(plan: PlanTier): CommercialPlanTier {
+  return plan === 'free' ? 'free' : 'premium';
+}
+
+export function getCommercialPlanInfo(plan: PlanTier | CommercialPlanTier) {
+  const tier = plan === 'premium' ? plan : mapTierToCommercialPlan(plan);
+  return COMMERCIAL_PLAN_INFO[tier];
+}
+
 export function resolvePlanTier(subscription: {
   plan_code?: string | null;
   status?: string | null;
@@ -402,15 +460,15 @@ export function getUpgradePlanForFeature(feature: FeatureKey): Exclude<PlanTier,
 }
 
 export function getPlanName(plan: PlanTier) {
-  return PUBLIC_PLAN_INFO[plan].name;
+  return getCommercialPlanInfo(plan).name;
 }
 
 export function getPlanDescription(plan: PlanTier) {
-  return PUBLIC_PLAN_INFO[plan].description;
+  return getCommercialPlanInfo(plan).description;
 }
 
 export function getPlanPromise(plan: PlanTier) {
-  return PUBLIC_PLAN_INFO[plan].promise;
+  return getCommercialPlanInfo(plan).promise;
 }
 
 export function getPlanMaxGoals(plan: PlanTier) {
@@ -445,10 +503,11 @@ export function getFeatureUpgradeCopy(feature: FeatureKey) {
 
   return {
     requiredPlan,
-    badge: `Disponible en ${getPlanName(requiredPlan)}`,
-    message: `Actualiza tu plan para usar esta función.`,
-    actionLabel: `Ver ${getPlanName(requiredPlan)}`,
-    route: `/app/suscripcion?plan=${requiredPlan}&feature=${feature}`,
+    commercialPlan: mapTierToCommercialPlan(requiredPlan),
+    badge: 'Disponible en Premium',
+    message: 'Actualiza a Premium para usar esta función.',
+    actionLabel: 'Desbloquear Premium',
+    route: `/app/suscripcion?plan=premium&feature=${feature}`,
     title: content.title,
     description: content.description,
     highlights: content.highlights,

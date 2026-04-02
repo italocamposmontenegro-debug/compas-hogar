@@ -103,7 +103,7 @@ export function GuidedClosePage() {
           <div className="mb-4">
             <AlertBanner
               type="info"
-              message="Tu plan Estratégico incluye cierre guiado avanzado. Usa este cierre para dejar guardada una foto clara del mes."
+              message="Tu plan Premium incluye cierre guiado avanzado. Usa este cierre para dejar guardada una foto clara del mes."
             />
           </div>
         )}

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Button, PlanBadge } from '../../components/ui';
 import { BrandLogo } from '../../components/ui/BrandLogo';
-import { PUBLIC_PLAN_INFO, type PlanTier } from '../../lib/constants';
+import { COMMERCIAL_PLAN_INFO, COMMERCIAL_PLAN_ORDER, type CommercialPlanTier } from '../../lib/constants';
 import { trackEvent } from '../../lib/analytics';
 import { formatCLP } from '../../utils/format-clp';
 
@@ -35,7 +35,7 @@ const VALUE_PILLARS = [
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(false);
 
   function handlePrimaryCta(context: string) {
     trackEvent('landing_cta_primary_click', { context });
@@ -205,8 +205,8 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {(['free', 'essential', 'strategic'] as const).map((tier) => (
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            {COMMERCIAL_PLAN_ORDER.map((tier) => (
               <PricingCard
                 key={tier}
                 tier={tier}
@@ -253,25 +253,23 @@ function PricingCard({
   annual,
   onSelect,
 }: {
-  tier: PlanTier;
+  tier: CommercialPlanTier;
   annual: boolean;
   onSelect: () => void;
 }) {
-  const plan = PUBLIC_PLAN_INFO[tier];
+  const plan = COMMERCIAL_PLAN_INFO[tier];
   const price = annual ? plan.prices.yearly : plan.prices.monthly;
-  const badge = tier === 'essential' ? 'Recomendado' : tier === 'strategic' ? 'Más completo' : null;
-  const metaLabel = tier === 'free' ? 'Inicio' : tier === 'essential' ? 'Orden' : 'Visión';
+  const badge = tier === 'premium' ? 'Recomendado' : null;
+  const metaLabel = tier === 'free' ? 'Inicio' : 'Premium';
   const description =
     tier === 'free'
       ? 'Para empezar a registrar y ver el mes con claridad.'
-      : tier === 'essential'
-        ? 'Para sostener seguimiento real y acuerdos cotidianos.'
-        : 'Para anticiparse mejor con alertas y proyecciones.';
+      : 'Para ordenar mejor el mes y sumar más anticipación cuando el hogar lo necesite.';
 
   return (
     <article
       className={`ui-panel h-full p-6 lg:p-7 ${
-        tier === 'essential'
+        tier === 'premium'
           ? 'border-primary/25 bg-[linear-gradient(180deg,rgba(220,236,235,0.55),#ffffff)]'
           : ''
       }`}
@@ -310,8 +308,8 @@ function PricingCard({
         </ul>
 
         <div className="mt-6">
-          <Button variant={tier === 'essential' ? 'primary' : 'secondary'} className="w-full" onClick={onSelect}>
-            {tier === 'free' ? 'Empezar gratis' : tier === 'essential' ? 'Elegir Esencial' : 'Elegir Estratégico'}
+          <Button variant={tier === 'premium' ? 'primary' : 'secondary'} className="w-full" onClick={onSelect}>
+            {tier === 'free' ? 'Empezar gratis' : 'Elegir Premium'}
           </Button>
         </div>
       </div>
