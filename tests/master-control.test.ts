@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   canAccessControlModule,
   dedupeControlRoles,
+  getDefaultControlModule,
   getControlCapabilities,
   getPrimaryControlRole,
 } from '../shared/control.ts';
@@ -37,12 +38,14 @@ run('SUPPORT stays limited to customer, operations and risk visibility', () => {
   assert.equal(canAccessControlModule(['SUPPORT'], 'risk'), true);
   assert.equal(canAccessControlModule(['SUPPORT'], 'billing'), false);
   assert.equal(canAccessControlModule(['SUPPORT'], 'growth'), false);
+  assert.equal(getDefaultControlModule(['SUPPORT']), 'customers');
 });
 
 run('BREAK_GLASS can access all modules', () => {
   for (const module of ['executive', 'billing', 'customers', 'operations', 'risk', 'growth'] as const) {
     assert.equal(canAccessControlModule(['BREAK_GLASS'], module), true);
   }
+  assert.equal(getDefaultControlModule(['BREAK_GLASS']), 'executive');
 });
 
 console.log('All master control role tests passed.');

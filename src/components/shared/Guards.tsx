@@ -10,6 +10,7 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { BlockingStatePage, LoadingPage } from '../ui';
 import type { FeatureKey } from '../../lib/constants';
 import type { ControlModuleKey } from '../../../shared/control';
+import { getDefaultControlModule } from '../../../shared/control';
 
 /**
  * Guard 1: Requiere autenticación
@@ -99,7 +100,7 @@ export function AdminGuard() {
  * Guard 5: Requiere acceso al sistema de control
  */
 export function ControlGuard() {
-  const { loading, error, hasAccess } = useControlAccess();
+  const { loading, error, hasAccess, roles } = useControlAccess();
 
   if (error && !hasAccess) {
     return (
@@ -114,6 +115,9 @@ export function ControlGuard() {
   if (loading) return <LoadingPage />;
   if (!hasAccess) return <Navigate to="/app/dashboard" replace />;
 
+  const defaultModule = getDefaultControlModule(roles);
+  if (!defaultModule) return <Navigate to="/app/dashboard" replace />;
+
   return <Outlet />;
 }
 
@@ -121,7 +125,7 @@ export function ControlGuard() {
  * Guard 6: Requiere acceso a un módulo del sistema de control
  */
 export function ControlModuleGuard({ module }: { module: ControlModuleKey }) {
-  const { loading, error, canAccessModule } = useControlAccess();
+  const { loading, error, canAccessModule, roles } = useControlAccess();
 
   if (error && !canAccessModule(module)) {
     return (
@@ -134,9 +138,44 @@ export function ControlModuleGuard({ module }: { module: ControlModuleKey }) {
     );
   }
   if (loading) return <LoadingPage />;
-  if (!canAccessModule(module)) return <Navigate to="/app/control/ejecutivo" replace />;
+  if (!canAccessModule(module)) {
+    const fallbackModule = getDefaultControlModule(roles);
+    if (!fallbackModule) return <Navigate to="/app/dashboard" replace />;
+    return <Navigate to={getControlModuleRoute(fallbackModule)} replace />;
+  }
 
   return <Outlet />;
+}
+
+export function ControlEntryRedirect() {
+  const { loading, roles, hasAccess } = useControlAccess();
+
+  if (loading) return <LoadingPage />;
+  if (!hasAccess) return <Navigate to="/app/dashboard" replace />;
+
+  const module = getDefaultControlModule(roles);
+  if (!module) return <Navigate to="/app/dashboard" replace />;
+
+  return <Navigate to={getControlModuleRoute(module)} replace />;
+}
+
+function getControlModuleRoute(module: ControlModuleKey) {
+  switch (module) {
+    case 'executive':
+      return '/app/control/ejecutivo';
+    case 'billing':
+      return '/app/control/billing';
+    case 'customers':
+      return '/app/control/clientes';
+    case 'operations':
+      return '/app/control/operaciones';
+    case 'risk':
+      return '/app/control/riesgos';
+    case 'growth':
+      return '/app/control/crecimiento';
+    default:
+      return '/app/dashboard';
+  }
 }
 
 /**

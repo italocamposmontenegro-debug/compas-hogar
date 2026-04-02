@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { ControlAccessProvider } from './hooks/useControlAccess';
 import { HouseholdProvider } from './hooks/useHousehold';
-import { AuthGuard, HouseholdGuard, FeatureRouteGuard, AdminGuard, PublicOnlyGuard, ControlGuard, ControlModuleGuard } from './components/shared/Guards';
+import { AuthGuard, HouseholdGuard, FeatureRouteGuard, AdminGuard, PublicOnlyGuard, ControlGuard, ControlModuleGuard, ControlEntryRedirect } from './components/shared/Guards';
 import { LoadingPage } from './components/ui';
 
 const AppLayout = lazyNamed(() => import('./components/layout/AppLayout'), 'AppLayout');
@@ -73,7 +73,7 @@ export default function App() {
                 <Route path="/onboarding" element={<RouteScreen component={OnboardingPage} />} />
 
                 <Route element={<ControlGuard />}>
-                  <Route path="/app/control" element={<Navigate to="/app/control/ejecutivo" replace />} />
+                  <Route path="/app/control" element={<ControlEntryRedirect />} />
                   <Route element={<RouteScreen component={ControlLayout} />}>
                     <Route element={<ControlModuleGuard module="executive" />}>
                       <Route path="/app/control/ejecutivo" element={<RouteScreen component={ControlExecutivePage} />} />

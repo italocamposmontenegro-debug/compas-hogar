@@ -29,6 +29,7 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { AlertBanner, PlanBadge } from '../ui';
 import { BrandLogo } from '../ui/BrandLogo';
 import type { FeatureKey } from '../../lib/constants';
+import { getDefaultControlModule } from '../../../shared/control';
 
 type NavItem = {
   to: string;
@@ -58,7 +59,7 @@ const SECONDARY_NAV_ITEMS: NavItem[] = [
 
 export function AppLayout() {
   const { profile, signOut } = useAuth();
-  const { hasAccess: hasControlAccess } = useControlAccess();
+  const { hasAccess: hasControlAccess, roles: controlRoles } = useControlAccess();
   const { household } = useHousehold();
   const { isRestricted, ctaMessage, ctaAction, ctaRoute, hasFeature, planName } = useSubscription();
   const navigate = useNavigate();
@@ -83,9 +84,29 @@ export function AppLayout() {
     () => SECONDARY_NAV_ITEMS.filter((item) => !item.feature || hasFeature(item.feature)),
     [hasFeature],
   );
+  const controlEntryRoute = useMemo(() => {
+    const module = getDefaultControlModule(controlRoles);
+
+    switch (module) {
+      case 'billing':
+        return '/app/control/billing';
+      case 'customers':
+        return '/app/control/clientes';
+      case 'operations':
+        return '/app/control/operaciones';
+      case 'risk':
+        return '/app/control/riesgos';
+      case 'growth':
+        return '/app/control/crecimiento';
+      case 'executive':
+        return '/app/control/ejecutivo';
+      default:
+        return '/app/control';
+    }
+  }, [controlRoles]);
   const controlNavItem = useMemo<NavItem | null>(
-    () => (hasControlAccess ? { to: '/app/control/ejecutivo', label: 'Control maestro', icon: ShieldCheck } : null),
-    [hasControlAccess],
+    () => (hasControlAccess ? { to: controlEntryRoute, label: 'Control maestro', icon: ShieldCheck } : null),
+    [controlEntryRoute, hasControlAccess],
   );
   const isSecondaryRoute = visibleSecondary.some((item) => location.pathname.startsWith(item.to));
   const initials = (profile?.full_name || 'U')

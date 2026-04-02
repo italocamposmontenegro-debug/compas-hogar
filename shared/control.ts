@@ -112,6 +112,15 @@ export const CONTROL_MODULE_REQUIREMENTS: Record<ControlModuleKey, ControlCapabi
   growth: 'growth.read',
 };
 
+export const CONTROL_MODULE_ENTRY_ORDER: readonly ControlModuleKey[] = [
+  'executive',
+  'billing',
+  'customers',
+  'operations',
+  'risk',
+  'growth',
+] as const;
+
 export function normalizeControlRole(value: string | null | undefined): ControlRole | null {
   switch (value) {
     case 'CEO':
@@ -166,4 +175,8 @@ export function canAccessControlModule(
 
 export function canUseBreakGlass(roles: Array<ControlRole | null | undefined>) {
   return hasControlCapability(roles, 'break_glass.use');
+}
+
+export function getDefaultControlModule(roles: Array<ControlRole | null | undefined>) {
+  return CONTROL_MODULE_ENTRY_ORDER.find((module) => canAccessControlModule(roles, module)) ?? null;
 }
