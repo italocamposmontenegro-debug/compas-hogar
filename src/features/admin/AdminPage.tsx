@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertBanner, Card, EmptyState, LoadingPage } from '../../components/ui';
+import { AlertBanner, Button, Card, EmptyState, LoadingPage } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatDateLong } from '../../utils/dates-chile';
@@ -127,6 +127,9 @@ export function AdminPage() {
               Lectura operativa de usuarios, hogares, suscripciones y eventos recientes.
             </p>
           </div>
+          <Button variant="secondary" onClick={() => window.location.assign('/app/control/ejecutivo')}>
+            Abrir sistema de control
+          </Button>
         </div>
       </section>
 

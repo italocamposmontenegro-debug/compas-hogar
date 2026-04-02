@@ -255,6 +255,17 @@ export interface BillingProviderConfig {
   updated_at: string;
 }
 
+export interface ControlRoleAssignment {
+  id: string;
+  user_id: string;
+  role: 'CEO' | 'OPS_ADMIN' | 'FINANCE_ADMIN' | 'SUPPORT' | 'BREAK_GLASS';
+  granted_by: string | null;
+  note: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================
 // Insert / Update helpers
 // ============================================
@@ -466,6 +477,16 @@ export interface BillingProviderConfigInsert {
   updated_at?: string;
 }
 
+export interface ControlRoleAssignmentInsert {
+  user_id: string;
+  role: ControlRoleAssignment['role'];
+  granted_by?: string | null;
+  note?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ============================================
 // Database shape
 // ============================================
@@ -489,6 +510,7 @@ export interface Database {
       webhook_events: TableDefinition<WebhookEvent, WebhookEventInsert, Partial<WebhookEvent>>;
       audit_logs: TableDefinition<AuditLog, AuditLogInsert, Partial<AuditLog>>;
       billing_provider_configs: TableDefinition<BillingProviderConfig, BillingProviderConfigInsert, Partial<BillingProviderConfig>>;
+      control_role_assignments: TableDefinition<ControlRoleAssignment, ControlRoleAssignmentInsert, Partial<ControlRoleAssignment>>;
     };
     Views: Record<string, never>;
     Functions: {

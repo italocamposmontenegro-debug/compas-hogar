@@ -60,3 +60,6 @@ verify_jwt = false
 
 [functions.admin-overview]
 verify_jwt = false
+
+[functions.master-control-overview]
+verify_jwt = false

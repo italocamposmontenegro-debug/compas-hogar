@@ -4,10 +4,12 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useControlAccess } from '../../hooks/useControlAccess';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { BlockingStatePage, LoadingPage } from '../ui';
 import type { FeatureKey } from '../../lib/constants';
+import type { ControlModuleKey } from '../../../shared/control';
 
 /**
  * Guard 1: Requiere autenticación
@@ -89,6 +91,50 @@ export function AdminGuard() {
   }
   if (loading) return <LoadingPage />;
   if (!profile?.is_admin) return <Navigate to="/app/dashboard" replace />;
+
+  return <Outlet />;
+}
+
+/**
+ * Guard 5: Requiere acceso al sistema de control
+ */
+export function ControlGuard() {
+  const { loading, error, hasAccess } = useControlAccess();
+
+  if (error && !hasAccess) {
+    return (
+      <BlockingStatePage
+        title="No pudimos validar tu acceso interno"
+        description={error}
+        primaryAction={{ label: 'Reintentar', onClick: () => window.location.reload() }}
+        secondaryAction={{ label: 'Volver al hogar', onClick: () => window.location.assign('/app/dashboard') }}
+      />
+    );
+  }
+  if (loading) return <LoadingPage />;
+  if (!hasAccess) return <Navigate to="/app/dashboard" replace />;
+
+  return <Outlet />;
+}
+
+/**
+ * Guard 6: Requiere acceso a un módulo del sistema de control
+ */
+export function ControlModuleGuard({ module }: { module: ControlModuleKey }) {
+  const { loading, error, canAccessModule } = useControlAccess();
+
+  if (error && !canAccessModule(module)) {
+    return (
+      <BlockingStatePage
+        title="No pudimos abrir este módulo"
+        description={error}
+        primaryAction={{ label: 'Reintentar', onClick: () => window.location.reload() }}
+        secondaryAction={{ label: 'Ir al panel ejecutivo', onClick: () => window.location.assign('/app/control/ejecutivo') }}
+      />
+    );
+  }
+  if (loading) return <LoadingPage />;
+  if (!canAccessModule(module)) return <Navigate to="/app/control/ejecutivo" replace />;
 
   return <Outlet />;
 }

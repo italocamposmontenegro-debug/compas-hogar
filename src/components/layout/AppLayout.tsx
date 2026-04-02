@@ -17,11 +17,13 @@ import {
   Repeat,
   Scale,
   Settings,
+  ShieldCheck,
   Tags,
   Target,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useControlAccess } from '../../hooks/useControlAccess';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { AlertBanner, PlanBadge } from '../ui';
@@ -56,6 +58,7 @@ const SECONDARY_NAV_ITEMS: NavItem[] = [
 
 export function AppLayout() {
   const { profile, signOut } = useAuth();
+  const { hasAccess: hasControlAccess } = useControlAccess();
   const { household } = useHousehold();
   const { isRestricted, ctaMessage, ctaAction, ctaRoute, hasFeature, planName } = useSubscription();
   const navigate = useNavigate();
@@ -79,6 +82,10 @@ export function AppLayout() {
   const visibleSecondary = useMemo(
     () => SECONDARY_NAV_ITEMS.filter((item) => !item.feature || hasFeature(item.feature)),
     [hasFeature],
+  );
+  const controlNavItem = useMemo<NavItem | null>(
+    () => (hasControlAccess ? { to: '/app/control/ejecutivo', label: 'Control maestro', icon: ShieldCheck } : null),
+    [hasControlAccess],
   );
   const isSecondaryRoute = visibleSecondary.some((item) => location.pathname.startsWith(item.to));
   const initials = (profile?.full_name || 'U')
@@ -202,6 +209,7 @@ export function AppLayout() {
 
               {(secondaryNavOpen || isSecondaryRoute) && (
                 <div id="secondary-navigation" className="mt-2 space-y-1">
+                  {controlNavItem ? renderNavItem(controlNavItem) : null}
                   {visibleSecondary.map(renderNavItem)}
                 </div>
               )}

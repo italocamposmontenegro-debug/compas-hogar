@@ -9,7 +9,7 @@
     "lint": "eslint src shared tests supabase/functions",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview --configLoader native",
-    "test": "node --experimental-strip-types tests/plans.test.ts && node --experimental-strip-types tests/household-resolution.test.ts",
+    "test": "node --experimental-strip-types tests/plans.test.ts && node --experimental-strip-types tests/household-resolution.test.ts && node --experimental-strip-types tests/master-control.test.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
