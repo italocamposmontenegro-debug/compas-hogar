@@ -268,6 +268,9 @@ export function SplitPage() {
                           {settlement.paidByMemberName} registró un abono a favor de {settlement.receivedByMemberName || 'la otra persona'}
                         </p>
                         <p className="mt-1 text-sm text-text-muted">{formatDate(settlement.occurredOn)} · {settlement.description}</p>
+                        {settlement.notes ? (
+                          <p className="mt-2 text-sm leading-6 text-text-muted">{settlement.notes}</p>
+                        ) : null}
                       </div>
                       <p className="text-base font-semibold text-success">{formatCLP(settlement.amount)}</p>
                     </div>

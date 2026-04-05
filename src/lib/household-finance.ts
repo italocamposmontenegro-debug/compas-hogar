@@ -35,6 +35,7 @@ export interface HouseholdBalanceSettlement {
   receivedByMemberId: string | null;
   receivedByMemberName: string | null;
   description: string;
+  notes: string | null;
 }
 
 export interface HouseholdBalanceOrigin {
@@ -232,6 +233,7 @@ export function calculateHouseholdBalance({
         ? (memberMap.get(transaction.assigned_to_member_id)?.display_name ?? 'Integrante')
         : null,
       description: transaction.description,
+      notes: transaction.notes,
     }));
 
   const sharedOrigins = transactions
