@@ -398,7 +398,7 @@ serve(async (req) => {
     const nextDescription = parseRequiredText(body.description, 'La descripcion');
     const nextAmount = parseAmount(body.amountClp);
     const nextOccurredOn = parseRequiredText(body.occurredOn, 'La fecha');
-    const nextPaidByMemberId = parseOptionalText(body.paidByMemberId) ?? transaction.paid_by_member_id || actorMember.id;
+    const nextPaidByMemberId = parseOptionalText(body.paidByMemberId) ?? (transaction.paid_by_member_id || actorMember.id);
     const nextScope = parseOptionalText(body.scope) ? parseScope(body.scope) : transaction.scope;
     const nextExpenseType = nextType === 'expense'
       ? (parseOptionalText(body.expenseType) ? parseExpenseType(body.expenseType) : transaction.expense_type ?? 'variable')
