@@ -76,7 +76,7 @@ async function assertCategoryAllowed(householdId: string, categoryId: string | n
   const category = await getCategory(householdId, categoryId);
   if (!category) return;
   if (!canUseCustomCategories && !category.is_default) {
-    throw new Error('Las categorías personalizadas están disponibles desde el plan Esencial.');
+    throw new Error('Las categorías personalizadas están disponibles en Premium.');
   }
 }
 
@@ -121,9 +121,6 @@ serve(async (req) => {
       await assertAccess(householdId, user.id);
 
       const planTier = await getHouseholdPlanTier(supabase, householdId);
-      if (!hasFeature(planTier, 'calendar_full')) {
-        throw new Error('El calendario completo está disponible desde el plan Esencial.');
-      }
 
       const nextDescription = parseRequiredText(body.description, 'La descripcion');
       const nextAmount = parseAmount(body.amountClp);
@@ -170,10 +167,6 @@ serve(async (req) => {
 
     await assertAccess(item.household_id, user.id);
     const planTier = await getHouseholdPlanTier(supabase, item.household_id);
-
-    if (!hasFeature(planTier, 'calendar_full')) {
-      throw new Error('El calendario completo está disponible desde el plan Esencial.');
-    }
 
     if (body.action === 'delete') {
       if (item.recurring_source_id) {

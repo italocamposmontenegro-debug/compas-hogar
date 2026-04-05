@@ -116,11 +116,24 @@ export interface Transaction {
   household_id: string;
   created_by: string | null;
   type: 'income' | 'expense';
+  flow_type:
+    | 'income'
+    | 'pago_obligatorio'
+    | 'gasto_variable'
+    | 'ahorro'
+    | 'inversion'
+    | 'ocio'
+    | 'imprevisto'
+    | 'abono_saldo_hogar';
   paid_by_member_id: string;
   scope: 'personal' | 'shared';
   assigned_to_member_id: string | null;
+  affects_household_balance: boolean;
+  balance_excluded_at: string | null;
+  balance_adjusted_manually: boolean;
   amount_clp: number;
   category_id: string | null;
+  goal_id: string | null;
   description: string;
   occurred_on: string;
   expense_type: 'fixed' | 'variable' | null;
@@ -347,11 +360,24 @@ export interface TransactionInsert {
   household_id: string;
   created_by?: string | null;
   type: 'income' | 'expense';
+  flow_type?:
+    | 'income'
+    | 'pago_obligatorio'
+    | 'gasto_variable'
+    | 'ahorro'
+    | 'inversion'
+    | 'ocio'
+    | 'imprevisto'
+    | 'abono_saldo_hogar';
   paid_by_member_id: string;
   scope: 'personal' | 'shared';
   assigned_to_member_id?: string | null;
+  affects_household_balance?: boolean;
+  balance_excluded_at?: string | null;
+  balance_adjusted_manually?: boolean;
   amount_clp: number;
   category_id?: string | null;
+  goal_id?: string | null;
   description: string;
   occurred_on: string;
   expense_type?: 'fixed' | 'variable' | null;

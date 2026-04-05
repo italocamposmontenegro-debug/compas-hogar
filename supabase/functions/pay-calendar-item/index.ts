@@ -61,7 +61,7 @@ async function assertCategoryAllowed(householdId: string, categoryId: string | n
   const category = await getCategory(householdId, categoryId);
   if (!category) return;
   if (!canUseCustomCategories && !category.is_default) {
-    throw new Error('Las categorías personalizadas están disponibles desde el plan Esencial.');
+    throw new Error('Las categorías personalizadas están disponibles en Premium.');
   }
 }
 
@@ -128,7 +128,6 @@ serve(async (req) => {
     }
 
     const planTier = await getHouseholdPlanTier(supabase, item.household_id);
-    const canUseSplitManual = hasFeature(planTier, 'split_manual');
     const canUseCustomCategories = hasFeature(planTier, 'categories_custom');
 
     if (resolvedAction === 'undo') {
@@ -166,7 +165,7 @@ serve(async (req) => {
       });
     }
 
-    const effectivePaidByMemberId = canUseSplitManual ? paidByMemberId! : actorMember.id;
+    const effectivePaidByMemberId = paidByMemberId || actorMember.id;
     const { data: paidByMember, error: paidByMemberError } = await supabase
       .from('household_members')
       .select('id')
@@ -192,10 +191,10 @@ serve(async (req) => {
 
     const finalCategoryId = categoryId ?? item.category_id ?? null;
     await assertCategoryAllowed(item.household_id, finalCategoryId, canUseCustomCategories);
-    const finalScope = canUseSplitManual ? parseScope(scope) : 'shared';
-    const finalExpenseType = canUseSplitManual
-      ? parseExpenseType(expenseType)
-      : (item.recurring_source_id ? 'fixed' : 'variable');
+    const finalScope = scope === undefined ? 'shared' : parseScope(scope);
+    const finalExpenseType = expenseType === undefined
+      ? (item.recurring_source_id ? 'fixed' : 'variable')
+      : parseExpenseType(expenseType);
 
     const { data: transaction, error: transactionError } = await supabase
       .from('transactions')
@@ -203,11 +202,16 @@ serve(async (req) => {
         household_id: item.household_id,
         created_by: user.id,
         type: 'expense',
+        flow_type: 'pago_obligatorio',
         paid_by_member_id: effectivePaidByMemberId,
         scope: finalScope,
         assigned_to_member_id: null,
+        affects_household_balance: finalScope === 'shared',
+        balance_excluded_at: finalScope === 'shared' ? null : new Date().toISOString(),
+        balance_adjusted_manually: false,
         amount_clp: item.amount_clp,
         category_id: finalCategoryId,
+        goal_id: null,
         description: item.description,
         occurred_on: parseOccurredOn(occurredOn, item.due_date),
         expense_type: finalExpenseType,

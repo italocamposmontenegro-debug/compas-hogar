@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import {
@@ -11,7 +11,6 @@ import {
   InputField,
   Modal,
   SelectField,
-  UpgradePromptCard,
 } from '../../components/ui';
 import { RegisterPaymentModal } from '../../components/payments/RegisterPaymentModal';
 import { supabase } from '../../lib/supabase';
@@ -19,7 +18,6 @@ import { syncRecurringItems } from '../../lib/recurring';
 import { formatCLP } from '../../utils/format-clp';
 import { formatDate, formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
 import type { Category, PaymentCalendarItem } from '../../types/database';
-import { getFeatureUpgradeCopy } from '../../lib/constants';
 import {
   AlertTriangle,
   CalendarClock,
@@ -34,6 +32,7 @@ import {
 } from 'lucide-react';
 
 export function CalendarPage() {
+  const location = useLocation();
   const { household, members, currentMember } = useHousehold();
   const { canWrite, hasFeature } = useSubscription();
   const navigate = useNavigate();
@@ -54,10 +53,10 @@ export function CalendarPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'success' | 'danger'>('success');
-  const canManageCalendar = canWrite && hasFeature('calendar_full');
+  const canManageCalendar = canWrite;
   const canUseCustomCategories = hasFeature('categories_custom');
   const canSyncRecurring = hasFeature('recurring_transactions');
-  const calendarUpgrade = getFeatureUpgradeCopy('calendar_full');
+  const isPaymentsRoute = location.pathname.startsWith('/app/pagos');
   const availableCategories = categories.filter((category) => canUseCustomCategories || category.is_default || category.id === categoryId);
 
   const load = useCallback(async () => {
@@ -104,10 +103,10 @@ export function CalendarPage() {
     resetCreateForm();
   }
 
-  function openCreateModal() {
+  const openCreateModal = useCallback(() => {
     resetCreateForm();
     setShowForm(true);
-  }
+  }, []);
 
   function openEditModal(item: PaymentCalendarItem) {
     setEditingItem(item);
@@ -241,6 +240,15 @@ export function CalendarPage() {
   useEffect(() => {
     const itemId = searchParams.get('itemId');
     const mode = searchParams.get('mode');
+    const createIntent = searchParams.get('create');
+
+    if (createIntent && canWrite) {
+      openCreateModal();
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('create');
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
 
     if (!itemId || mode !== 'edit' || !items.length) return;
 
@@ -252,7 +260,7 @@ export function CalendarPage() {
     nextParams.delete('itemId');
     nextParams.delete('mode');
     setSearchParams(nextParams, { replace: true });
-  }, [canWrite, items, searchParams, setSearchParams]);
+  }, [canWrite, items, openCreateModal, searchParams, setSearchParams]);
 
   const visibleItems =
     statusFilter === 'pending' || statusFilter === 'overdue'
@@ -271,12 +279,14 @@ export function CalendarPage() {
       <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="calendar-title">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Calendario</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">{isPaymentsRoute ? 'Pagos' : 'Calendario'}</p>
             <h1 id="calendar-title" className="mt-3 text-[clamp(1.85rem,2.5vw,2.4rem)] font-semibold tracking-[-0.04em] text-text">
-              Pagos del mes
+              {isPaymentsRoute ? 'Pagos obligatorios del hogar' : 'Pagos del mes'}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Usa el calendario para ordenar pagos pendientes, vencidos y registrados.
+              {isPaymentsRoute
+                ? 'Registra las cuentas que no se pueden dejar pasar, marca quién pagó y si eso afecta Saldo Hogar.'
+                : 'Usa el calendario para ordenar pagos pendientes, vencidos y registrados.'}
             </p>
           </div>
 
@@ -287,18 +297,6 @@ export function CalendarPage() {
           ) : null}
         </div>
       </section>
-
-      {!canManageCalendar ? (
-        <UpgradePromptCard
-          badge={calendarUpgrade.badge}
-          title={calendarUpgrade.title}
-          description={calendarUpgrade.description}
-          highlights={calendarUpgrade.highlights}
-          actionLabel={calendarUpgrade.actionLabel || 'Ver planes'}
-          onAction={() => window.location.assign(calendarUpgrade.route)}
-          compact
-        />
-      ) : null}
 
       {msg ? <AlertBanner type={msgType} message={msg} onClose={() => setMsg('')} /> : null}
 
@@ -357,12 +355,14 @@ export function CalendarPage() {
       ) : (
         <section className="ui-panel overflow-hidden" aria-labelledby="calendar-items-title">
           <div className="border-b border-border-light px-6 py-5 lg:px-7">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Listado</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">{isPaymentsRoute ? 'Pagos visibles' : 'Listado'}</p>
             <h2 id="calendar-items-title" className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">
               {formatMonthYear(year, month)}
             </h2>
             <p className="mt-2 text-sm leading-7 text-text-muted">
-              {visibleItems.length} pago(s) visibles para revisar o actualizar.
+              {visibleItems.length === 0
+                ? 'Todavía no hay pagos cargados en este mes.'
+                : `${visibleItems.length} pago(s) visibles para revisar o actualizar.`}
             </p>
           </div>
 
@@ -380,7 +380,7 @@ export function CalendarPage() {
         </section>
       )}
 
-      <Modal open={showForm} onClose={closeCreateModal} title={editingItem ? 'Editar pago programado' : 'Nuevo pago programado'} size="sm">
+      <Modal open={showForm} onClose={closeCreateModal} title={editingItem ? 'Editar pago obligatorio' : 'Nuevo pago obligatorio'} size="sm">
         <div className="space-y-5">
           <p className="text-sm leading-7 text-text-muted">
             Registra solo lo necesario para que el calendario funcione como una referencia clara del mes.

@@ -361,7 +361,7 @@ export function SettingsPage() {
     <div className="app-page max-w-6xl">
       <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="settings-title">
         <div className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Configuración</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Configuración del hogar</p>
           <h1 id="settings-title" className="mt-3 text-[clamp(1.85rem,2.4vw,2.35rem)] font-semibold tracking-[-0.04em] text-text">
             Ajustes del hogar
           </h1>

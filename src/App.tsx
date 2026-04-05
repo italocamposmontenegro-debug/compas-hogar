@@ -99,17 +99,21 @@ export default function App() {
                 <Route element={<HouseholdGuard />}>
                   <Route element={<RouteScreen component={AppLayout} />}>
                     <Route path="/app/dashboard" element={<RouteScreen component={DashboardPage} />} />
-                    <Route path="/app/movimientos" element={<RouteScreen component={TransactionsPage} />} />
+                    <Route path="/app/resumen" element={<RouteScreen component={DashboardPage} />} />
+                    <Route path="/app/ingresos" element={<RouteScreen component={TransactionsPage} />} />
+                    <Route path="/app/gastos" element={<RouteScreen component={TransactionsPage} />} />
+                    <Route path="/app/ahorro" element={<RouteScreen component={TransactionsPage} />} />
+                    <Route path="/app/pagos" element={<RouteScreen component={CalendarPage} />} />
+                    <Route path="/app/saldo-hogar" element={<RouteScreen component={SplitPage} />} />
+                    <Route path="/app/hogar" element={<RouteScreen component={SettingsPage} />} />
+                    <Route path="/app/movimientos" element={<Navigate to="/app/gastos" replace />} />
                     <Route path="/app/categorias" element={<RouteScreen component={CategoriesPage} />} />
                     <Route path="/app/calendario" element={<RouteScreen component={CalendarPage} />} />
                     <Route path="/app/metas" element={<RouteScreen component={GoalsPage} />} />
-                    <Route path="/app/resumen" element={<RouteScreen component={MonthlySummaryPage} />} />
+                    <Route path="/app/historial" element={<RouteScreen component={MonthlySummaryPage} />} />
                     <Route path="/app/configuracion" element={<RouteScreen component={SettingsPage} />} />
                     <Route path="/app/suscripcion" element={<RouteScreen component={SubscriptionPage} />} />
-
-                    <Route element={<FeatureRouteGuard feature="split_manual" />}>
-                      <Route path="/app/reparto" element={<RouteScreen component={SplitPage} />} />
-                    </Route>
+                    <Route path="/app/reparto" element={<RouteScreen component={SplitPage} />} />
 
                     <Route element={<FeatureRouteGuard feature="monthly_close_simple" />}>
                       <Route path="/app/cierre" element={<RouteScreen component={GuidedClosePage} />} />

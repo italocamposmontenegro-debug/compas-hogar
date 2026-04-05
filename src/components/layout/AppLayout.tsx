@@ -1,25 +1,27 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import {
-  ArrowUpDown,
   BarChart3,
   CalendarClock,
   ClipboardCheck,
   CreditCard,
   FileSpreadsheet,
   GitCompare,
-  LayoutDashboard,
+  HandCoins,
+  Home,
   LogOut,
   Menu,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  PiggyBank,
   Repeat,
   Scale,
   Settings,
   ShieldCheck,
   Tags,
-  Target,
+  TrendingDown,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -39,22 +41,24 @@ type NavItem = {
 };
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { to: '/app/dashboard', label: 'Control', icon: LayoutDashboard },
-  { to: '/app/movimientos', label: 'Movimientos', icon: ArrowUpDown },
-  { to: '/app/calendario', label: 'Calendario', icon: CalendarClock },
-  { to: '/app/metas', label: 'Metas', icon: Target },
   { to: '/app/resumen', label: 'Resumen', icon: BarChart3 },
+  { to: '/app/ingresos', label: 'Ingresos', icon: TrendingUp },
+  { to: '/app/pagos', label: 'Pagos', icon: CalendarClock },
+  { to: '/app/gastos', label: 'Gastos', icon: TrendingDown },
+  { to: '/app/ahorro', label: 'Ahorro', icon: PiggyBank },
+  { to: '/app/saldo-hogar', label: 'Saldo Hogar', icon: HandCoins },
+  { to: '/app/hogar', label: 'Configuración del hogar', icon: Home },
 ];
 
 const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { to: '/app/historial', label: 'Historial e insights', icon: GitCompare, feature: 'monthly_comparison' },
   { to: '/app/categorias', label: 'Categorías', icon: Tags },
-  { to: '/app/reparto', label: 'Reparto', icon: Scale, feature: 'split_manual' },
-  { to: '/app/cierre', label: 'Cierre mensual', icon: ClipboardCheck, feature: 'monthly_close_simple' },
-  { to: '/app/configuracion', label: 'Configuración', icon: Settings },
+  { to: '/app/cierre', label: 'Cierre del mes', icon: ClipboardCheck, feature: 'monthly_close_simple' },
   { to: '/app/suscripcion', label: 'Suscripción', icon: CreditCard },
   { to: '/app/csv', label: 'Importar CSV', icon: FileSpreadsheet, feature: 'csv_import' },
   { to: '/app/recurrencias', label: 'Recurrencias', icon: Repeat, feature: 'recurring_transactions' },
-  { to: '/app/comparacion', label: 'Comparación', icon: GitCompare, feature: 'monthly_comparison' },
+  { to: '/app/comparacion', label: 'Comparación', icon: Scale, feature: 'monthly_comparison' },
+  { to: '/app/metas', label: 'Metas avanzadas', icon: Settings },
 ];
 
 export function AppLayout() {

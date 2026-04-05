@@ -28,11 +28,11 @@ export function RegisterPaymentModal({
   const [paidOn, setPaidOn] = useState('');
   const [paidScope, setPaidScope] = useState<'shared' | 'personal'>('shared');
   const [expenseType, setExpenseType] = useState<'fixed' | 'variable'>('fixed');
+  const [affectsBalance, setAffectsBalance] = useState<'yes' | 'no'>('yes');
   const [categoryId, setCategoryId] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const canUseSplitManual = hasFeature('split_manual');
   const canUseCustomCategories = hasFeature('categories_custom');
   const availableCategories = categories.filter((category) => canUseCustomCategories || category.is_default || category.id === categoryId);
 
@@ -43,6 +43,7 @@ export function RegisterPaymentModal({
     setPaidOn(item.due_date);
     setPaidScope('shared');
     setExpenseType(item.recurring_source_id ? 'fixed' : 'variable');
+    setAffectsBalance('yes');
     setCategoryId(item.category_id || '');
     setPaymentNotes('');
     setError('');
@@ -68,6 +69,7 @@ export function RegisterPaymentModal({
           occurredOn: paidOn,
           scope: paidScope,
           expenseType,
+          affectsHouseholdBalance: affectsBalance === 'yes',
           categoryId: categoryId || null,
           notes: paymentNotes || null,
         },
@@ -96,7 +98,7 @@ export function RegisterPaymentModal({
         )}
 
         <p className="text-sm text-text-muted">
-          Este pago quedará marcado como pagado y además se creará el gasto real en tus movimientos.
+          Este pago quedará marcado como pagado y además se creará el movimiento real del hogar.
         </p>
         <div className="rounded-xl border border-border p-4">
           <p className="text-sm font-semibold text-text">{item?.description}</p>
@@ -105,16 +107,12 @@ export function RegisterPaymentModal({
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {canUseSplitManual ? (
-            <SelectField
-              label="¿Quién pagó?"
-              value={paidBy}
-              onChange={setPaidBy}
-              options={members.map(member => ({ value: member.id, label: member.display_name }))}
-            />
-          ) : (
-            <InputField label="Registrado por" value={members.find((member) => member.id === paidBy)?.display_name || 'Miembro'} onChange={() => {}} readOnly />
-          )}
+          <SelectField
+            label="¿Quién pagó?"
+            value={paidBy}
+            onChange={setPaidBy}
+            options={members.map(member => ({ value: member.id, label: member.display_name }))}
+          />
           <InputField
             label="Fecha de pago"
             type="date"
@@ -122,33 +120,35 @@ export function RegisterPaymentModal({
             onChange={e => setPaidOn(e.target.value)}
           />
         </div>
-        {canUseSplitManual ? (
-          <div className="grid grid-cols-2 gap-4">
-            <SelectField
-              label="Alcance"
-              value={paidScope}
-              onChange={value => setPaidScope(value as 'shared' | 'personal')}
-              options={[
-                { value: 'shared', label: 'Compartido' },
-                { value: 'personal', label: 'Personal' },
-              ]}
-            />
-            <SelectField
-              label="Tipo de gasto"
-              value={expenseType}
-              onChange={value => setExpenseType(value as 'fixed' | 'variable')}
-              options={[
-                { value: 'fixed', label: 'Fijo' },
-                { value: 'variable', label: 'Variable' },
-              ]}
-            />
-          </div>
-        ) : (
-          <AlertBanner
-            type="info"
-            message="En Free el pago se registra como gasto compartido del miembro que lo marca."
+        <div className="grid grid-cols-2 gap-4">
+          <SelectField
+            label="Corresponde a"
+            value={paidScope}
+            onChange={value => setPaidScope(value as 'shared' | 'personal')}
+            options={[
+              { value: 'shared', label: 'Compartido' },
+              { value: 'personal', label: 'Personal' },
+            ]}
           />
-        )}
+          <SelectField
+            label="Tipo"
+            value={expenseType}
+            onChange={value => setExpenseType(value as 'fixed' | 'variable')}
+            options={[
+              { value: 'fixed', label: 'Pago obligatorio' },
+              { value: 'variable', label: 'Gasto variable' },
+            ]}
+          />
+        </div>
+        <SelectField
+          label="Afecta Saldo Hogar"
+          value={affectsBalance}
+          onChange={value => setAffectsBalance(value as 'yes' | 'no')}
+          options={[
+            { value: 'yes', label: 'Sí, debe compensarse' },
+            { value: 'no', label: 'No, dejar fuera del balance' },
+          ]}
+        />
         <SelectField
           label="Categoría"
           value={categoryId}

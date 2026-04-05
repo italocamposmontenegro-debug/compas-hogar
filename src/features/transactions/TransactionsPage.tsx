@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import {
@@ -11,18 +11,23 @@ import {
   InputField,
   Modal,
   SelectField,
-  Tabs,
 } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
-import { trackOnce } from '../../lib/analytics';
 import { formatCLP } from '../../utils/format-clp';
 import { formatDate, formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
-import type { Category, Transaction } from '../../types/database';
+import type { Category, SavingsGoal, Transaction } from '../../types/database';
+import {
+  FLOW_TYPE_LABELS,
+  getTransactionFlowType,
+  isSavingsFlow,
+  type MovementFlowType,
+} from '../../lib/household-finance';
 import {
   ArrowUpDown,
   CalendarDays,
-  CircleDollarSign,
   Edit2,
+  HandCoins,
+  PiggyBank,
   Plus,
   ReceiptText,
   Trash2,
@@ -31,55 +36,121 @@ import {
   Wallet,
 } from 'lucide-react';
 
-const C = {
-  onSurface: 'var(--color-s-text)',
-  onSurfaceVariant: 'var(--color-s-text-muted)',
-  primary: 'var(--color-s-primary)',
-  successText: 'var(--color-s-success)',
-  danger: 'var(--color-s-danger)',
-  fontHeadline: 'var(--font-headline)',
+type ModuleMode = 'income' | 'expenses' | 'savings' | 'legacy';
+
+type ModuleConfig = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  createLabel: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  createDefaults: {
+    type: 'income' | 'expense';
+    flowType: MovementFlowType;
+    scope: 'personal' | 'shared';
+    affectsBalance: boolean;
+  };
 };
 
-export function TransactionsPage() {
-  const { household, members, currentMember } = useHousehold();
-  const { canWrite, hasFeature } = useSubscription();
-  const navigate = useNavigate();
-  const { year, month } = getCurrentMonthYear();
-  const [searchParams, setSearchParams] = useSearchParams();
+const MODULES: Record<Exclude<ModuleMode, 'legacy'>, ModuleConfig> = {
+  income: {
+    eyebrow: 'Ingresos',
+    title: 'Dinero que entró al hogar',
+    description: 'Registra lo que efectivamente entró este mes para leer el resto con contexto real.',
+    createLabel: 'Registrar ingreso',
+    emptyTitle: 'Todavía no hay ingresos registrados',
+    emptyDescription: 'Comienza por anotar cuánto dinero entró al hogar este mes.',
+    createDefaults: {
+      type: 'income',
+      flowType: 'income',
+      scope: 'personal',
+      affectsBalance: false,
+    },
+  },
+  expenses: {
+    eyebrow: 'Gastos',
+    title: 'Gastos del día a día',
+    description: 'Anota los gastos variables para ver cuánto queda realmente y qué parte afecta el equilibrio del hogar.',
+    createLabel: 'Registrar gasto',
+    emptyTitle: 'Todavía no hay gastos del día a día',
+    emptyDescription: 'Anota los gastos del día a día para ver cuánto queda realmente.',
+    createDefaults: {
+      type: 'expense',
+      flowType: 'gasto_variable',
+      scope: 'shared',
+      affectsBalance: true,
+    },
+  },
+  savings: {
+    eyebrow: 'Ahorro',
+    title: 'Ahorro visible del mes',
+    description: 'Si este mes puedes, separa una parte. No tiene que ser mucho. Lo importante es dejarlo visible.',
+    createLabel: 'Registrar ahorro',
+    emptyTitle: 'Todavía no hay ahorro registrado',
+    emptyDescription: 'Si este mes puedes, separa una parte. No tiene que ser mucho.',
+    createDefaults: {
+      type: 'expense',
+      flowType: 'ahorro',
+      scope: 'personal',
+      affectsBalance: false,
+    },
+  },
+};
 
+const EXPENSE_FLOW_OPTIONS: Array<{ value: MovementFlowType; label: string }> = [
+  { value: 'gasto_variable', label: 'Gasto del día a día' },
+  { value: 'ocio', label: 'Ocio o salidas' },
+  { value: 'imprevisto', label: 'Imprevisto' },
+  { value: 'inversion', label: 'Inversión' },
+];
+
+export function TransactionsPage() {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { household, members, currentMember } = useHousehold();
+  const { canWrite } = useSubscription();
+  const { year, month } = getCurrentMonthYear();
+
+  const mode = useMemo<ModuleMode>(() => {
+    if (location.pathname.startsWith('/app/ingresos')) return 'income';
+    if (location.pathname.startsWith('/app/gastos')) return 'expenses';
+    if (location.pathname.startsWith('/app/ahorro')) return 'savings';
+    return 'legacy';
+  }, [location.pathname]);
+
+  const moduleConfig = MODULES[mode === 'legacy' ? 'expenses' : mode];
+  const currentMonth = searchParams.get('month') || `${year}-${String(month).padStart(2, '0')}`;
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const [filterMonth, setFilterMonth] = useState(searchParams.get('month') || `${year}-${String(month).padStart(2, '0')}`);
-  const [filterCategory, setFilterCategory] = useState(searchParams.get('category') || '');
-  const [filterMember, setFilterMember] = useState(searchParams.get('member') || '');
-  const [filterType, setFilterType] = useState(searchParams.get('type') || '');
-
-  const [formType, setFormType] = useState<'income' | 'expense'>('expense');
-  const [formDesc, setFormDesc] = useState('');
-  const [formAmount, setFormAmount] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
-  const [formScope, setFormScope] = useState<'personal' | 'shared'>('shared');
-  const [formPaidBy, setFormPaidBy] = useState('');
-  const [formExpenseType, setFormExpenseType] = useState<'fixed' | 'variable'>('variable');
-  const [formNotes, setFormNotes] = useState('');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'danger'>('success');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [msgType, setMsgType] = useState<'success' | 'danger'>('success');
 
-  const canUseCustomCategories = hasFeature('categories_custom');
-  const canUseSplitManual = hasFeature('split_manual');
+  const [formDescription, setFormDescription] = useState('');
+  const [formAmount, setFormAmount] = useState('');
+  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formCategoryId, setFormCategoryId] = useState('');
+  const [formGoalId, setFormGoalId] = useState('');
+  const [formPaidBy, setFormPaidBy] = useState('');
+  const [formScope, setFormScope] = useState<'personal' | 'shared'>('shared');
+  const [formFlowType, setFormFlowType] = useState<MovementFlowType>('gasto_variable');
+  const [formAffectsBalance, setFormAffectsBalance] = useState(true);
+  const [formNotes, setFormNotes] = useState('');
 
   const loadData = useCallback(async () => {
     if (!household) return;
-    const [selectedYear, selectedMonth] = filterMonth.split('-').map(Number);
+
+    setLoading(true);
+    const [selectedYear, selectedMonth] = currentMonth.split('-').map(Number);
     const { start, end } = getMonthRange(selectedYear, selectedMonth);
 
-    const [txRes, catRes] = await Promise.all([
+    const [transactionsResult, categoriesResult, goalsResult] = await Promise.all([
       supabase
         .from('transactions')
         .select('*')
@@ -94,439 +165,394 @@ export function TransactionsPage() {
         .eq('household_id', household.id)
         .is('deleted_at', null)
         .order('sort_order'),
+      supabase
+        .from('savings_goals')
+        .select('*')
+        .eq('household_id', household.id)
+        .order('is_primary', { ascending: false }),
     ]);
 
-    setTransactions((txRes.data || []) as Transaction[]);
-    setCategories((catRes.data || []) as Category[]);
-  }, [filterMonth, household]);
+    setTransactions((transactionsResult.data || []) as Transaction[]);
+    setCategories((categoriesResult.data || []) as Category[]);
+    setGoals((goalsResult.data || []) as SavingsGoal[]);
+    setLoading(false);
+  }, [currentMonth, household]);
 
   useEffect(() => {
-    if (currentMember) setFormPaidBy(currentMember.id);
+    if (!currentMember) return;
+    setFormPaidBy(currentMember.id);
   }, [currentMember]);
-
-  useEffect(() => {
-    setFilterMonth(searchParams.get('month') || `${year}-${String(month).padStart(2, '0')}`);
-    setFilterCategory(searchParams.get('category') || '');
-    setFilterMember(searchParams.get('member') || '');
-    setFilterType(searchParams.get('type') || '');
-  }, [month, searchParams, year]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
-  const filtered = useMemo(
-    () =>
-      transactions.filter((transaction) => {
-        if (filterCategory && transaction.category_id !== filterCategory) return false;
-        if (filterMember && transaction.paid_by_member_id !== filterMember) return false;
-        if (filterType && transaction.type !== filterType) return false;
-        return true;
-      }),
-    [filterCategory, filterMember, filterType, transactions],
-  );
+  const filteredTransactions = useMemo(() => {
+    if (mode === 'income') {
+      return transactions.filter((transaction) => getTransactionFlowType(transaction, categories) === 'income');
+    }
 
-  const totalIncome = filtered.filter((transaction) => transaction.type === 'income').reduce((sum, transaction) => sum + transaction.amount_clp, 0);
-  const totalExpenses = filtered.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount_clp, 0);
-  const availableCategories = categories.filter((category) => canUseCustomCategories || category.is_default || category.id === formCategory);
-  const currentMonthLabel = (() => {
-    const [selectedYear, selectedMonth] = filterMonth.split('-').map(Number);
-    return formatMonthYear(selectedYear, selectedMonth);
-  })();
+    if (mode === 'expenses' || mode === 'legacy') {
+      return transactions.filter((transaction) => {
+        const flowType = getTransactionFlowType(transaction, categories);
+        return flowType === 'gasto_variable' || flowType === 'ocio' || flowType === 'imprevisto' || flowType === 'inversion';
+      });
+    }
 
-  const openCreate = useCallback(() => {
-    setEditingTx(null);
-    setFormType('expense');
-    setFormDesc('');
+    return transactions.filter((transaction) => isSavingsFlow(getTransactionFlowType(transaction, categories)));
+  }, [categories, mode, transactions]);
+
+  const summary = useMemo(() => {
+    if (mode === 'income') {
+      const total = filteredTransactions.reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+      return {
+        firstLabel: 'Ingresó este mes',
+        firstValue: formatCLP(total),
+        firstNote: filteredTransactions.length === 1 ? '1 ingreso registrado' : `${filteredTransactions.length} ingresos registrados`,
+        secondLabel: 'Por integrante',
+        secondValue: members.length > 1
+          ? filteredTransactions.reduce((sum, transaction) => {
+              const member = members.find((item) => item.id === transaction.paid_by_member_id);
+              return sum + (member ? 1 : 0);
+            }, 0) > 0
+            ? 'Visible'
+            : 'Sin detalle'
+          : 'Un integrante',
+        secondNote: 'Cada ingreso queda asociado a quien lo registró.',
+      };
+    }
+
+    if (mode === 'savings') {
+      const total = filteredTransactions.reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+      const primaryGoal = goals.find((goal) => goal.is_primary && goal.status === 'active') ?? null;
+      return {
+        firstLabel: 'Ahorro del mes',
+        firstValue: formatCLP(total),
+        firstNote: filteredTransactions.length === 0 ? 'Sin registros aún' : `${filteredTransactions.length} registro(s) visibles`,
+        secondLabel: 'Meta principal',
+        secondValue: primaryGoal ? primaryGoal.name : 'Sin definir',
+        secondNote: primaryGoal ? `Avance visible: ${formatCLP(primaryGoal.current_amount_clp)}` : 'Puedes dejar el ahorro libre o asociarlo a una meta.',
+      };
+    }
+
+    const total = filteredTransactions.reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+    const sharedTotal = filteredTransactions
+      .filter((transaction) => transaction.scope === 'shared')
+      .reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+    const balanceRelevant = filteredTransactions
+      .filter((transaction) => transaction.affects_household_balance)
+      .reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+
+    return {
+      firstLabel: 'Gasto visible del mes',
+      firstValue: formatCLP(total),
+      firstNote: 'Solo gastos del día a día, ocio, imprevistos e inversión.',
+      secondLabel: 'Impacta Saldo Hogar',
+      secondValue: formatCLP(balanceRelevant),
+      secondNote: sharedTotal > 0 ? `${formatCLP(sharedTotal)} quedó marcado como compartido.` : 'Aún no hay gastos compartidos registrados.',
+    };
+  }, [filteredTransactions, goals, members, mode]);
+
+  const openCreateForm = useCallback(() => {
+    setEditingTransaction(null);
+    setFormDescription('');
     setFormAmount('');
-    setFormCategory('');
     setFormDate(new Date().toISOString().split('T')[0]);
-    setFormScope('shared');
+    setFormCategoryId('');
+    setFormGoalId('');
     setFormPaidBy(currentMember?.id || '');
-    setFormExpenseType('variable');
+    setFormScope(moduleConfig.createDefaults.scope);
+    setFormFlowType(moduleConfig.createDefaults.flowType);
+    setFormAffectsBalance(moduleConfig.createDefaults.affectsBalance);
     setFormNotes('');
     setShowForm(true);
-  }, [currentMember?.id]);
-
-  const closeForm = useCallback(() => {
-    setShowForm(false);
-  }, []);
+  }, [currentMember?.id, moduleConfig.createDefaults.affectsBalance, moduleConfig.createDefaults.flowType, moduleConfig.createDefaults.scope]);
 
   useEffect(() => {
-    const createIntent = searchParams.get('create');
-    if (!createIntent || !canWrite) return;
-    openCreate();
-    if (createIntent === 'income' || createIntent === 'expense') setFormType(createIntent);
+    if (!canWrite) return;
+    if (!searchParams.get('create')) return;
+
+    openCreateForm();
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('create');
     setSearchParams(nextParams, { replace: true });
-  }, [canWrite, openCreate, searchParams, setSearchParams]);
+  }, [canWrite, openCreateForm, searchParams, setSearchParams]);
 
-  function openEdit(transaction: Transaction) {
-    setEditingTx(transaction);
-    setFormType(transaction.type);
-    setFormDesc(transaction.description);
+  function openEditForm(transaction: Transaction) {
+    const flowType = getTransactionFlowType(transaction, categories);
+
+    setEditingTransaction(transaction);
+    setFormDescription(transaction.description);
     setFormAmount(String(transaction.amount_clp));
-    setFormCategory(transaction.category_id || '');
     setFormDate(transaction.occurred_on);
-    setFormScope(transaction.scope);
+    setFormCategoryId(transaction.category_id || '');
+    setFormGoalId(transaction.goal_id || '');
     setFormPaidBy(transaction.paid_by_member_id);
-    setFormExpenseType(transaction.expense_type || 'variable');
+    setFormScope(transaction.scope);
+    setFormFlowType(flowType);
+    setFormAffectsBalance(transaction.affects_household_balance);
     setFormNotes(transaction.notes || '');
     setShowForm(true);
   }
 
+  function closeForm() {
+    if (saving) return;
+    setShowForm(false);
+  }
+
   async function handleSave() {
     if (!household || !currentMember) return;
-    if (!formDesc.trim() || !formAmount || !formDate || !formPaidBy) {
-      setMsgType('danger');
-      setMsg(
-        formType === 'income'
-          ? 'Completa concepto, monto, fecha y quién recibió el ingreso.'
-          : 'Completa descripción, monto, fecha y quién pagó el gasto.',
-      );
+
+    if (!formDescription.trim() || !formAmount || !formDate || !formPaidBy) {
+      setMessageType('danger');
+      setMessage('Completa descripción, monto, fecha y quién registra el movimiento.');
       return;
     }
 
-    setSaving(true);
-    setMsg('');
+    const type = moduleConfig.createDefaults.type;
+    const flowType = type === 'income' ? 'income' : formFlowType;
+    const categoryId = type === 'expense' && mode !== 'savings' ? formCategoryId || null : null;
+    const goalId = mode === 'savings' ? formGoalId || null : null;
+    const affectsHouseholdBalance = mode === 'expenses' ? formAffectsBalance : false;
 
-    const data = {
-      householdId: household.id,
-      type: formType,
-      paid_by_member_id: formPaidBy,
-      scope: formScope,
-      amountClp: parseInt(formAmount, 10),
-      categoryId: formType === 'expense' ? formCategory || null : null,
-      description: formDesc,
-      occurredOn: formDate,
-      expenseType: formType === 'expense' ? formExpenseType : null,
-      paidByMemberId: formPaidBy,
-      notes: formNotes || null,
-    };
+    setSaving(true);
+    setMessage('');
 
     try {
-      if (editingTx) {
+      if (editingTransaction) {
         const { error } = await supabase.functions.invoke('manage-transaction', {
           body: {
             action: 'update',
-            transactionId: editingTx.id,
-            type: formType,
-            description: formDesc,
+            transactionId: editingTransaction.id,
+            type,
+            flowType,
+            description: formDescription,
             amountClp: parseInt(formAmount, 10),
-            categoryId: formType === 'expense' ? formCategory || null : null,
+            categoryId,
+            goalId,
             occurredOn: formDate,
             paidByMemberId: formPaidBy,
             scope: formScope,
-            expenseType: formType === 'expense' ? formExpenseType : null,
+            expenseType: flowType === 'pago_obligatorio' ? 'fixed' : 'variable',
+            affectsHouseholdBalance,
             notes: formNotes || null,
           },
         });
+
         if (error) throw error;
-        setMsgType('success');
-        setMsg(formType === 'income' ? 'Ingreso actualizado correctamente.' : 'Gasto actualizado correctamente.');
+        setMessageType('success');
+        setMessage('Movimiento actualizado correctamente.');
       } else {
         const { error } = await supabase.functions.invoke('manage-transaction', {
-          body: { action: 'create', ...data },
+          body: {
+            action: 'create',
+            householdId: household.id,
+            type,
+            flowType,
+            description: formDescription,
+            amountClp: parseInt(formAmount, 10),
+            categoryId,
+            goalId,
+            occurredOn: formDate,
+            paidByMemberId: formPaidBy,
+            scope: formScope,
+            expenseType: flowType === 'pago_obligatorio' ? 'fixed' : 'variable',
+            affectsHouseholdBalance,
+            notes: formNotes || null,
+          },
         });
+
         if (error) throw error;
-        trackOnce(`first-transaction:${household.id}`, 'first_transaction_created', { household_id: household.id, type: formType }, 'local');
-        setMsgType('success');
-        setMsg(formType === 'income' ? 'Ingreso creado correctamente.' : 'Gasto creado correctamente.');
+        setMessageType('success');
+        setMessage(mode === 'income' ? 'Ingreso registrado correctamente.' : mode === 'savings' ? 'Ahorro registrado correctamente.' : 'Gasto registrado correctamente.');
       }
-      closeForm();
+
+      setShowForm(false);
       await loadData();
     } catch (error) {
-      setMsgType('danger');
-      setMsg(
-        error instanceof Error
-          ? error.message
-          : formType === 'income'
-            ? 'No pudimos guardar el ingreso.'
-            : 'No pudimos guardar el gasto.',
-      );
+      setMessageType('danger');
+      setMessage(error instanceof Error ? error.message : 'No pudimos guardar el movimiento.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (!deleteId) return;
+    if (!deletingTransactionId) return;
+
     try {
       const { error } = await supabase.functions.invoke('manage-transaction', {
-        body: { action: 'delete', transactionId: deleteId },
+        body: { action: 'delete', transactionId: deletingTransactionId },
       });
+
       if (error) throw error;
-      setMsgType('success');
-      setMsg('Movimiento eliminado correctamente.');
-      setDeleteId(null);
+      setDeletingTransactionId(null);
+      setMessageType('success');
+      setMessage('Movimiento eliminado correctamente.');
       await loadData();
     } catch (error) {
-      setMsgType('danger');
-      setMsg(error instanceof Error ? error.message : 'No pudimos eliminar el movimiento.');
+      setMessageType('danger');
+      setMessage(error instanceof Error ? error.message : 'No pudimos eliminar el movimiento.');
     }
   }
 
-  const getMemberName = (id: string) => members.find((member) => member.id === id)?.display_name || '—';
-  const getCategoryName = (id: string | null) => categories.find((category) => category.id === id)?.name || '—';
+  const pageTitle = mode === 'legacy' ? MODULES.expenses.title : moduleConfig.title;
+  const pageDescription = mode === 'legacy' ? MODULES.expenses.description : moduleConfig.description;
+  const pageEyebrow = mode === 'legacy' ? MODULES.expenses.eyebrow : moduleConfig.eyebrow;
+  const createLabel = mode === 'legacy' ? MODULES.expenses.createLabel : moduleConfig.createLabel;
+  const monthLabel = (() => {
+    const [selectedYear, selectedMonth] = currentMonth.split('-').map(Number);
+    return formatMonthYear(selectedYear, selectedMonth);
+  })();
 
   return (
-    <div className="app-page max-w-7xl">
-      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="transactions-title">
+    <div className="app-page max-w-6xl">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">Movimientos</p>
-            <h1
-              id="transactions-title"
-              className="mt-3 text-[clamp(1.85rem,2.5vw,2.45rem)] font-semibold tracking-[-0.04em] text-text"
-              style={{ fontFamily: C.fontHeadline }}
-            >
-              Registro del mes
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-light">{pageEyebrow}</p>
+            <h1 className="mt-3 text-[clamp(1.85rem,2.5vw,2.45rem)] font-semibold tracking-[-0.04em] text-text">
+              {pageTitle}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Para gastos e ingresos puntuales. Si algo se repite cada mes, conviene llevarlo a Recurrencias.
-            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">{pageDescription}</p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => navigate('/app/recurrencias')}>
-              Ver recurrencias
+          {canWrite ? (
+            <Button icon={<Plus className="h-4 w-4" />} onClick={openCreateForm}>
+              {createLabel}
             </Button>
-            {canWrite ? (
-              <Button icon={<Plus className="h-4 w-4" />} onClick={openCreate}>
-                Registrar movimiento
-              </Button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </section>
 
-      {msg ? <AlertBanner type={msgType} message={msg} onClose={() => setMsg('')} /> : null}
+      {message ? <AlertBanner type={messageType} message={message} onClose={() => setMessage('')} /> : null}
 
-      {!canUseSplitManual ? (
-        <AlertBanner
-          type="info"
-            message="En Free registras movimientos básicos. El reparto manual y quién pagó qué se habilitan con Premium."
+      <section className="grid gap-4 md:grid-cols-2">
+        <MetricCard
+          icon={mode === 'income' ? <TrendingUp className="h-4 w-4" /> : mode === 'savings' ? <PiggyBank className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          label={summary.firstLabel}
+          value={summary.firstValue}
+          note={summary.firstNote}
         />
-      ) : null}
-
-      <section className="grid gap-4 md:grid-cols-3" aria-label="Resumen financiero del período">
-        <TxSummaryCard
-          label="Ingresos"
-          value={formatCLP(totalIncome)}
-          note="Entradas registradas"
-          tone="success"
-          icon={<TrendingUp className="h-4 w-4" />}
-        />
-        <TxSummaryCard
-          label="Gastos"
-          value={formatCLP(totalExpenses)}
-          note="Salidas registradas"
-          tone="danger"
-          icon={<TrendingDown className="h-4 w-4" />}
-        />
-        <TxSummaryCard
-          label="Balance"
-          value={formatCLP(totalIncome - totalExpenses)}
-          note="Resultado del período"
-          tone={totalIncome - totalExpenses >= 0 ? 'neutral' : 'danger'}
-          icon={<Wallet className="h-4 w-4" />}
+        <MetricCard
+          icon={mode === 'income' ? <Wallet className="h-4 w-4" /> : mode === 'savings' ? <HandCoins className="h-4 w-4" /> : <ArrowUpDown className="h-4 w-4" />}
+          label={summary.secondLabel}
+          value={summary.secondValue}
+          note={summary.secondNote}
         />
       </section>
 
       <Card padding="lg">
-        <div className="flex flex-col gap-5">
-          <div className="max-w-2xl">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Filtros</p>
-            <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">Ajusta la lectura del período</h2>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Mes visible</p>
+            <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">{monthLabel}</h2>
             <p className="mt-3 text-sm leading-7 text-text-muted">
-              Filtra por mes, categoría, miembro o tipo sin perder contexto.
+              Cambia el mes para revisar cómo se comportó esa parte del hogar.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <InputField
-              label="Mes"
-              type="month"
-              value={filterMonth}
-              onChange={(event) => setFilterMonth(event.target.value)}
-            />
-            <SelectField
-              label="Categoría"
-              value={filterCategory}
-              onChange={setFilterCategory}
-              options={[{ value: '', label: 'Todas' }, ...categories.map((category) => ({ value: category.id, label: `${category.icon} ${category.name}` }))]}
-            />
-            <SelectField
-              label="Miembro"
-              value={filterMember}
-              onChange={setFilterMember}
-              options={[{ value: '', label: 'Todos' }, ...members.map((member) => ({ value: member.id, label: member.display_name }))]}
-            />
-            <SelectField
-              label="Tipo"
-              value={filterType}
-              onChange={setFilterType}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'income', label: 'Ingresos' },
-                { value: 'expense', label: 'Gastos' },
-              ]}
-            />
+          <div className="w-full max-w-[240px]">
+            <InputField label="Mes" type="month" value={currentMonth} onChange={(event) => {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.set('month', event.target.value);
+              setSearchParams(nextParams, { replace: true });
+            }} />
           </div>
         </div>
       </Card>
 
-      <section className="ui-panel overflow-hidden" aria-labelledby="transactions-list-title">
+      <section className="ui-panel overflow-hidden">
         <div className="border-b border-border-light px-6 py-5 lg:px-7">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Movimientos visibles</p>
-              <h2 id="transactions-list-title" className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">
-                {currentMonthLabel}
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-text-muted">
-                {filtered.length === 0
-                  ? 'Todavía no hay movimientos con estos filtros.'
-                  : `${filtered.length} movimiento(s) listos para revisar o editar.`}
-              </p>
-            </div>
-          </div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Registros del mes</p>
+          <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">{monthLabel}</h2>
+          <p className="mt-3 text-sm leading-7 text-text-muted">
+            {loading ? 'Cargando lectura del mes...' : filteredTransactions.length === 0 ? 'Todavía no hay registros en esta sección.' : `${filteredTransactions.length} registro(s) visibles.`}
+          </p>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="px-6 py-8 text-sm text-text-muted">Cargando movimientos...</div>
+        ) : filteredTransactions.length === 0 ? (
           <div className="px-5 py-6 sm:px-6 lg:px-7">
             <EmptyState
-              icon={<ArrowUpDown className="h-8 w-8" />}
-              eyebrow="Lectura inicial"
-              title="Aún no hay movimientos"
-              description="Registra aquí gastos o ingresos puntuales."
-              secondaryText="Si un pago se repite cada mes, llévalo a Recurrencias para no ingresarlo desde cero cada vez."
-              action={canWrite ? { label: 'Registrar movimiento', onClick: openCreate } : undefined}
+              icon={mode === 'income' ? <TrendingUp className="h-8 w-8" /> : mode === 'savings' ? <PiggyBank className="h-8 w-8" /> : <TrendingDown className="h-8 w-8" />}
+              eyebrow={pageEyebrow}
+              title={mode === 'legacy' ? MODULES.expenses.emptyTitle : moduleConfig.emptyTitle}
+              description={mode === 'legacy' ? MODULES.expenses.emptyDescription : moduleConfig.emptyDescription}
+              action={canWrite ? { label: createLabel, onClick: openCreateForm } : undefined}
             />
           </div>
         ) : (
-          <>
-            <div className="space-y-3 p-4 md:hidden">
-              {filtered.map((transaction) => (
-                <TransactionMobileCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  categoryName={getCategoryName(transaction.category_id)}
-                  memberName={getMemberName(transaction.paid_by_member_id)}
-                  canWrite={canWrite}
-                  onEdit={() => openEdit(transaction)}
-                />
-              ))}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-border-light">
-                    {['Fecha', 'Descripción', 'Categoría', 'Pagó', 'Tipo', 'Monto'].map((header) => (
-                      <th
-                        key={header}
-                        scope="col"
-                        className={`px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-light ${header === 'Monto' ? 'text-right' : 'text-left'}`}
-                      >
-                        {header}
-                      </th>
-                    ))}
-                    {canWrite ? <th scope="col" className="px-6 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-text-light">Acción</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((transaction) => (
-                    <tr key={transaction.id} className="border-b border-border-light/80 last:border-b-0">
-                      <td className="px-6 py-5 text-sm text-text-muted">{formatDate(transaction.occurred_on)}</td>
-                      <td className="px-6 py-5 align-top">
-                        <div className="min-w-[220px]">
-                          <p className="text-sm font-semibold text-text">{transaction.description}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <ScopeBadge shared={transaction.scope === 'shared'} />
-                            {transaction.is_recurring_instance ? <InlineChip tone="muted">Recurrente</InlineChip> : null}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm text-text-secondary">{getCategoryName(transaction.category_id)}</td>
-                      <td className="px-6 py-5 text-sm text-text-secondary">{getMemberName(transaction.paid_by_member_id)}</td>
-                      <td className="px-6 py-5">
-                        <TypeBadge type={transaction.type} />
-                      </td>
-                      <td className={`px-6 py-5 text-right text-base font-semibold tracking-tight ${transaction.type === 'income' ? 'text-success' : 'text-text'}`}>
-                        {transaction.type === 'income' ? '+' : '-'}
-                        {formatCLP(transaction.amount_clp)}
-                      </td>
-                      {canWrite ? (
-                        <td className="px-6 py-5 text-right">
-                          <Button size="sm" variant="ghost" icon={<Edit2 className="h-3.5 w-3.5" />} onClick={() => openEdit(transaction)}>
-                            Editar
-                          </Button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <div className="space-y-3 p-4 md:p-6">
+            {filteredTransactions.map((transaction) => (
+              <MovementCard
+                key={transaction.id}
+                transaction={transaction}
+                flowType={getTransactionFlowType(transaction, categories)}
+                categoryName={categories.find((category) => category.id === transaction.category_id)?.name ?? 'Sin categoría'}
+                goalName={goals.find((goal) => goal.id === transaction.goal_id)?.name ?? null}
+                memberName={members.find((member) => member.id === transaction.paid_by_member_id)?.display_name ?? 'Integrante'}
+                onEdit={canWrite ? () => openEditForm(transaction) : undefined}
+              />
+            ))}
+          </div>
         )}
       </section>
 
       <Modal
         open={showForm}
         onClose={closeForm}
-        title={
-          editingTx
-            ? formType === 'income'
-              ? 'Editar ingreso'
-              : 'Editar gasto'
-            : formType === 'income'
-              ? 'Nuevo ingreso'
-              : 'Nuevo gasto'
-        }
+        title={editingTransaction ? `Editar ${pageEyebrow.toLowerCase()}` : createLabel}
         size="lg"
       >
-        <div className="space-y-6">
-          <p className="max-w-2xl text-sm leading-7 text-text-muted">
-            Registra solo lo necesario para que el hogar lea el mes sin ruido.
+        <div className="space-y-5">
+          <p className="text-sm leading-7 text-text-muted">
+            Registra solo lo necesario para que el hogar se entienda rápido.
           </p>
-
-          <Tabs
-            tabs={[
-              { id: 'expense', label: 'Gasto' },
-              { id: 'income', label: 'Ingreso' },
-            ]}
-            activeTab={formType}
-            onChange={(value) => setFormType(value as 'income' | 'expense')}
-          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <InputField
-              label={formType === 'income' ? 'Origen o concepto' : 'Descripción'}
-              value={formDesc}
-              onChange={(event) => setFormDesc(event.target.value)}
-              placeholder={formType === 'income' ? 'Ej: Sueldo' : 'Ej: Supermercado'}
+              label={mode === 'income' ? 'Origen o concepto' : mode === 'savings' ? 'Nombre del ahorro' : 'Descripción'}
+              value={formDescription}
+              onChange={(event) => setFormDescription(event.target.value)}
+              placeholder={mode === 'income' ? 'Ej: Sueldo abril' : mode === 'savings' ? 'Ej: Fondo de emergencia' : 'Ej: Supermercado de la semana'}
             />
             <InputField
               label="Monto (CLP)"
               type="number"
               value={formAmount}
               onChange={(event) => setFormAmount(event.target.value)}
-              placeholder={formType === 'income' ? 'Ej: 1200000' : 'Ej: 45000'}
+              placeholder="Ej: 45000"
             />
-            {formType === 'expense' ? (
+            <InputField label="Fecha" type="date" value={formDate} onChange={(event) => setFormDate(event.target.value)} />
+            <SelectField
+              label={mode === 'income' ? 'Integrante' : 'Pagó'}
+              value={formPaidBy}
+              onChange={setFormPaidBy}
+              options={members.map((member) => ({ value: member.id, label: member.display_name }))}
+            />
+          </div>
+
+          {mode === 'expenses' || mode === 'legacy' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Tipo de gasto"
+                value={formFlowType}
+                onChange={(value) => setFormFlowType(value as MovementFlowType)}
+                options={EXPENSE_FLOW_OPTIONS}
+              />
               <SelectField
                 label="Categoría"
-                value={formCategory}
-                onChange={setFormCategory}
-                placeholder="Seleccionar"
-                options={availableCategories.map((category) => ({ value: category.id, label: `${category.icon} ${category.name}` }))}
+                value={formCategoryId}
+                onChange={setFormCategoryId}
+                options={[
+                  { value: '', label: 'Sin categoría' },
+                  ...categories.map((category) => ({ value: category.id, label: `${category.icon} ${category.name}` })),
+                ]}
               />
-            ) : (
               <SelectField
-                label="Destino"
+                label="Corresponde a"
                 value={formScope}
                 onChange={(value) => setFormScope(value as 'personal' | 'shared')}
                 options={[
@@ -534,71 +560,62 @@ export function TransactionsPage() {
                   { value: 'personal', label: 'Personal' },
                 ]}
               />
-            )}
-            <InputField label="Fecha" type="date" value={formDate} onChange={(event) => setFormDate(event.target.value)} />
-          </div>
+              <SelectField
+                label="Afecta Saldo Hogar"
+                value={formAffectsBalance ? 'yes' : 'no'}
+                onChange={(value) => setFormAffectsBalance(value === 'yes')}
+                options={[
+                  { value: 'yes', label: 'Sí, debe equilibrarse' },
+                  { value: 'no', label: 'No, dejar fuera del balance común' },
+                ]}
+              />
+            </div>
+          ) : null}
 
-          {canUseSplitManual ? (
+          {mode === 'income' ? (
+            <SelectField
+              label="Lectura del ingreso"
+              value={formScope}
+              onChange={(value) => setFormScope(value as 'personal' | 'shared')}
+              options={[
+                { value: 'personal', label: 'Ingreso personal' },
+                { value: 'shared', label: 'Disponible para el hogar' },
+              ]}
+            />
+          ) : null}
+
+          {mode === 'savings' ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
-                label={formType === 'income' ? 'Quién recibió el ingreso' : 'Quién pagó'}
-                value={formPaidBy}
-                onChange={setFormPaidBy}
-                options={members.map((member) => ({ value: member.id, label: member.display_name }))}
+                label="Asociar a meta"
+                value={formGoalId}
+                onChange={setFormGoalId}
+                options={[
+                  { value: '', label: 'Ahorro libre' },
+                  ...goals.filter((goal) => goal.status === 'active').map((goal) => ({ value: goal.id, label: goal.name })),
+                ]}
               />
-              {formType === 'expense' ? (
-                <SelectField
-                  label="Alcance"
-                  value={formScope}
-                  onChange={(value) => setFormScope(value as 'personal' | 'shared')}
-                  options={[
-                    { value: 'shared', label: 'Compartido' },
-                    { value: 'personal', label: 'Personal' },
-                  ]}
-                />
-              ) : (
-                <InputField label="Notas (opcional)" value={formNotes} onChange={(event) => setFormNotes(event.target.value)} />
-              )}
-            </div>
-          ) : (
-            <AlertBanner
-              type="info"
-              message={
-                formType === 'income'
-                  ? 'El ingreso quedará asociado al miembro que lo registra.'
-                  : 'El gasto quedará asociado al miembro que lo registra y como compartido por defecto.'
-              }
-            />
-          )}
-
-          {formType === 'expense' ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {canUseSplitManual ? (
-                <SelectField
-                  label="Tipo de gasto"
-                  value={formExpenseType}
-                  onChange={(value) => setFormExpenseType(value as 'fixed' | 'variable')}
-                  options={[
-                    { value: 'variable', label: 'Variable' },
-                    { value: 'fixed', label: 'Fijo' },
-                  ]}
-                />
-              ) : (
-                <InputField label="Tipo de gasto" value="Variable" onChange={() => {}} readOnly />
-              )}
-              <InputField label="Notas (opcional)" value={formNotes} onChange={(event) => setFormNotes(event.target.value)} />
+              <SelectField
+                label="Lectura"
+                value={formScope}
+                onChange={(value) => setFormScope(value as 'personal' | 'shared')}
+                options={[
+                  { value: 'personal', label: 'Ahorro personal' },
+                  { value: 'shared', label: 'Meta del hogar' },
+                ]}
+              />
             </div>
           ) : null}
 
-          {editingTx?.is_recurring_instance ? (
-            <AlertBanner
-              type="info"
-              message="Si este movimiento viene de una recurrencia o pago programado, los cambios mantendrán ese enlace actualizado."
-            />
-          ) : null}
+          <InputField
+            label="Nota opcional"
+            value={formNotes}
+            onChange={(event) => setFormNotes(event.target.value)}
+            placeholder={mode === 'savings' ? 'Ej: Lo separamos al recibir el sueldo' : 'Ej: Lo pagué desde la cuenta conjunta'}
+          />
 
           <div className="flex flex-col gap-4 border-t border-border-light pt-5">
-            {editingTx ? (
+            {editingTransaction ? (
               <div className="flex justify-start">
                 <Button
                   variant="ghost"
@@ -606,10 +623,10 @@ export function TransactionsPage() {
                   className="text-danger hover:border-danger/10 hover:bg-danger-bg hover:text-danger"
                   onClick={() => {
                     closeForm();
-                    setDeleteId(editingTx.id);
+                    setDeletingTransactionId(editingTransaction.id);
                   }}
                 >
-                  Eliminar movimiento
+                  Eliminar registro
                 </Button>
               </div>
             ) : null}
@@ -619,13 +636,7 @@ export function TransactionsPage() {
                 Cancelar
               </Button>
               <Button onClick={handleSave} loading={saving}>
-                {editingTx
-                  ? formType === 'income'
-                    ? 'Guardar ingreso'
-                    : 'Guardar gasto'
-                  : formType === 'income'
-                    ? 'Crear ingreso'
-                    : 'Crear gasto'}
+                {editingTransaction ? 'Guardar cambios' : createLabel}
               </Button>
             </div>
           </div>
@@ -633,41 +644,34 @@ export function TransactionsPage() {
       </Modal>
 
       <ConfirmDialog
-        open={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        open={!!deletingTransactionId}
+        onClose={() => setDeletingTransactionId(null)}
         onConfirm={handleDelete}
-        title="Eliminar movimiento"
-        message="Esta acción quitará el movimiento de la lectura del hogar. Úsala solo si el registro está mal o ya no corresponde."
+        title="Eliminar registro"
+        message="Este movimiento dejará de contar en la lectura del hogar."
         confirmLabel="Eliminar"
       />
     </div>
   );
 }
 
-function TxSummaryCard({
+function MetricCard({
+  icon,
   label,
   value,
   note,
-  tone,
-  icon,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: string;
   note: string;
-  tone: 'success' | 'danger' | 'neutral';
-  icon: ReactNode;
 }) {
-  const valueClass =
-    tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-text';
-
   return (
     <Card className="h-full">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="metric-label">{label}</p>
-          <p className={`mt-3 text-[1.9rem] font-semibold tracking-[-0.04em] ${valueClass}`} style={{ fontFamily: C.fontHeadline }}>
-            {value}
-          </p>
+          <p className="mt-3 text-[1.9rem] font-semibold tracking-[-0.04em] text-text">{value}</p>
           <p className="mt-3 text-sm leading-6 text-text-muted">{note}</p>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
@@ -678,54 +682,20 @@ function TxSummaryCard({
   );
 }
 
-function ScopeBadge({ shared }: { shared: boolean }) {
-  if (!shared) return <InlineChip tone="muted">Personal</InlineChip>;
-  return <InlineChip tone="primary">Compartido</InlineChip>;
-}
-
-function TypeBadge({ type }: { type: Transaction['type'] }) {
-  return (
-    <InlineChip tone={type === 'income' ? 'success' : 'danger'}>
-      {type === 'income' ? 'Ingreso' : 'Gasto'}
-    </InlineChip>
-  );
-}
-
-function InlineChip({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: 'primary' | 'success' | 'danger' | 'muted';
-}) {
-  const classes =
-    tone === 'primary'
-      ? 'bg-primary/8 text-primary'
-      : tone === 'success'
-        ? 'bg-success-bg text-success'
-        : tone === 'danger'
-          ? 'bg-danger-bg text-danger'
-          : 'bg-surface-low text-text-muted';
-
-  return (
-    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] ${classes}`}>
-      {children}
-    </span>
-  );
-}
-
-function TransactionMobileCard({
+function MovementCard({
   transaction,
+  flowType,
   categoryName,
+  goalName,
   memberName,
-  canWrite,
   onEdit,
 }: {
   transaction: Transaction;
+  flowType: MovementFlowType;
   categoryName: string;
+  goalName: string | null;
   memberName: string;
-  canWrite: boolean;
-  onEdit: () => void;
+  onEdit?: () => void;
 }) {
   return (
     <div className="ui-panel overflow-hidden p-5">
@@ -733,49 +703,71 @@ function TransactionMobileCard({
         <div className="min-w-0">
           <p className="text-base font-semibold tracking-tight text-text">{transaction.description}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <TypeBadge type={transaction.type} />
-            <ScopeBadge shared={transaction.scope === 'shared'} />
-            {transaction.is_recurring_instance ? <InlineChip tone="muted">Recurrente</InlineChip> : null}
+            <InlineChip tone={transaction.type === 'income' ? 'success' : 'primary'}>
+              {FLOW_TYPE_LABELS[flowType]}
+            </InlineChip>
+            <InlineChip tone="muted">{transaction.scope === 'shared' ? 'Compartido' : 'Personal'}</InlineChip>
+            {transaction.type === 'expense' && transaction.scope === 'shared' ? (
+              <InlineChip tone={transaction.affects_household_balance ? 'success' : 'muted'}>
+                {transaction.affects_household_balance ? 'Afecta Saldo Hogar' : 'Fuera del balance'}
+              </InlineChip>
+            ) : null}
           </div>
         </div>
-        {canWrite ? (
+        {onEdit ? (
           <Button size="sm" variant="ghost" icon={<Edit2 className="h-3.5 w-3.5" />} onClick={onEdit}>
             Editar
           </Button>
         ) : null}
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <MobileDetail label="Monto" value={`${transaction.type === 'income' ? '+' : '-'}${formatCLP(transaction.amount_clp)}`} valueTone={transaction.type === 'income' ? 'success' : 'danger'} />
-        <MobileDetail label="Fecha" value={formatDate(transaction.occurred_on)} icon={<CalendarDays className="h-3.5 w-3.5" />} />
-        <MobileDetail label="Categoría" value={categoryName} icon={<ReceiptText className="h-3.5 w-3.5" />} />
-        <MobileDetail label="Registró" value={memberName} icon={<CircleDollarSign className="h-3.5 w-3.5" />} />
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <DetailCard label="Monto" value={`${transaction.type === 'income' ? '+' : '-'}${formatCLP(transaction.amount_clp)}`} />
+        <DetailCard label="Fecha" value={formatDate(transaction.occurred_on)} icon={<CalendarDays className="h-3.5 w-3.5" />} />
+        <DetailCard label={goalName ? 'Meta' : 'Categoría'} value={goalName || categoryName} icon={goalName ? <PiggyBank className="h-3.5 w-3.5" /> : <ReceiptText className="h-3.5 w-3.5" />} />
+        <DetailCard label="Integrante" value={memberName} icon={<Wallet className="h-3.5 w-3.5" />} />
       </div>
     </div>
   );
 }
 
-function MobileDetail({
+function DetailCard({
   label,
   value,
-  valueTone = 'neutral',
   icon,
 }: {
   label: string;
   value: string;
-  valueTone?: 'success' | 'danger' | 'neutral';
-  icon?: ReactNode;
+  icon?: React.ReactNode;
 }) {
-  const valueClass =
-    valueTone === 'success' ? 'text-success' : valueTone === 'danger' ? 'text-danger' : 'text-text';
-
   return (
     <div className="rounded-2xl border border-border bg-bg/65 px-4 py-3">
       <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">{label}</p>
       <div className="mt-2 flex items-center gap-2">
         {icon ? <span className="text-text-light">{icon}</span> : null}
-        <p className={`text-sm font-medium leading-6 ${valueClass}`}>{value}</p>
+        <p className="text-sm font-medium leading-6 text-text">{value}</p>
       </div>
     </div>
+  );
+}
+
+function InlineChip({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: 'primary' | 'success' | 'muted';
+}) {
+  const classes =
+    tone === 'primary'
+      ? 'bg-primary/8 text-primary'
+      : tone === 'success'
+        ? 'bg-success-bg text-success'
+        : 'bg-surface-low text-text-muted';
+
+  return (
+    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] ${classes}`}>
+      {children}
+    </span>
   );
 }

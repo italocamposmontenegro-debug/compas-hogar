@@ -14,10 +14,30 @@ type Action = 'create' | 'update' | 'delete';
 type TransactionType = 'income' | 'expense';
 type TransactionScope = 'personal' | 'shared';
 type ExpenseType = 'fixed' | 'variable' | null;
+type FlowType =
+  | 'income'
+  | 'pago_obligatorio'
+  | 'gasto_variable'
+  | 'ahorro'
+  | 'inversion'
+  | 'ocio'
+  | 'imprevisto'
+  | 'abono_saldo_hogar';
+
+const BALANCE_RELEVANT_FLOW_TYPES: FlowType[] = ['pago_obligatorio', 'gasto_variable', 'inversion', 'ocio', 'imprevisto'];
 
 function parseRequiredText(value: unknown, label: string) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`${label} es obligatorio.`);
+  }
+
+  return value.trim();
+}
+
+function parseOptionalText(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error('El valor enviado no es valido.');
   }
 
   return value.trim();
@@ -45,6 +65,36 @@ function parseExpenseType(value: unknown): ExpenseType {
   if (value === null || value === undefined || value === '') return null;
   if (value === 'fixed' || value === 'variable') return value;
   throw new Error('Tipo de gasto invalido.');
+}
+
+function parseFlowType(value: unknown, transactionType: TransactionType, expenseType: ExpenseType): FlowType {
+  if (transactionType === 'income') return 'income';
+
+  if (
+    value === 'pago_obligatorio'
+    || value === 'gasto_variable'
+    || value === 'ahorro'
+    || value === 'inversion'
+    || value === 'ocio'
+    || value === 'imprevisto'
+    || value === 'abono_saldo_hogar'
+  ) {
+    return value;
+  }
+
+  return expenseType === 'fixed' ? 'pago_obligatorio' : 'gasto_variable';
+}
+
+function resolveAffectsHouseholdBalance(
+  explicitValue: unknown,
+  transactionType: TransactionType,
+  scope: TransactionScope,
+  flowType: FlowType,
+) {
+  if (transactionType !== 'expense') return false;
+  if (flowType === 'abono_saldo_hogar' || flowType === 'ahorro') return false;
+  if (typeof explicitValue === 'boolean') return explicitValue;
+  return scope === 'shared' && BALANCE_RELEVANT_FLOW_TYPES.includes(flowType);
 }
 
 function getTodayChile() {
@@ -118,7 +168,9 @@ async function getCategory(householdId: string, categoryId: string | null) {
   return data;
 }
 
-async function assertMember(householdId: string, memberId: string) {
+async function assertMember(householdId: string, memberId: string | null) {
+  if (!memberId) return;
+
   const { data, error } = await supabase
     .from('household_members')
     .select('id')
@@ -128,7 +180,7 @@ async function assertMember(householdId: string, memberId: string) {
     .maybeSingle();
 
   if (error || !data) {
-    throw new Error('No encontramos al miembro seleccionado.');
+    throw new Error('No encontramos al integrante seleccionado.');
   }
 }
 
@@ -136,8 +188,46 @@ async function assertCategoryAllowed(householdId: string, categoryId: string | n
   const category = await getCategory(householdId, categoryId);
   if (!category) return;
   if (!canUseCustomCategories && !category.is_default) {
-    throw new Error('Las categorías personalizadas están disponibles desde el plan Esencial.');
+    throw new Error('Las categorías personalizadas están disponibles en Premium.');
   }
+}
+
+async function assertGoal(householdId: string, goalId: string | null) {
+  if (!goalId) return;
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('id')
+    .eq('household_id', householdId)
+    .eq('id', goalId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error('No encontramos la meta seleccionada.');
+  }
+}
+
+async function adjustGoalAmount(goalId: string | null, delta: number) {
+  if (!goalId || delta === 0) return;
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('current_amount_clp')
+    .eq('id', goalId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error('No pudimos actualizar el avance del ahorro.');
+  }
+
+  const { error: updateError } = await supabase
+    .from('savings_goals')
+    .update({
+      current_amount_clp: Math.max(0, (data.current_amount_clp ?? 0) + delta),
+    })
+    .eq('id', goalId);
+
+  if (updateError) throw updateError;
 }
 
 async function getLinkedPaymentItem(transactionId: string) {
@@ -170,13 +260,17 @@ serve(async (req) => {
       householdId?: string;
       transactionId?: string;
       type?: unknown;
+      flowType?: unknown;
       description?: unknown;
       amountClp?: unknown;
       categoryId?: string | null;
+      goalId?: string | null;
       occurredOn?: unknown;
       paidByMemberId?: string;
+      assignedToMemberId?: string | null;
       scope?: unknown;
       expenseType?: unknown;
+      affectsHouseholdBalance?: unknown;
       notes?: unknown;
     };
 
@@ -191,20 +285,34 @@ serve(async (req) => {
       const nextDescription = parseRequiredText(body.description, 'La descripcion');
       const nextAmount = parseAmount(body.amountClp);
       const nextOccurredOn = parseRequiredText(body.occurredOn, 'La fecha');
-      const canUseSplitManual = hasFeature(planTier, 'split_manual');
       const canUseCustomCategories = hasFeature(planTier, 'categories_custom');
-      const nextPaidByMemberId = canUseSplitManual
-        ? parseRequiredText(body.paidByMemberId, 'Quien pago')
-        : actorMember.id;
-      const nextScope = canUseSplitManual ? parseScope(body.scope) : 'shared';
+      const nextPaidByMemberId = parseOptionalText(body.paidByMemberId) ?? actorMember.id;
+      const nextScope = parseScope(body.scope);
       const nextExpenseType = nextType === 'expense'
-        ? (canUseSplitManual ? parseExpenseType(body.expenseType) : 'variable')
+        ? parseExpenseType(body.expenseType)
         : null;
+      const nextFlowType = parseFlowType(body.flowType, nextType, nextExpenseType);
       const nextCategoryId = body.categoryId ?? null;
+      const nextGoalId = nextFlowType === 'ahorro' ? parseOptionalText(body.goalId) : null;
+      const nextAssignedToMemberId = nextFlowType === 'abono_saldo_hogar'
+        ? parseRequiredText(body.assignedToMemberId, 'A quien se abona')
+        : parseOptionalText(body.assignedToMemberId);
+      const nextAffectsHouseholdBalance = resolveAffectsHouseholdBalance(
+        body.affectsHouseholdBalance,
+        nextType,
+        nextScope,
+        nextFlowType,
+      );
       const nextNotes = typeof body.notes === 'string' && body.notes.trim() ? body.notes.trim() : null;
 
       await assertMember(body.householdId, nextPaidByMemberId);
+      await assertMember(body.householdId, nextAssignedToMemberId);
       await assertCategoryAllowed(body.householdId, nextCategoryId, canUseCustomCategories);
+      await assertGoal(body.householdId, nextGoalId);
+
+      if (nextFlowType === 'abono_saldo_hogar' && nextAssignedToMemberId === nextPaidByMemberId) {
+        throw new Error('El abono debe quedar asociado al otro integrante.');
+      }
 
       const { data: createdTransaction, error: createError } = await supabase
         .from('transactions')
@@ -212,11 +320,16 @@ serve(async (req) => {
           household_id: body.householdId,
           created_by: user.id,
           type: nextType,
+          flow_type: nextFlowType,
           paid_by_member_id: nextPaidByMemberId,
           scope: nextScope,
-          assigned_to_member_id: null,
+          assigned_to_member_id: nextAssignedToMemberId,
+          affects_household_balance: nextAffectsHouseholdBalance,
+          balance_excluded_at: nextType === 'expense' && nextScope === 'shared' && !nextAffectsHouseholdBalance ? new Date().toISOString() : null,
+          balance_adjusted_manually: nextType === 'expense' && nextScope === 'shared' && !nextAffectsHouseholdBalance,
           amount_clp: nextAmount,
           category_id: nextType === 'expense' ? nextCategoryId : null,
+          goal_id: nextGoalId,
           description: nextDescription,
           occurred_on: nextOccurredOn,
           expense_type: nextExpenseType,
@@ -231,6 +344,10 @@ serve(async (req) => {
         throw createError ?? new Error('No pudimos crear el movimiento.');
       }
 
+      if (nextFlowType === 'ahorro' && nextGoalId) {
+        await adjustGoalAmount(nextGoalId, nextAmount);
+      }
+
       return new Response(JSON.stringify({ transaction: createdTransaction }), {
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
         status: 200,
@@ -242,11 +359,14 @@ serve(async (req) => {
     const transaction = await getTransaction(body.transactionId);
     const actorMember = await assertHouseholdAccess(transaction.household_id, user.id);
     const planTier = await getHouseholdPlanTier(supabase, transaction.household_id);
-    const canUseSplitManual = hasFeature(planTier, 'split_manual');
     const canUseCustomCategories = hasFeature(planTier, 'categories_custom');
     const linkedPaymentItem = await getLinkedPaymentItem(transaction.id);
 
     if (body.action === 'delete') {
+      if (transaction.flow_type === 'ahorro' && transaction.goal_id) {
+        await adjustGoalAmount(transaction.goal_id, -transaction.amount_clp);
+      }
+
       const { error: deleteError } = await supabase
         .from('transactions')
         .update({ deleted_at: new Date().toISOString() })
@@ -278,33 +398,60 @@ serve(async (req) => {
     const nextDescription = parseRequiredText(body.description, 'La descripcion');
     const nextAmount = parseAmount(body.amountClp);
     const nextOccurredOn = parseRequiredText(body.occurredOn, 'La fecha');
-    const nextPaidByMemberId = canUseSplitManual
-      ? parseRequiredText(body.paidByMemberId, 'Quien pago')
-      : transaction.paid_by_member_id || actorMember.id;
-    const nextScope = canUseSplitManual ? parseScope(body.scope) : transaction.scope;
+    const nextPaidByMemberId = parseOptionalText(body.paidByMemberId) ?? transaction.paid_by_member_id || actorMember.id;
+    const nextScope = parseOptionalText(body.scope) ? parseScope(body.scope) : transaction.scope;
     const nextExpenseType = nextType === 'expense'
-      ? (canUseSplitManual ? parseExpenseType(body.expenseType) : transaction.expense_type ?? 'variable')
+      ? (parseOptionalText(body.expenseType) ? parseExpenseType(body.expenseType) : transaction.expense_type ?? 'variable')
       : null;
+    const nextFlowType = linkedPaymentItem
+      ? 'pago_obligatorio'
+      : parseFlowType(body.flowType, nextType, nextExpenseType);
     const nextCategoryId = body.categoryId ?? null;
+    const nextGoalId = nextFlowType === 'ahorro' ? parseOptionalText(body.goalId) : null;
+    const nextAssignedToMemberId = nextFlowType === 'abono_saldo_hogar'
+      ? parseRequiredText(body.assignedToMemberId, 'A quien se abona')
+      : parseOptionalText(body.assignedToMemberId);
+    const nextAffectsHouseholdBalance = resolveAffectsHouseholdBalance(
+      body.affectsHouseholdBalance,
+      nextType,
+      nextScope,
+      nextFlowType,
+    );
     const nextNotes = typeof body.notes === 'string' && body.notes.trim() ? body.notes.trim() : null;
 
     await assertMember(transaction.household_id, nextPaidByMemberId);
+    await assertMember(transaction.household_id, nextAssignedToMemberId);
     await assertCategoryAllowed(transaction.household_id, nextCategoryId, canUseCustomCategories);
+    await assertGoal(transaction.household_id, nextGoalId);
 
     if (linkedPaymentItem && nextType !== 'expense') {
       throw new Error('No puedes convertir en ingreso un gasto asociado a un pago programado.');
+    }
+
+    if (nextFlowType === 'abono_saldo_hogar' && nextAssignedToMemberId === nextPaidByMemberId) {
+      throw new Error('El abono debe quedar asociado al otro integrante.');
+    }
+
+    if (transaction.flow_type === 'ahorro' && transaction.goal_id) {
+      await adjustGoalAmount(transaction.goal_id, -transaction.amount_clp);
     }
 
     const { data: updatedTransaction, error: updateError } = await supabase
       .from('transactions')
       .update({
         type: nextType,
+        flow_type: nextFlowType,
         description: nextDescription,
         amount_clp: nextAmount,
         category_id: nextCategoryId,
+        goal_id: nextGoalId,
         occurred_on: nextOccurredOn,
         paid_by_member_id: nextPaidByMemberId,
         scope: nextScope,
+        assigned_to_member_id: nextAssignedToMemberId,
+        affects_household_balance: nextAffectsHouseholdBalance,
+        balance_excluded_at: nextType === 'expense' && nextScope === 'shared' && !nextAffectsHouseholdBalance ? new Date().toISOString() : null,
+        balance_adjusted_manually: nextType === 'expense' && nextScope === 'shared' && !nextAffectsHouseholdBalance,
         expense_type: nextExpenseType,
         notes: nextNotes,
       })
@@ -315,6 +462,10 @@ serve(async (req) => {
 
     if (updateError || !updatedTransaction) {
       throw updateError ?? new Error('No pudimos actualizar el movimiento.');
+    }
+
+    if (nextFlowType === 'ahorro' && nextGoalId) {
+      await adjustGoalAmount(nextGoalId, nextAmount);
     }
 
     if (linkedPaymentItem) {

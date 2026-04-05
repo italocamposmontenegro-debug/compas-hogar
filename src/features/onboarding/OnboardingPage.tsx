@@ -133,7 +133,7 @@ export function OnboardingPage() {
         return;
       }
 
-      navigate('/app/dashboard?welcome=1');
+      navigate('/app/resumen?welcome=1');
     } catch (unknownError) {
       setError(
         unknownError instanceof Error ? unknownError.message : 'No pudimos completar la configuración.',
@@ -208,8 +208,8 @@ export function OnboardingPage() {
                 <div className="space-y-5">
                   <InputField label="Enlace de invitación" value={inviteLink} onChange={() => {}} readOnly />
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button onClick={() => navigate('/app/dashboard?welcome=1')}>
-                      Ir al panel
+                    <Button onClick={() => navigate('/app/resumen?welcome=1')}>
+                      Ir al resumen
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                     <Button variant="secondary" onClick={copyInviteLink}>

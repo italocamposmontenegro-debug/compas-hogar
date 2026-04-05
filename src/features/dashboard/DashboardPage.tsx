@@ -1,34 +1,36 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Button, PlanBadge, UpgradePromptCard } from '../../components/ui';
+import { Button, Card, EmptyState, PlanBadge, UpgradePromptCard } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
-import { syncRecurringItems } from '../../lib/recurring';
-import { trackOnce } from '../../lib/analytics';
 import { formatCLP } from '../../utils/format-clp';
 import { formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
-import { calculateTrafficLight, type TrafficLightResult } from '../../utils/traffic-light';
-import { buildFinancialInsights, type FinancialInsightsResult, type InsightAction } from '../../utils/financial-insights';
+import {
+  buildHouseholdMonthSnapshot,
+  calculateHouseholdBalance,
+  getTransactionFlowType,
+  isDayToDayExpenseFlow,
+  type HouseholdBalanceSummary,
+  type HouseholdMonthSnapshot,
+} from '../../lib/household-finance';
 import type { Category, PaymentCalendarItem, SavingsGoal, Transaction } from '../../types/database';
-import { getFeatureUpgradeCopy } from '../../lib/constants';
+import { buildFinancialInsights } from '../../utils/financial-insights';
 import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
-  CircleDollarSign,
+  HandCoins,
   PiggyBank,
-  Target,
-  Users,
-  Wallet,
   TrendingDown,
   TrendingUp,
+  Wallet,
 } from 'lucide-react';
 
 export function DashboardPage() {
-  const { household, members } = useHousehold();
-  const { hasFeature, planTier, planName } = useSubscription();
   const navigate = useNavigate();
+  const { household, members } = useHousehold();
+  const { planName, hasFeature, getUpgradeCopy } = useSubscription();
   const { year, month } = getCurrentMonthYear();
   const { start, end } = getMonthRange(year, month);
   const prevYear = month === 1 ? year - 1 : year;
@@ -36,548 +38,348 @@ export function DashboardPage() {
   const { start: prevStart, end: prevEnd } = getMonthRange(prevYear, prevMonth);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
   const [payments, setPayments] = useState<PaymentCalendarItem[]>([]);
-  const [primaryGoal, setPrimaryGoal] = useState<SavingsGoal | null>(null);
-  const [light, setLight] = useState<TrafficLightResult | null>(null);
-  const [insights, setInsights] = useState<FinancialInsightsResult>({ alerts: [], recommendations: [] });
-
-  const showDashboardFull = hasFeature('dashboard_full');
-  const showMonthlyProjection = hasFeature('monthly_projection');
-  const showFinancialHealth = hasFeature('insights_financial_health');
-  const showSmartAlerts = hasFeature('smart_alerts');
-  const showRecommendations = hasFeature('recommendations');
-  const showSplitSummary = hasFeature('split_manual') && showDashboardFull;
-  const canManageCalendar = hasFeature('calendar_full');
-  const canSyncRecurring = hasFeature('recurring_transactions');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!household) return;
-    let cancelled = false;
+    let mounted = true;
+    const householdId = household.id;
 
-    const loadDashboardData = async () => {
-      if (canSyncRecurring) {
-        await syncRecurringItems(household.id).catch(() => null);
-      }
-
-      const [txRes, prevTxRes, catRes, payRes, goalRes] = await Promise.all([
-        supabase.from('transactions').select('*')
-          .eq('household_id', household.id)
-          .gte('occurred_on', start).lte('occurred_on', end)
+    async function load() {
+      const [transactionsResult, previousTransactionsResult, paymentsResult, categoriesResult, goalsResult] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('*')
+          .eq('household_id', householdId)
+          .gte('occurred_on', start)
+          .lte('occurred_on', end)
           .is('deleted_at', null),
-        supabase.from('transactions').select('*')
-          .eq('household_id', household.id)
-          .gte('occurred_on', prevStart).lte('occurred_on', prevEnd)
+        supabase
+          .from('transactions')
+          .select('*')
+          .eq('household_id', householdId)
+          .gte('occurred_on', prevStart)
+          .lte('occurred_on', prevEnd)
           .is('deleted_at', null),
-        supabase.from('categories').select('*')
-          .eq('household_id', household.id)
-          .is('deleted_at', null),
-        supabase.from('payment_calendar_items').select('*')
-          .eq('household_id', household.id)
-          .gte('due_date', start).lte('due_date', end),
-        supabase.from('savings_goals').select('*')
-          .eq('household_id', household.id)
-          .eq('is_primary', true)
-          .eq('status', 'active')
-          .limit(1)
-          .single(),
+        supabase
+          .from('payment_calendar_items')
+          .select('*')
+          .eq('household_id', householdId)
+          .gte('due_date', start)
+          .lte('due_date', end)
+          .order('due_date'),
+        supabase
+          .from('categories')
+          .select('*')
+          .eq('household_id', householdId)
+          .is('deleted_at', null)
+          .order('sort_order'),
+        supabase
+          .from('savings_goals')
+          .select('*')
+          .eq('household_id', householdId)
+          .order('is_primary', { ascending: false }),
       ]);
 
-      if (cancelled) return;
+      if (!mounted) return;
 
-      const txs = (txRes.data || []) as Transaction[];
-      const prevTxs = (prevTxRes.data || []) as Transaction[];
-      const cats = (catRes.data || []) as Category[];
-      const pays = (payRes.data || []) as PaymentCalendarItem[];
-      const goal = goalRes.data as SavingsGoal | null;
+      setTransactions((transactionsResult.data || []) as Transaction[]);
+      setPreviousTransactions((previousTransactionsResult.data || []) as Transaction[]);
+      setPayments((paymentsResult.data || []) as PaymentCalendarItem[]);
+      setCategories((categoriesResult.data || []) as Category[]);
+      setGoals((goalsResult.data || []) as SavingsGoal[]);
+      setLoading(false);
+    }
 
-      setTransactions(txs);
-      setPayments(pays);
-      setPrimaryGoal(goal);
-
-      const totalIncomeAmount = txs.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount_clp, 0);
-      const totalExpenseAmount = txs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount_clp, 0);
-
-      setLight(calculateTrafficLight(totalIncomeAmount, totalExpenseAmount, pays, goal, month));
-      setInsights(buildFinancialInsights({
-        currentTransactions: txs,
-        previousTransactions: prevTxs,
-        upcomingPayments: pays,
-        primaryGoal: goal,
-        categories: cats,
-        currentYear: year,
-        currentMonth: month,
-      }));
-    };
-
-    void loadDashboardData();
+    void load();
     return () => {
-      cancelled = true;
+      mounted = false;
     };
-  }, [canSyncRecurring, household, month, prevEnd, prevStart, start, end, year]);
+  }, [end, household, prevEnd, prevStart, start]);
 
-  useEffect(() => {
-    if (!household) return;
-    trackOnce(
-      `first-session:${household.id}`,
-      'first_session_started',
-      { household_id: household.id, plan: planTier },
-      'session',
-    );
-  }, [household, planTier]);
+  const snapshot = useMemo<HouseholdMonthSnapshot>(() => buildHouseholdMonthSnapshot({
+    transactions,
+    payments,
+    goals,
+    categories,
+  }), [categories, goals, payments, transactions]);
 
-  const totalIncome = transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount_clp, 0);
-  const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount_clp, 0);
-  const balance = totalIncome - totalExpenses;
-  const pendingPayments = payments.filter((p) => p.status === 'pending' || p.status === 'overdue');
-  const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + p.amount_clp, 0);
-  const projectedClose = balance - totalPendingAmount;
-  const currentMonthParam = `${year}-${String(month).padStart(2, '0')}`;
-  const hasTransactions = transactions.length > 0;
-  const primaryGoalProgress = primaryGoal && primaryGoal.target_amount_clp > 0
-    ? Math.round((primaryGoal.current_amount_clp / primaryGoal.target_amount_clp) * 100)
-    : 0;
-  const hasPartner = members.some((member) => member.role === 'member' && member.invitation_status === 'accepted');
-  const showGettingStarted = !hasTransactions || !hasPartner || !primaryGoal || payments.length === 0;
+  const balanceSummary = useMemo<HouseholdBalanceSummary>(() => calculateHouseholdBalance({
+    household,
+    members,
+    transactions,
+    categories,
+  }), [categories, household, members, transactions]);
 
-  const urgentAlerts = showSmartAlerts
-    ? insights.alerts.filter((a) => a.severity === 'danger' || a.severity === 'warning').slice(0, 3)
-    : [];
-  const firstRecommendation = showRecommendations ? insights.recommendations[0] : null;
-  const dashboardUpgrade = getFeatureUpgradeCopy('dashboard_full');
-  const strategicUpgrade = getFeatureUpgradeCopy('monthly_projection');
-  const compactUpgrade = !showDashboardFull ? dashboardUpgrade : !showMonthlyProjection ? strategicUpgrade : null;
+  const insights = useMemo(() => buildFinancialInsights({
+    currentTransactions: transactions,
+    previousTransactions,
+    upcomingPayments: payments,
+    primaryGoal: snapshot.primaryGoal,
+    categories,
+    currentYear: year,
+    currentMonth: month,
+  }), [categories, month, payments, previousTransactions, snapshot.primaryGoal, transactions, year]);
 
-  const memberContributions = members.map((member) => {
-    const sharedTx = transactions.filter(
-      (t) => t.type === 'expense' && t.scope === 'shared' && t.paid_by_member_id === member.id,
-    );
-    return { name: member.display_name, total: sharedTx.reduce((sum, t) => sum + t.amount_clp, 0) };
-  });
-  const sharedTotal = memberContributions.reduce((sum, c) => sum + c.total, 0);
-  const splitSummary = showSplitSummary && sharedTotal > 0
-    ? memberContributions.map((m) => `${m.name}: ${formatCLP(m.total)}`).join(' · ')
-    : null;
-
-  function openInsightAction(action?: InsightAction) {
-    if (!action) return;
-    if (action.target === 'calendar') {
-      const params = new URLSearchParams();
-      if (action.status) params.set('status', action.status);
-      navigate(`/app/calendario${params.toString() ? `?${params.toString()}` : ''}`);
-      return;
+  const firstAlert = useMemo(() => {
+    if (snapshot.totalIncome === 0) {
+      return 'Todavía no hay ingresos registrados. Parte por anotar cuánto dinero entró al hogar.';
     }
-    if (action.target === 'transactions') {
-      const params = new URLSearchParams();
-      params.set('month', currentMonthParam);
-      if (action.type) params.set('type', action.type);
-      if (action.categoryId) params.set('category', action.categoryId);
-      navigate(`/app/movimientos?${params.toString()}`);
-      return;
+    if (payments.some((payment) => payment.status === 'overdue')) {
+      return 'Hay pagos vencidos. Conviene ponerlos al día antes de seguir cargando gasto variable.';
     }
-    if (action.target === 'comparison') {
-      navigate('/app/comparacion');
-      return;
+    if (snapshot.availableReal < 0) {
+      return 'El disponible real ya está negativo. Conviene frenar gasto variable y revisar qué pago del hogar presionó más.';
     }
-    if (action.target === 'goals') {
-      navigate('/app/metas');
+    return insights.alerts[0]?.message ?? 'El mes está legible. Lo importante ahora es sostener el orden y cerrar sin sorpresas.';
+  }, [insights.alerts, payments, snapshot.availableReal, snapshot.totalIncome]);
+
+  const firstLearning = useMemo(() => {
+    const topDayToDay = transactions
+      .filter((transaction) => isDayToDayExpenseFlow(getTransactionFlowType(transaction, categories)))
+      .sort((left, right) => right.amount_clp - left.amount_clp)[0];
+
+    if (insights.recommendations[0]) return insights.recommendations[0].message;
+    if (topDayToDay) {
+      return `${topDayToDay.description} fue de los registros más pesados del mes. Vale la pena mirar si se repetirá el próximo.`;
     }
-  }
+    return 'A medida que registren más meses, aquí aparecerán aprendizajes simples para decidir mejor el siguiente.';
+  }, [categories, insights.recommendations, transactions]);
+
+  const checklist = [
+    {
+      done: snapshot.totalIncome > 0,
+      title: 'Registrar primer ingreso',
+      description: 'Empieza por dejar claro cuánto dinero entró.',
+      actionLabel: snapshot.totalIncome > 0 ? 'Ver ingresos' : 'Registrar ingreso',
+      onAction: () => navigate(snapshot.totalIncome > 0 ? '/app/ingresos' : '/app/ingresos?create=1'),
+    },
+    {
+      done: payments.length > 0,
+      title: 'Registrar primer pago obligatorio',
+      description: 'Deja visibles las cuentas que no se pueden pasar.',
+      actionLabel: payments.length > 0 ? 'Ver pagos' : 'Registrar pago',
+      onAction: () => navigate(payments.length > 0 ? '/app/pagos' : '/app/pagos?create=1'),
+    },
+    {
+      done: snapshot.totalDayToDayExpenses > 0,
+      title: 'Registrar primer gasto variable',
+      description: 'Así empieza a verse cuánto queda de verdad.',
+      actionLabel: snapshot.totalDayToDayExpenses > 0 ? 'Ver gastos' : 'Registrar gasto',
+      onAction: () => navigate(snapshot.totalDayToDayExpenses > 0 ? '/app/gastos' : '/app/gastos?create=1'),
+    },
+    {
+      done: snapshot.totalSavings > 0,
+      title: 'Registrar ahorro opcional',
+      description: 'Aunque sea pequeño, te ayuda a ordenar el mes.',
+      actionLabel: snapshot.totalSavings > 0 ? 'Ver ahorro' : 'Registrar ahorro',
+      onAction: () => navigate(snapshot.totalSavings > 0 ? '/app/ahorro' : '/app/ahorro?create=1'),
+    },
+    {
+      done: balanceSummary.origins.length > 0,
+      title: 'Entender Saldo Hogar',
+      description: 'Mira si alguno adelantó más de lo que correspondía.',
+      actionLabel: 'Abrir Saldo Hogar',
+      onAction: () => navigate('/app/saldo-hogar'),
+    },
+  ];
+
+  const premiumUpgrade = getUpgradeCopy('monthly_comparison');
 
   return (
     <div className="app-page max-w-7xl">
-      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-overview-title">
+      <section className="ui-panel overflow-hidden p-6 lg:p-7">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="min-w-0 max-w-3xl">
+          <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-3">
               <PlanBadge>{planName}</PlanBadge>
               <span className="text-xs uppercase tracking-[0.18em] text-text-light">
                 {formatMonthYear(year, month)}
               </span>
             </div>
-            <h1 id="dashboard-overview-title" className="mt-4 max-w-2xl text-[clamp(1.95rem,2.7vw,2.8rem)] font-semibold tracking-[-0.04em] text-text">
-              Control del hogar
+            <h1 className="mt-4 text-[clamp(2rem,2.8vw,2.9rem)] font-semibold tracking-[-0.04em] text-text">
+              Radiografía del hogar
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Saldo, pagos y decisiones del mes en una sola lectura clara.
+              Una lectura clara del mes: cuánto entró, qué pagos pesan, cuánto queda y cómo va el equilibrio entre ustedes.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate('/app/movimientos?create=expense')}>
-              Registrar movimiento
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/app/calendario')}>
-              Abrir calendario
-            </Button>
+            <Button onClick={() => navigate('/app/gastos?create=1')}>Registrar gasto</Button>
+            <Button variant="secondary" onClick={() => navigate('/app/pagos?create=1')}>Registrar pago</Button>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3" aria-label="Resumen principal del hogar">
-        <DashboardSummaryCard
-          label="Saldo del mes"
-          value={formatCLP(balance)}
-          note={balance >= 0 ? 'Disponible después de gastos registrados' : 'El gasto ya superó el ingreso registrado'}
-          tone={balance >= 0 ? 'success' : 'danger'}
-          icon={balance >= 0 ? <Wallet className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-          onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}`)}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <SummaryCard
+          label="Ingresó este mes"
+          value={formatCLP(snapshot.totalIncome)}
+          note="Todo lo que entró al hogar o a uno de ustedes."
+          icon={<TrendingUp className="h-4 w-4" />}
+          onClick={() => navigate('/app/ingresos')}
         />
-        <DashboardSummaryCard
-          label="Pagos por cubrir"
-          value={formatCLP(totalPendingAmount)}
-          note={pendingPayments.length > 0 ? `${pendingPayments.length} pago(s) por revisar` : 'Sin pagos pendientes este mes'}
-          tone={pendingPayments.length > 0 ? 'warning' : 'neutral'}
+        <SummaryCard
+          label="Pagos obligatorios"
+          value={formatCLP(snapshot.totalRequiredPaymentsCommitted)}
+          note={snapshot.totalRequiredPaymentsPending > 0
+            ? `${formatCLP(snapshot.totalRequiredPaymentsPending)} siguen pendientes este mes.`
+            : 'Lo comprometido del mes ya quedó registrado.'}
           icon={<CalendarClock className="h-4 w-4" />}
-          onClick={() => navigate(`/app/calendario${pendingPayments.length > 0 ? '?status=pending' : ''}`)}
+          onClick={() => navigate('/app/pagos')}
         />
-        <DashboardSummaryCard
-          label={showMonthlyProjection ? 'Cierre estimado' : 'Gasto del mes'}
-          value={formatCLP(showMonthlyProjection ? projectedClose : totalExpenses)}
-          note={showMonthlyProjection ? 'Saldo proyectado al cierre con pagos pendientes' : 'Total de gastos registrados hasta hoy'}
-          tone={showMonthlyProjection && projectedClose < 0 ? 'danger' : showMonthlyProjection ? 'success' : 'neutral'}
-          icon={showMonthlyProjection ? <PiggyBank className="h-4 w-4" /> : <CircleDollarSign className="h-4 w-4" />}
-          onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : `/app/movimientos?month=${currentMonthParam}&type=expense`)}
+        <SummaryCard
+          label="Gastos del día a día"
+          value={formatCLP(snapshot.totalDayToDayExpenses)}
+          note="Lo que se fue en funcionamiento cotidiano."
+          icon={<TrendingDown className="h-4 w-4" />}
+          onClick={() => navigate('/app/gastos')}
+        />
+        <SummaryCard
+          label="Disponible real"
+          value={formatCLP(snapshot.availableReal)}
+          note="Ingresos menos pagos obligatorios, gasto del día a día y ahorro."
+          icon={<Wallet className="h-4 w-4" />}
+          tone={snapshot.availableReal >= 0 ? 'success' : 'danger'}
+          onClick={() => navigate('/app/resumen')}
+        />
+        <SummaryCard
+          label="Ahorro"
+          value={formatCLP(snapshot.totalSavings)}
+          note={snapshot.primaryGoal
+            ? `${snapshot.primaryGoal.name} lleva ${snapshot.primaryGoalProgress}% de avance.`
+            : 'Puedes dejarlo libre o asociarlo a una meta.'}
+          icon={<PiggyBank className="h-4 w-4" />}
+          onClick={() => navigate('/app/ahorro')}
+        />
+        <SummaryCard
+          label="Saldo Hogar"
+          value={balanceSummary.status === 'Puesta al dia' ? 'Puesta al día' : formatCLP(balanceSummary.netAmount)}
+          note={balanceSummary.status === 'Puesta al dia'
+            ? 'No hay desbalance pendiente entre ustedes.'
+            : `${balanceSummary.pendingMemberName} debe ponerse al día con ${balanceSummary.favoredMemberName}.`}
+          icon={<HandCoins className="h-4 w-4" />}
+          onClick={() => navigate('/app/saldo-hogar')}
         />
       </section>
 
-      {showGettingStarted ? (
-        <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-getting-started-title">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Primeros pasos</p>
-              <h2 id="dashboard-getting-started-title" className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
-                Cómo empezar
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-text-muted">
-                Haz estas cuatro cosas para que el hogar empiece a leerse solo.
-              </p>
-            </div>
+      {loading ? (
+        <div className="ui-panel p-6 text-sm text-text-muted">Cargando la lectura del mes...</div>
+      ) : null}
+
+      {!loading && checklist.some((step) => !step.done) ? (
+        <section className="ui-panel overflow-hidden p-6 lg:p-7">
+          <div className="max-w-2xl">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Primeros pasos</p>
+            <h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-0.03em] text-text">Cómo ordenar el mes sin perderse</h2>
+            <p className="mt-3 text-sm leading-7 text-text-muted">
+              Sigue esta secuencia. En pocos minutos el hogar ya empieza a explicarse solo.
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <GettingStartedStep
-              title="Registra tu primer movimiento"
-              description={hasTransactions ? 'Ya tienes movimientos registrados para leer el mes.' : 'Empieza con un gasto o ingreso puntual.'}
-              actionLabel={hasTransactions ? 'Ver movimientos' : 'Registrar movimiento'}
-              onAction={() => navigate(hasTransactions ? `/app/movimientos?month=${currentMonthParam}` : '/app/movimientos?create=expense')}
-              done={hasTransactions}
-              icon={<CircleDollarSign className="h-4 w-4" />}
-            />
-            <GettingStartedStep
-              title="Invita a tu pareja"
-              description={hasPartner ? 'Ya comparten el mismo hogar con cuentas separadas.' : 'Compartan el mismo hogar con cuentas separadas.'}
-              actionLabel={hasPartner ? 'Ver miembros' : 'Abrir invitación'}
-              onAction={() => navigate(hasPartner ? '/app/configuracion' : '/app/configuracion#invite-partner')}
-              done={hasPartner}
-              icon={<Users className="h-4 w-4" />}
-            />
-            <GettingStartedStep
-              title="Crea una meta"
-              description={primaryGoal ? 'Ya hay una meta guiando las decisiones del mes.' : 'Define un objetivo para orientar el mes.'}
-              actionLabel={primaryGoal ? 'Ver metas' : 'Crear meta'}
-              onAction={() => navigate(primaryGoal ? '/app/metas' : '/app/metas?create=1')}
-              done={!!primaryGoal}
-              icon={<Target className="h-4 w-4" />}
-            />
-            <GettingStartedStep
-              title="Revisa el calendario"
-              description={payments.length > 0 ? 'Ya tienes pagos visibles para ordenar el mes.' : 'Ordena pagos pendientes y vencimientos.'}
-              actionLabel="Abrir calendario"
-              onAction={() => navigate('/app/calendario')}
-              done={payments.length > 0}
-              icon={<CalendarClock className="h-4 w-4" />}
-            />
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {checklist.map((step) => (
+              <ChecklistStep
+                key={step.title}
+                done={step.done}
+                title={step.title}
+                description={step.description}
+                actionLabel={step.actionLabel}
+                onAction={step.onAction}
+              />
+            ))}
           </div>
         </section>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
-        <div className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-attention-title">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Atención inmediata</p>
-              <h2 id="dashboard-attention-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-                Qué requiere atención hoy
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-                Lo más urgente aparece primero para decidir sin ruido.
-              </p>
-            </div>
-            {showFinancialHealth && light && (
-              <span className={getTrafficLightClass(light.status)}>
-                {light.label}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {pendingPayments.length > 0 ? (
-              pendingPayments.slice(0, 3).map((payment) => (
-                <AttentionRow
-                  key={payment.id}
-                  title={payment.description}
-                  detail={`${payment.status === 'overdue' ? 'Vencido' : 'Pendiente'} · ${payment.due_date}`}
-                  value={formatCLP(payment.amount_clp)}
-                  tone={payment.status === 'overdue' ? 'danger' : 'warning'}
-                  onClick={() => navigate(canManageCalendar ? `/app/calendario?itemId=${payment.id}&mode=edit` : '/app/calendario')}
-                />
-              ))
-            ) : urgentAlerts.length > 0 ? (
-              urgentAlerts.map((alert) => (
-                <AttentionRow
-                  key={alert.id}
-                  title={alert.title}
-                  detail={alert.message}
-                  value={alert.severity === 'danger' ? 'Alta' : 'Media'}
-                  tone={alert.severity === 'danger' ? 'danger' : 'warning'}
-                  onClick={() => openInsightAction(alert.action)}
-                />
-              ))
-            ) : firstRecommendation ? (
-              <AttentionRow
-                title={firstRecommendation.title}
-                detail={firstRecommendation.message}
-                value="Sugerencia"
-                tone="neutral"
-                onClick={() => openInsightAction(firstRecommendation.action)}
-              />
-            ) : !hasTransactions ? (
-              <DashboardEmptyBlock
-                title="Todavía no hay lectura del mes"
-                description="Registra el primer ingreso o gasto para convertir el hogar en una referencia útil."
-                actionLabel="Registrar movimiento"
-                onAction={() => navigate('/app/movimientos?create=expense')}
-              />
-            ) : !primaryGoal ? (
-              <DashboardEmptyBlock
-                title="Todavía no hay una meta principal"
-                description="Define una dirección para que el margen del mes no quede sin criterio."
-                actionLabel="Crear meta"
-                onAction={() => navigate('/app/metas?create=1')}
-              />
-            ) : (
-              <DashboardEmptyBlock
-                title="Todo está al día"
-                description="No hay alertas urgentes. Este es un buen momento para revisar metas o cerrar mejor el mes."
-                actionLabel="Ver resumen"
-                onAction={() => navigate('/app/resumen')}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-month-title">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Panorama del mes</p>
-            <h2 id="dashboard-month-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-              Cómo va el hogar
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-text-muted">
-              Ingresos, gastos y señales clave en una sola vista.
-            </p>
-          </div>
-
+        <Card padding="lg">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Lectura rápida</p>
+          <h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-0.03em] text-text">Lo importante del mes</h2>
           <div className="mt-6 space-y-3">
             <MetricRow
-              label="Ingresos registrados"
-              value={formatCLP(totalIncome)}
-              onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=income`)}
+              label="Presión de pagos"
+              value={snapshot.totalIncome > 0 ? `${Math.round(snapshot.paymentPressure * 100)}%` : '—'}
+              onClick={() => navigate('/app/pagos')}
             />
             <MetricRow
-              label="Gastos registrados"
-              value={formatCLP(totalExpenses)}
-              onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}&type=expense`)}
+              label="Próximo pago importante"
+              value={snapshot.nextImportantPayment ? `${snapshot.nextImportantPayment.description} · ${formatCLP(snapshot.nextImportantPayment.amount_clp)}` : 'Nada urgente por ahora'}
+              onClick={() => navigate('/app/pagos')}
             />
             <MetricRow
-              label="Resultado actual"
-              value={formatCLP(balance)}
-              valueTone={balance >= 0 ? 'success' : 'danger'}
-              onClick={() => navigate(`/app/movimientos?month=${currentMonthParam}`)}
-            />
-            <MetricRow
-              label={showMonthlyProjection ? 'Cierre estimado' : 'Resumen detallado'}
-              value={showMonthlyProjection ? formatCLP(projectedClose) : 'Abrir vista'}
-              valueTone={showMonthlyProjection && projectedClose < 0 ? 'danger' : showMonthlyProjection ? 'success' : 'neutral'}
-              onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : '/app/resumen')}
+              label="Saldo pendiente entre ustedes"
+              value={balanceSummary.status === 'Puesta al dia' ? 'Sin saldo pendiente' : `${balanceSummary.pendingMemberName} debe ${formatCLP(balanceSummary.netAmount)}`}
+              onClick={() => navigate('/app/saldo-hogar')}
             />
           </div>
+        </Card>
 
-          {showFinancialHealth && light && (
-            <div className="mt-5 rounded-2xl border border-border bg-bg/75 px-5 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Salud del mes</p>
-              <p className="mt-2 text-base font-semibold tracking-tight text-text">{light.label}</p>
-              <p className="mt-2 text-sm leading-6 text-text-muted">
-                {light.reasons[0]}
-              </p>
-            </div>
-          )}
+        <div className="space-y-6">
+          <Card padding="lg">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Alerta simple del mes</p>
+            <h2 className="mt-2 text-[1.4rem] font-semibold tracking-[-0.03em] text-text">Qué conviene mirar ahora</h2>
+            <p className="mt-4 text-sm leading-7 text-text-muted">{firstAlert}</p>
+          </Card>
 
-          {splitSummary && (
-            <button
-              type="button"
-              onClick={() => navigate('/app/reparto')}
-              className="mt-5 w-full rounded-2xl border border-border bg-bg/75 px-5 py-4 text-left transition-colors hover:bg-surface-hover cursor-pointer"
-            >
-              <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Reparto del hogar</p>
-              <p className="mt-2 text-sm leading-7 text-text-secondary">{splitSummary}</p>
-            </button>
-          )}
+          <Card padding="lg">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Aprendizaje simple</p>
+            <h2 className="mt-2 text-[1.4rem] font-semibold tracking-[-0.03em] text-text">Qué puede ayudar el próximo mes</h2>
+            <p className="mt-4 text-sm leading-7 text-text-muted">{firstLearning}</p>
+          </Card>
         </div>
       </section>
 
-      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-goal-title">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-center">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">
-              {primaryGoal ? 'Meta principal' : 'Dirección del ahorro'}
-            </p>
-            <h2 id="dashboard-goal-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-              {primaryGoal ? primaryGoal.name : 'Todavía no hay una meta principal'}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-text-muted">
-              {primaryGoal
-                ? `Lleva ${formatCLP(primaryGoal.current_amount_clp)} de ${formatCLP(primaryGoal.target_amount_clp)}.`
-                : 'Definir una meta ayuda a convertir el excedente del mes en una decisión concreta.'}
-            </p>
-
-            {primaryGoal ? (
-              <div className="mt-5">
-                <div className="flex items-end justify-between gap-4">
-                  <span className="text-[2rem] font-semibold tracking-[-0.04em] text-text">
-                    {primaryGoalProgress}%
-                  </span>
-                  <span className="text-sm text-text-muted">completado</span>
-                </div>
-                <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-border-light">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${Math.min(100, primaryGoalProgress)}%` }}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <Button variant="secondary" onClick={() => navigate('/app/metas')}>
-              {primaryGoal ? 'Administrar metas' : 'Crear meta'}
-            </Button>
-            {primaryGoal && (
-              <Button variant="ghost" onClick={() => navigate('/app/resumen')}>
-                Ver resumen del mes
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {compactUpgrade && (
+      {!hasFeature('monthly_comparison') ? (
         <UpgradePromptCard
-          badge={compactUpgrade.badge}
-          title={compactUpgrade.title}
-          description={compactUpgrade.description}
-          highlights={compactUpgrade.highlights}
-          actionLabel={compactUpgrade.actionLabel || 'Explorar plan'}
-          onAction={() => navigate(compactUpgrade.route)}
+          badge={premiumUpgrade.badge}
+          title="Premium profundiza la lectura del hogar"
+          description="Free deja vivir el valor central. Premium agrega memoria entre meses, alertas e insights para decidir mejor."
+          highlights={[
+            'Comparación entre meses',
+            'Alertas e insights útiles',
+            'Detalle más profundo de Saldo Hogar',
+          ]}
+          actionLabel={premiumUpgrade.actionLabel || 'Desbloquear Premium'}
+          onAction={() => navigate(premiumUpgrade.route)}
           compact
-          trackingContext="dashboard-upgrade"
         />
-      )}
+      ) : null}
 
-      <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="dashboard-actions-title">
-        <div className="flex items-end justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Acciones rápidas</p>
-            <h2 id="dashboard-actions-title" className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-text">
-              Qué conviene hacer ahora
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-text-muted">
-              Entradas directas a las tareas que más se repiten durante el mes.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <QuickActionCard
-            label="Registrar gasto o ingreso"
-            hint="Actualizar el mes"
-            icon={<CircleDollarSign className="h-4 w-4" />}
-            onClick={() => navigate('/app/movimientos?create=expense')}
-          />
-          <QuickActionCard
-            label="Abrir calendario"
-            hint="Revisar vencimientos"
-            icon={<CalendarClock className="h-4 w-4" />}
-            onClick={() => navigate('/app/calendario')}
-          />
-          <QuickActionCard
-            label="Ver metas"
-            hint="Seguir el ahorro"
-            icon={<Target className="h-4 w-4" />}
-            onClick={() => navigate('/app/metas')}
-          />
-          <QuickActionCard
-            label={showMonthlyProjection ? 'Comparar el mes' : 'Abrir resumen'}
-            hint={showMonthlyProjection ? 'Leer proyección y cambios' : 'Revisar cierre actual'}
-            icon={<TrendingUp className="h-4 w-4" />}
-            onClick={() => navigate(showMonthlyProjection ? '/app/comparacion' : '/app/resumen')}
-          />
-        </div>
-      </section>
+      {!loading && transactions.length === 0 ? (
+        <EmptyState
+          eyebrow="Resumen"
+          title="No han registrado movimientos este mes"
+          description="Comienza por anotar cuánto dinero entró al hogar."
+          action={{ label: 'Registrar ingreso', onClick: () => navigate('/app/ingresos?create=1') }}
+        />
+      ) : null}
     </div>
   );
 }
 
-function GettingStartedStep({
-  title,
-  description,
-  actionLabel,
-  onAction,
-  done,
-  icon,
-}: {
-  title: string;
-  description: string;
-  actionLabel: string;
-  onAction: () => void;
-  done: boolean;
-  icon: ReactNode;
-}) {
-  return (
-    <div className="ui-panel ui-panel-subtle overflow-hidden p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight text-text">{title}</p>
-          <p className="mt-3 text-sm leading-6 text-text-muted">{description}</p>
-        </div>
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${done ? 'bg-success-bg text-success' : 'bg-bg text-text-light'}`}>
-          {done ? <CheckCircle2 className="h-4 w-4" /> : icon}
-        </div>
-      </div>
-      <div className="mt-5">
-        <Button size="sm" variant={done ? 'secondary' : 'primary'} onClick={onAction}>
-          {actionLabel}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function DashboardSummaryCard({
+function SummaryCard({
   label,
   value,
   note,
-  tone,
   icon,
+  tone = 'neutral',
   onClick,
 }: {
   label: string;
   value: string;
   note: string;
-  tone: 'success' | 'warning' | 'danger' | 'neutral';
-  icon: ReactNode;
+  icon: React.ReactNode;
+  tone?: 'neutral' | 'success' | 'danger';
   onClick: () => void;
 }) {
+  const valueClass = tone === 'success' ? 'text-success' : tone === 'danger' ? 'text-danger' : 'text-text';
+
   return (
     <button
       type="button"
@@ -587,8 +389,8 @@ function DashboardSummaryCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="metric-label">{label}</p>
-          <p className={`metric-value ${getValueToneClass(tone)}`}>{value}</p>
-          <p className="metric-subvalue max-w-[22rem]">{note}</p>
+          <p className={`mt-3 text-[1.9rem] font-semibold tracking-[-0.04em] ${valueClass}`}>{value}</p>
+          <p className="mt-3 text-sm leading-6 text-text-muted">{note}</p>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
           {icon}
@@ -598,129 +400,56 @@ function DashboardSummaryCard({
   );
 }
 
-function AttentionRow({
-  title,
-  detail,
-  value,
-  tone,
-  onClick,
-}: {
-  title: string;
-  detail: string;
-  value: string;
-  tone: 'danger' | 'warning' | 'neutral';
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full flex-col gap-4 overflow-hidden p-5 text-left cursor-pointer sm:flex-row sm:items-start"
-    >
-      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${getToneSoftClass(tone)}`}>
-        <AlertTriangle className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-base font-semibold tracking-tight text-text">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-text-muted">{detail}</p>
-      </div>
-      <div className={`shrink-0 self-start text-sm font-semibold sm:self-auto sm:text-right ${getValueToneClass(tone)}`}>
-        {value}
-      </div>
-    </button>
-  );
-}
-
 function MetricRow({
   label,
   value,
-  valueTone = 'neutral',
   onClick,
 }: {
   label: string;
   value: string;
-  valueTone?: 'success' | 'warning' | 'danger' | 'neutral';
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full flex-col items-start justify-between gap-2 overflow-hidden p-5 text-left cursor-pointer sm:flex-row sm:items-center sm:gap-4"
+      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full flex-col items-start justify-between gap-2 overflow-hidden p-5 text-left cursor-pointer sm:flex-row sm:items-center"
     >
       <span className="text-sm font-medium text-text-secondary">{label}</span>
-      <span className={`text-lg font-semibold tracking-tight ${getValueToneClass(valueTone)}`}>{value}</span>
+      <span className="text-sm font-semibold text-text">{value}</span>
     </button>
   );
 }
 
-function DashboardEmptyBlock({
+function ChecklistStep({
+  done,
   title,
   description,
   actionLabel,
   onAction,
 }: {
+  done: boolean;
   title: string;
   description: string;
   actionLabel: string;
   onAction: () => void;
 }) {
   return (
-    <div className="ui-panel ui-panel-subtle overflow-hidden p-6">
-      <p className="text-base font-semibold tracking-tight text-text">{title}</p>
-      <p className="mt-3 text-sm leading-7 text-text-muted">{description}</p>
+    <div className="ui-panel ui-panel-subtle overflow-hidden p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold tracking-tight text-text">{title}</p>
+          <p className="mt-3 text-sm leading-6 text-text-muted">{description}</p>
+        </div>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${done ? 'bg-success-bg text-success' : 'bg-bg text-text-light'}`}>
+          {done ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+        </div>
+      </div>
       <div className="mt-5">
-        <Button size="sm" onClick={onAction}>
+        <Button size="sm" variant={done ? 'secondary' : 'primary'} onClick={onAction}>
           {actionLabel}
         </Button>
       </div>
     </div>
   );
-}
-
-function QuickActionCard({
-  label,
-  hint,
-  icon,
-  onClick,
-}: {
-  label: string;
-  hint: string;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="ui-panel ui-panel-subtle ui-panel-interactive flex w-full items-start justify-between gap-4 overflow-hidden p-5 text-left cursor-pointer min-h-[124px]"
-    >
-      <div className="min-w-0">
-        <p className="text-sm font-semibold tracking-tight text-text">{label}</p>
-        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-text-light">{hint}</p>
-      </div>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-bg text-text-muted">
-        {icon}
-      </div>
-    </button>
-  );
-}
-
-function getTrafficLightClass(status: TrafficLightResult['status']) {
-  if (status === 'order') return 'traffic-light traffic-light-order';
-  if (status === 'tension') return 'traffic-light traffic-light-tension';
-  return 'traffic-light traffic-light-risk';
-}
-
-function getValueToneClass(tone: 'success' | 'warning' | 'danger' | 'neutral') {
-  if (tone === 'success') return 'text-success';
-  if (tone === 'warning') return 'text-warning';
-  if (tone === 'danger') return 'text-danger';
-  return 'text-text';
-}
-
-function getToneSoftClass(tone: 'danger' | 'warning' | 'neutral') {
-  if (tone === 'danger') return 'bg-danger-bg text-danger';
-  if (tone === 'warning') return 'bg-warning-bg text-warning';
-  return 'bg-info-bg text-info';
 }

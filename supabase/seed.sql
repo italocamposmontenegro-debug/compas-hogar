@@ -10,8 +10,8 @@ DECLARE
   member_1_id UUID := uuid_generate_v4();
   member_2_id UUID := uuid_generate_v4();
   cat_super_id UUID := uuid_generate_v4();
-  cat_vivienda_id UUID := uuid_generate_v4();
-  cat_servicios_id UUID := uuid_generate_v4();
+  cat_arriendo_id UUID := uuid_generate_v4();
+  cat_luz_id UUID := uuid_generate_v4();
 BEGIN
 
   -- 1. Crear Hogar
@@ -32,15 +32,15 @@ BEGIN
   INSERT INTO public.categories (id, household_id, name, icon, color, is_default)
   VALUES
   (cat_super_id, demo_household_id, 'Supermercado', '🛒', '#059669', true),
-  (cat_vivienda_id, demo_household_id, 'Vivienda', '🏠', '#2563EB', true),
-  (cat_servicios_id, demo_household_id, 'Servicios', '💡', '#D97706', true);
+  (cat_arriendo_id, demo_household_id, 'Arriendo / Dividendo', '🏠', '#1D4ED8', true),
+  (cat_luz_id, demo_household_id, 'Luz', '💡', '#D97706', true);
 
   -- 5. Transactions de prueba
   INSERT INTO public.transactions (household_id, type, paid_by_member_id, scope, amount_clp, category_id, description, occurred_on)
   VALUES
   (demo_household_id, 'income', member_1_id, 'personal', 1200000, NULL, 'Sueldo', CURRENT_DATE),
   (demo_household_id, 'income', member_2_id, 'personal', 800000, NULL, 'Sueldo', CURRENT_DATE),
-  (demo_household_id, 'expense', member_1_id, 'shared', 350000, cat_vivienda_id, 'Arriendo Mensual', CURRENT_DATE - INTERVAL '2 days'),
+  (demo_household_id, 'expense', member_1_id, 'shared', 350000, cat_arriendo_id, 'Arriendo Mensual', CURRENT_DATE - INTERVAL '2 days'),
   (demo_household_id, 'expense', member_2_id, 'shared', 120000, cat_super_id, 'Compra del mes', CURRENT_DATE - INTERVAL '5 days');
 
   -- 6. Meta de Ahorro
