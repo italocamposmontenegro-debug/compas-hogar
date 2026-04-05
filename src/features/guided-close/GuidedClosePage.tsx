@@ -89,7 +89,7 @@ export function GuidedClosePage() {
         <p className="text-text-muted mb-8">
           Resumen guardado correctamente.
         </p>
-        <Button onClick={() => window.location.href = '/app/dashboard'}>Ir al Dashboard</Button>
+        <Button onClick={() => window.location.href = '/app/resumen'}>Ir al Resumen</Button>
       </div>
     );
   }

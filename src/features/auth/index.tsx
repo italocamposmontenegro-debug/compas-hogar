@@ -115,7 +115,7 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const redirect = searchParams.get('redirect');
-  const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/app/dashboard';
+  const redirectTarget = redirect && redirect.startsWith('/') ? redirect : '/app/resumen';
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -386,7 +386,7 @@ export function ResetPasswordPage() {
     try {
       const { error: updateError } = await updatePassword(password);
       if (updateError) setError(updateError);
-      else navigate('/app/dashboard');
+      else navigate('/app/resumen');
     } finally {
       setLoading(false);
     }

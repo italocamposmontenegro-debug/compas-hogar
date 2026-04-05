@@ -34,9 +34,9 @@ export function ControlLayout() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button variant="secondary" onClick={() => window.location.assign('/app/dashboard')}>
+              <Button variant="secondary" onClick={() => window.location.assign('/app/resumen')}>
                 <ArrowLeft className="h-4 w-4" />
-                Volver a la app
+                Volver al resumen
               </Button>
               <div className="rounded-2xl border border-border bg-surface-low px-4 py-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Acceso actual</p>

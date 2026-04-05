@@ -87,7 +87,7 @@ export function InvitationPage() {
 
       if (error) throw error;
       setStatus('accepted');
-      setTimeout(() => navigate('/app/dashboard'), 2000);
+      setTimeout(() => navigate('/app/resumen'), 2000);
     } catch (error: unknown) {
       setStatus('error');
       setErrorMsg(error instanceof Error ? error.message : 'No pudimos aceptar la invitación');
@@ -164,8 +164,8 @@ export function InvitationPage() {
               <Button onClick={switchAccount} className="w-full">
                 Cambiar de cuenta
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/app/dashboard')} className="w-full">
-                Volver al dashboard
+              <Button variant="secondary" onClick={() => navigate('/app/resumen')} className="w-full">
+                Volver al resumen
               </Button>
             </div>
           </>
@@ -186,8 +186,8 @@ export function InvitationPage() {
             <p className="mt-3 text-sm leading-7 text-text-muted">
               {errorMsg || 'Esta invitación no existe, ya fue usada o expiró.'}
             </p>
-            <Button variant="secondary" onClick={() => navigate(user ? '/app/dashboard' : '/')} className="mt-6">
-              {user ? 'Ir al dashboard' : 'Ir al inicio'}
+            <Button variant="secondary" onClick={() => navigate(user ? '/app/resumen' : '/')} className="mt-6">
+              {user ? 'Ir al resumen' : 'Ir al inicio'}
             </Button>
           </>
         )}

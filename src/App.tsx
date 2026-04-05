@@ -98,7 +98,7 @@ export default function App() {
 
                 <Route element={<HouseholdGuard />}>
                   <Route element={<RouteScreen component={AppLayout} />}>
-                    <Route path="/app/dashboard" element={<RouteScreen component={DashboardPage} />} />
+                    <Route path="/app/dashboard" element={<Navigate to="/app/resumen" replace />} />
                     <Route path="/app/resumen" element={<RouteScreen component={DashboardPage} />} />
                     <Route path="/app/ingresos" element={<RouteScreen component={TransactionsPage} />} />
                     <Route path="/app/gastos" element={<RouteScreen component={TransactionsPage} />} />

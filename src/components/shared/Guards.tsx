@@ -91,7 +91,7 @@ export function AdminGuard() {
     );
   }
   if (loading) return <LoadingPage />;
-  if (!profile?.is_admin) return <Navigate to="/app/dashboard" replace />;
+  if (!profile?.is_admin) return <Navigate to="/app/resumen" replace />;
 
   return <Outlet />;
 }
@@ -108,15 +108,15 @@ export function ControlGuard() {
         title="No pudimos validar tu acceso interno"
         description={error}
         primaryAction={{ label: 'Reintentar', onClick: () => window.location.reload() }}
-        secondaryAction={{ label: 'Volver al hogar', onClick: () => window.location.assign('/app/dashboard') }}
+        secondaryAction={{ label: 'Volver al resumen', onClick: () => window.location.assign('/app/resumen') }}
       />
     );
   }
   if (loading) return <LoadingPage />;
-  if (!hasAccess) return <Navigate to="/app/dashboard" replace />;
+  if (!hasAccess) return <Navigate to="/app/resumen" replace />;
 
   const defaultModule = getDefaultControlModule(roles);
-  if (!defaultModule) return <Navigate to="/app/dashboard" replace />;
+  if (!defaultModule) return <Navigate to="/app/resumen" replace />;
 
   return <Outlet />;
 }
@@ -140,7 +140,7 @@ export function ControlModuleGuard({ module }: { module: ControlModuleKey }) {
   if (loading) return <LoadingPage />;
   if (!canAccessModule(module)) {
     const fallbackModule = getDefaultControlModule(roles);
-    if (!fallbackModule) return <Navigate to="/app/dashboard" replace />;
+    if (!fallbackModule) return <Navigate to="/app/resumen" replace />;
     return <Navigate to={getControlModuleRoute(fallbackModule)} replace />;
   }
 
@@ -151,10 +151,10 @@ export function ControlEntryRedirect() {
   const { loading, roles, hasAccess } = useControlAccess();
 
   if (loading) return <LoadingPage />;
-  if (!hasAccess) return <Navigate to="/app/dashboard" replace />;
+  if (!hasAccess) return <Navigate to="/app/resumen" replace />;
 
   const module = getDefaultControlModule(roles);
-  if (!module) return <Navigate to="/app/dashboard" replace />;
+  if (!module) return <Navigate to="/app/resumen" replace />;
 
   return <Navigate to={getControlModuleRoute(module)} replace />;
 }
@@ -174,7 +174,7 @@ function getControlModuleRoute(module: ControlModuleKey) {
     case 'growth':
       return '/app/control/crecimiento';
     default:
-      return '/app/dashboard';
+      return '/app/resumen';
   }
 }
 
@@ -208,7 +208,7 @@ export function PublicOnlyGuard() {
   if (loading || (user && householdLoading)) return <LoadingPage />;
 
   if (user) {
-    if (hasHousehold) return <Navigate to="/app/dashboard" replace />;
+    if (hasHousehold) return <Navigate to="/app/resumen" replace />;
     return <Navigate to="/onboarding" replace />;
   }
 
