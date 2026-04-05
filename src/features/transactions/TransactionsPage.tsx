@@ -71,7 +71,7 @@ const MODULES: Record<Exclude<ModuleMode, 'legacy'>, ModuleConfig> = {
   expenses: {
     eyebrow: 'Gastos',
     title: 'Gastos del día a día',
-    description: 'Anota los gastos variables para ver cuánto queda realmente y qué parte afecta el equilibrio del hogar.',
+    description: 'Anota los gastos variables para ver cuánto queda realmente y cuándo una persona adelantó algo que correspondía a ambos.',
     createLabel: 'Registrar gasto',
     emptyTitle: 'Todavía no hay gastos del día a día',
     emptyDescription: 'Anota los gastos del día a día para ver cuánto queda realmente.',
@@ -205,20 +205,25 @@ export function TransactionsPage() {
   const summary = useMemo(() => {
     if (mode === 'income') {
       const total = filteredTransactions.reduce((sum, transaction) => sum + transaction.amount_clp, 0);
+      const contributorNames = [...new Set(
+        filteredTransactions
+          .map((transaction) => members.find((item) => item.id === transaction.paid_by_member_id)?.display_name)
+          .filter(Boolean),
+      )] as string[];
+
       return {
         firstLabel: 'Ingresó este mes',
         firstValue: formatCLP(total),
         firstNote: filteredTransactions.length === 1 ? '1 ingreso registrado' : `${filteredTransactions.length} ingresos registrados`,
-        secondLabel: 'Por integrante',
-        secondValue: members.length > 1
-          ? filteredTransactions.reduce((sum, transaction) => {
-              const member = members.find((item) => item.id === transaction.paid_by_member_id);
-              return sum + (member ? 1 : 0);
-            }, 0) > 0
-            ? 'Visible'
-            : 'Sin detalle'
-          : 'Un integrante',
-        secondNote: 'Cada ingreso queda asociado a quien lo registró.',
+        secondLabel: 'Quiénes ya registraron ingresos',
+        secondValue: contributorNames.length === 0
+          ? 'Sin registros'
+          : contributorNames.length === 1
+            ? contributorNames[0]
+            : `${contributorNames.length} integrantes`,
+        secondNote: contributorNames.length <= 1
+          ? 'Cada ingreso queda asociado a quien lo registró.'
+          : 'Los ingresos del mes ya quedaron repartidos entre ambos.',
       };
     }
 
@@ -247,9 +252,9 @@ export function TransactionsPage() {
       firstLabel: 'Gasto visible del mes',
       firstValue: formatCLP(total),
       firstNote: 'Solo gastos del día a día, ocio, imprevistos e inversión.',
-      secondLabel: 'Impacta Saldo Hogar',
+      secondLabel: 'Cuenta para Saldo Hogar',
       secondValue: formatCLP(balanceRelevant),
-      secondNote: sharedTotal > 0 ? `${formatCLP(sharedTotal)} quedó marcado como compartido.` : 'Aún no hay gastos compartidos registrados.',
+      secondNote: sharedTotal > 0 ? `${formatCLP(sharedTotal)} quedó marcado como gasto entre ambos.` : 'Aún no hay gastos entre ambos registrados.',
     };
   }, [filteredTransactions, goals, members, mode]);
 
@@ -535,7 +540,12 @@ export function TransactionsPage() {
           </div>
 
           {mode === 'expenses' || mode === 'legacy' ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
+              <AlertBanner
+                type="info"
+                message="Si este gasto lo pagó una persona y correspondía a ambos, déjalo como gasto entre ambos y cuenta para Saldo Hogar."
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Tipo de gasto"
                 value={formFlowType}
@@ -556,19 +566,20 @@ export function TransactionsPage() {
                 value={formScope}
                 onChange={(value) => setFormScope(value as 'personal' | 'shared')}
                 options={[
-                  { value: 'shared', label: 'Compartido' },
-                  { value: 'personal', label: 'Personal' },
+                  { value: 'shared', label: 'Entre ambos' },
+                  { value: 'personal', label: 'Solo mío' },
                 ]}
               />
               <SelectField
-                label="Afecta Saldo Hogar"
+                label="¿Debe aparecer en Saldo Hogar?"
                 value={formAffectsBalance ? 'yes' : 'no'}
                 onChange={(value) => setFormAffectsBalance(value === 'yes')}
                 options={[
-                  { value: 'yes', label: 'Sí, debe equilibrarse' },
-                  { value: 'no', label: 'No, dejar fuera del balance común' },
+                  { value: 'yes', label: 'Sí, una persona adelantó algo por ambos' },
+                  { value: 'no', label: 'No, no debe contar en el saldo' },
                 ]}
               />
+              </div>
             </div>
           ) : null}
 
@@ -706,10 +717,10 @@ function MovementCard({
             <InlineChip tone={transaction.type === 'income' ? 'success' : 'primary'}>
               {FLOW_TYPE_LABELS[flowType]}
             </InlineChip>
-            <InlineChip tone="muted">{transaction.scope === 'shared' ? 'Compartido' : 'Personal'}</InlineChip>
+            <InlineChip tone="muted">{transaction.scope === 'shared' ? 'Entre ambos' : 'Solo mío'}</InlineChip>
             {transaction.type === 'expense' && transaction.scope === 'shared' ? (
               <InlineChip tone={transaction.affects_household_balance ? 'success' : 'muted'}>
-                {transaction.affects_household_balance ? 'Afecta Saldo Hogar' : 'Fuera del balance'}
+                {transaction.affects_household_balance ? 'Cuenta para el saldo' : 'No cuenta para el saldo'}
               </InlineChip>
             ) : null}
           </div>
@@ -742,7 +753,7 @@ function DetailCard({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-bg/65 px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">{label}</p>
+      <p className="text-xs font-medium text-text-light">{label}</p>
       <div className="mt-2 flex items-center gap-2">
         {icon ? <span className="text-text-light">{icon}</span> : null}
         <p className="text-sm font-medium leading-6 text-text">{value}</p>
@@ -766,7 +777,7 @@ function InlineChip({
         : 'bg-surface-low text-text-muted';
 
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] ${classes}`}>
+    <span className={`inline-flex min-h-8 items-center rounded-full px-3.5 py-1 text-xs font-medium ${classes}`}>
       {children}
     </span>
   );

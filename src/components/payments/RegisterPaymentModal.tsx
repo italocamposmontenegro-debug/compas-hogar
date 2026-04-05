@@ -100,6 +100,10 @@ export function RegisterPaymentModal({
         <p className="text-sm text-text-muted">
           Este pago quedará marcado como pagado y además se creará el movimiento real del hogar.
         </p>
+        <AlertBanner
+          type="info"
+          message="Si este pago lo cubrió una sola persona y correspondía a ambos, también puede sumarse a Saldo Hogar."
+        />
         <div className="rounded-xl border border-border p-4">
           <p className="text-sm font-semibold text-text">{item?.description}</p>
           <p className="text-sm text-text-muted">
@@ -126,8 +130,8 @@ export function RegisterPaymentModal({
             value={paidScope}
             onChange={value => setPaidScope(value as 'shared' | 'personal')}
             options={[
-              { value: 'shared', label: 'Compartido' },
-              { value: 'personal', label: 'Personal' },
+              { value: 'shared', label: 'Entre ambos' },
+              { value: 'personal', label: 'Solo mío' },
             ]}
           />
           <SelectField
@@ -141,12 +145,12 @@ export function RegisterPaymentModal({
           />
         </div>
         <SelectField
-          label="Afecta Saldo Hogar"
+          label="¿Debe aparecer en Saldo Hogar?"
           value={affectsBalance}
           onChange={value => setAffectsBalance(value as 'yes' | 'no')}
           options={[
-            { value: 'yes', label: 'Sí, debe compensarse' },
-            { value: 'no', label: 'No, dejar fuera del balance' },
+            { value: 'yes', label: 'Sí, una persona adelantó algo por ambos' },
+            { value: 'no', label: 'No, no debe contar en el saldo' },
           ]}
         />
         <SelectField

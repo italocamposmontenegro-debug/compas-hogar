@@ -70,7 +70,7 @@ export function SettingsPage() {
     return [
       `Te invito a Compás Hogar para llevar ${household?.name || 'nuestro hogar'} en conjunto.`,
       '',
-      `Abre este enlace: ${pendingInvitation.invitation_url}`,
+      `Si no encuentras el correo, usa este enlace de respaldo: ${pendingInvitation.invitation_url}`,
       '',
       `Entra con tu propio correo y tu propia contraseña.`,
       `Si aún no tienes cuenta, créala con este mismo correo: ${pendingInvitation.invited_email}.`,
@@ -210,7 +210,9 @@ export function SettingsPage() {
       setPendingInvitation(data.invitation);
       setInviteEmail('');
       setMsgType('success');
-      setMsg('La invitación quedó lista. Ya puedes compartir el enlace manualmente.');
+      setMsg(data?.email_delivery?.sent
+        ? 'Invitación enviada. Si hace falta, también puedes copiar el enlace de respaldo.'
+        : 'La invitación quedó lista. Si hace falta, también puedes copiar el enlace de respaldo.');
     } catch (error) {
       setMsgType('danger');
       setMsg(error instanceof Error ? error.message : 'No pudimos crear la invitación.');
@@ -236,7 +238,9 @@ export function SettingsPage() {
       if (error) throw error;
       setPendingInvitation(data.invitation);
       setMsgType('success');
-      setMsg('Generamos un enlace nuevo. Ya puedes compartirlo manualmente.');
+      setMsg(data?.email_delivery?.sent
+        ? 'Invitación reenviada. El enlace de respaldo también quedó disponible.'
+        : 'Generamos un enlace nuevo. El respaldo también quedó disponible.');
     } catch (error) {
       setMsgType('danger');
       setMsg(error instanceof Error ? error.message : 'No pudimos renovar la invitación.');
@@ -366,7 +370,7 @@ export function SettingsPage() {
             Ajustes del hogar
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-            Mantén ordenados los datos del hogar, su reparto y quién participa de la cuenta compartida.
+            Mantén claro quiénes forman parte del hogar y cómo se organizan los gastos compartidos.
           </p>
         </div>
       </section>
@@ -378,7 +382,7 @@ export function SettingsPage() {
           icon={<Home className="h-5 w-5" />}
           eyebrow="Base del hogar"
           title="Hogar"
-          description="Nombre y criterio general del reparto."
+          description="Nombre del hogar y cómo reparten los gastos compartidos."
         >
           <InputField
             label="Nombre del hogar"
@@ -389,14 +393,14 @@ export function SettingsPage() {
 
           {canManageSplitRule ? (
             <SelectField
-              label="Regla de reparto"
+              label="Cómo reparten los gastos del hogar"
               value={splitRule}
               onChange={(value) => setSplitRule(value as SplitRuleType)}
               options={Object.entries(SPLIT_RULE_LABELS).map(([value, label]) => ({ value, label }))}
             />
           ) : (
             <div className="space-y-4">
-              <InputField label="Regla de reparto" value={SPLIT_RULE_LABELS.fifty_fifty} onChange={() => {}} readOnly />
+              <InputField label="Cómo reparten los gastos del hogar" value={SPLIT_RULE_LABELS.fifty_fifty} onChange={() => {}} readOnly />
               <UpgradePromptCard
                 badge={splitUpgrade.badge}
                 title={splitUpgrade.title}
@@ -412,7 +416,7 @@ export function SettingsPage() {
           {!canManageHouseholdSettings ? (
             <AlertBanner
               type="info"
-              message="Solo el owner puede cambiar el nombre del hogar y la regla de reparto."
+              message="Solo el owner puede cambiar el nombre del hogar y cómo se reparten los gastos."
             />
           ) : null}
         </SettingsCard>
@@ -421,7 +425,7 @@ export function SettingsPage() {
           icon={<PiggyBank className="h-5 w-5" />}
           eyebrow="Tu referencia"
           title="Tu perfil"
-          description="Datos visibles para reparto y lectura del hogar."
+          description="Datos que ayudan a entender quién puso qué dentro del hogar."
         >
           <InputField label="Nombre visible" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
           <InputField label="Ingreso mensual (CLP)" type="number" value={income} onChange={(event) => setIncome(event.target.value)} />
@@ -479,41 +483,41 @@ export function SettingsPage() {
             id="invite-partner"
             icon={<Mail className="h-5 w-5" />}
             eyebrow="Invitación"
-            title="Invitar a tu pareja"
-            description="Suma a otra persona para llevar el hogar en conjunto."
-          >
+          title="Invitar a tu pareja"
+          description="Suma a otra persona para llevar el hogar en conjunto."
+        >
             {pendingInvitation ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
-                  <p className="text-sm font-semibold text-text">{pendingInvitation.invited_email}</p>
+                  <p className="text-sm font-semibold text-text">Invitación activa para {pendingInvitation.invited_email}</p>
                   <p className="mt-2 text-sm leading-6 text-text-muted">
-                    Invitación pendiente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. El siguiente paso es compartir este enlace.
+                    La invitación sigue vigente hasta {new Date(pendingInvitation.expires_at).toLocaleDateString('es-CL')}. Si tu pareja no ve el correo, usa el enlace de respaldo de abajo.
                   </p>
                 </div>
 
-                <InputField label="Enlace de invitación" value={pendingInvitation.invitation_url} onChange={() => {}} readOnly />
+                <InputField label="Enlace de respaldo" value={pendingInvitation.invitation_url} onChange={() => {}} readOnly />
 
                 <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
                   <p className="text-sm font-semibold text-text">Qué hacer ahora</p>
                   <ul className="mt-3 space-y-2 text-sm leading-6 text-text-muted">
-                    <li>Envía este enlace a tu pareja por el medio que prefieras.</li>
-                    <li>Tu pareja debe entrar con su propio correo y su propia contraseña.</li>
-                    <li>Si aún no tiene cuenta, puede crearla con ese mismo correo.</li>
+                    <li>1. Pídele que revise el correo con el que la invitaste.</li>
+                    <li>2. Si no encuentra el mensaje, comparte el enlace de respaldo.</li>
+                    <li>3. Debe entrar o crear su cuenta con ese mismo correo.</li>
                   </ul>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Button icon={<LinkIcon className="h-3.5 w-3.5" />} onClick={copyInvitationLink}>
-                    Copiar enlace
+                    Copiar enlace de respaldo
                   </Button>
                   <Button variant="secondary" icon={<Copy className="h-3.5 w-3.5" />} onClick={copyInvitationMessage}>
-                    Copiar mensaje
+                    Copiar mensaje de respaldo
                   </Button>
                   <Button variant="secondary" icon={<MessageCircle className="h-3.5 w-3.5" />} onClick={shareInvitationOnWhatsApp}>
-                    Compartir por WhatsApp
+                    Compartir respaldo por WhatsApp
                   </Button>
                   <Button variant="secondary" onClick={refreshInvitation} loading={inviteLoading}>
-                    Renovar enlace
+                    Reenviar invitación
                   </Button>
                   <Button variant="ghost" onClick={revokeInvitation} loading={inviteLoading}>
                     Revocar
@@ -532,8 +536,8 @@ export function SettingsPage() {
                   <p className="text-sm font-semibold text-text">Cómo funciona</p>
                   <ol className="mt-3 space-y-2 text-sm leading-6 text-text-muted">
                     <li>1. Ingresa su correo.</li>
-                    <li>2. Genera el enlace.</li>
-                    <li>3. Compártelo con tu pareja.</li>
+                    <li>2. Enviamos la invitación por correo.</li>
+                    <li>3. Si hace falta, después puedes usar un enlace de respaldo.</li>
                   </ol>
                 </div>
                 <InputField
@@ -572,7 +576,7 @@ export function SettingsPage() {
       <Modal open={!!editingPartner} onClose={closePartnerEditor} title="Editar miembro" size="sm">
         <div className="space-y-5">
           <p className="text-sm leading-7 text-text-muted">
-            Ajusta el nombre visible o el ingreso mensual para mantener el reparto y los reportes al día.
+            Ajusta el nombre visible o el ingreso mensual para que la lectura del hogar siga clara.
           </p>
 
           <InputField

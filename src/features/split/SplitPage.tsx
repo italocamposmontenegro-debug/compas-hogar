@@ -31,6 +31,7 @@ export function SplitPage() {
   const [settlementReceivedBy, setSettlementReceivedBy] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [quickSettlingOriginId, setQuickSettlingOriginId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!household) return;
@@ -95,7 +96,7 @@ export function SplitPage() {
 
       if (error) throw error;
       setMessageType('success');
-      setMessage(nextValue ? 'El movimiento volvió a contar en Saldo Hogar.' : 'El movimiento quedó fuera del balance común.');
+      setMessage(nextValue ? 'El movimiento volvió a contar en Saldo Hogar.' : 'El movimiento ya no contará para el saldo entre ustedes.');
       await load();
     } catch (error) {
       setMessageType('danger');
@@ -145,6 +146,45 @@ export function SplitPage() {
     }
   }
 
+  async function handleRegisterFullSettlement(origin: (typeof balanceSummary.origins)[number]) {
+    if (!household || !origin.counterpartyMemberId || origin.remainingAmount <= 0) return;
+
+    setQuickSettlingOriginId(origin.id);
+    setMessage('');
+
+    try {
+      const { error } = await supabase.functions.invoke('manage-transaction', {
+        body: {
+          action: 'create',
+          householdId: household.id,
+          type: 'expense',
+          flowType: 'abono_saldo_hogar',
+          description: `Puesta al día · ${origin.description}`,
+          amountClp: origin.remainingAmount,
+          categoryId: null,
+          goalId: null,
+          occurredOn: new Date().toISOString().split('T')[0],
+          paidByMemberId: origin.counterpartyMemberId,
+          assignedToMemberId: origin.paidByMemberId,
+          scope: 'shared',
+          expenseType: 'variable',
+          affectsHouseholdBalance: false,
+          notes: `Cierre total del saldo pendiente de ${origin.description}`,
+        },
+      });
+
+      if (error) throw error;
+      setMessageType('success');
+      setMessage(`${origin.counterpartyMemberName || 'La otra persona'} ya quedó al día con ${origin.paidByMemberName}.`);
+      await load();
+    } catch (error) {
+      setMessageType('danger');
+      setMessage(error instanceof Error ? error.message : 'No pudimos registrar la puesta al día.');
+    } finally {
+      setQuickSettlingOriginId(null);
+    }
+  }
+
   return (
     <div className="app-page max-w-6xl">
       <section className="ui-panel overflow-hidden p-6 lg:p-7">
@@ -156,6 +196,9 @@ export function SplitPage() {
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
               Aquí ves cuándo uno adelantó más de lo que correspondía en gastos compartidos y cómo va la puesta al día.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
+              Si ya devolvieron todo lo pendiente, usa <strong className="font-semibold text-text">Marcar como puesto al día</strong>. Si fue solo una parte, usa <strong className="font-semibold text-text">Registrar abono</strong>.
             </p>
           </div>
 
@@ -226,18 +269,27 @@ export function SplitPage() {
                         <div className="mt-4 grid gap-3 sm:grid-cols-3">
                           <BalanceDetail label="Abonado" value={formatCLP(origin.appliedAmount)} />
                           <BalanceDetail label="Pendiente" value={formatCLP(origin.remainingAmount)} />
-                          <BalanceDetail label="Lectura" value={origin.affectsBalance ? 'Compensable' : 'Fuera del balance'} />
+                          <BalanceDetail label="Cómo se lee" value={origin.affectsBalance ? 'Cuenta para el saldo' : 'No cuenta para el saldo'} />
                         </div>
                       </div>
 
                       <div className="flex shrink-0 flex-col gap-3 lg:w-[220px]">
+                        {origin.remainingAmount > 0 && origin.counterpartyMemberId ? (
+                          <Button
+                            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                            onClick={() => handleRegisterFullSettlement(origin)}
+                            loading={quickSettlingOriginId === origin.id}
+                          >
+                            Marcar como puesto al día
+                          </Button>
+                        ) : null}
                         {rawTransaction ? (
                           <Button
                             variant="secondary"
                             icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
                             onClick={() => handleToggleBalance(rawTransaction, !rawTransaction.affects_household_balance)}
                           >
-                            {rawTransaction.affects_household_balance ? 'Excluir del balance' : 'Volver a incluir'}
+                            {rawTransaction.affects_household_balance ? 'No contar en el saldo' : 'Volver a contar en el saldo'}
                           </Button>
                         ) : null}
                         <Button variant="ghost" icon={<PencilLine className="h-3.5 w-3.5" />} onClick={() => navigate('/app/gastos')}>
@@ -370,7 +422,7 @@ function BalanceDetail({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-surface px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-text-light">{label}</p>
+      <p className="text-xs font-medium text-text-light">{label}</p>
       <p className="mt-2 text-sm font-medium text-text">{value}</p>
     </div>
   );
@@ -389,7 +441,7 @@ function StateChip({ state }: { state: string }) {
             : 'bg-primary/8 text-primary';
 
   return (
-    <span className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] ${classes}`}>
+    <span className={`inline-flex min-h-8 items-center rounded-full px-3.5 py-1 text-xs font-medium ${classes}`}>
       {state === 'Saldado' ? <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> : null}
       {state}
     </span>

@@ -1,21 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle, DollarSign, Home, Link as LinkIcon, Scale, Target, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, DollarSign, Home, Link as LinkIcon, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { AlertBanner, Button, Card, InputField } from '../../components/ui';
-import { SPLIT_RULE_DESCRIPTIONS, SPLIT_RULE_LABELS, type SplitRuleType } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 import { trackEvent } from '../../lib/analytics';
-import { validateAmount, validateEmail, validateHouseholdName } from '../../utils/validators';
-import { formatCLP } from '../../utils/format-clp';
+import { validateEmail, validateHouseholdName } from '../../utils/validators';
 
 const STEPS = [
-  { id: 'hogar', label: 'Crea el hogar', hint: 'Ponle nombre al espacio compartido.', icon: Home },
-  { id: 'ingresos', label: 'Define el ingreso base', hint: 'Esto da contexto a la lectura del mes.', icon: DollarSign },
-  { id: 'reparto', label: 'Deja una regla inicial', hint: 'La base del reparto puede ajustarse después.', icon: Scale },
-  { id: 'meta', label: 'Si quieres, suma una meta', hint: 'Una meta visible ayuda a decidir mejor.', icon: Target },
-  { id: 'invitar', label: 'Invita a otro miembro', hint: 'Puedes hacerlo ahora o más adelante.', icon: Users },
+  { id: 'hogar', label: 'Crea el hogar', hint: 'Ponle nombre al espacio que comparten.', icon: Home },
+  { id: 'primer-mes', label: 'Empieza por este mes', hint: 'Lo primero será registrar ingreso, pagos y gasto real.', icon: DollarSign },
+  { id: 'invitar', label: 'Invita a tu pareja', hint: 'Puedes hacerlo ahora o después, sin frenar el arranque.', icon: Users },
 ];
 
 export function OnboardingPage() {
@@ -29,11 +25,6 @@ export function OnboardingPage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [householdName, setHouseholdName] = useState('');
-  const [monthlyIncome, setMonthlyIncome] = useState('');
-  const [splitRule] = useState<SplitRuleType>('fifty_fifty');
-  const [goalName, setGoalName] = useState('');
-  const [goalAmount, setGoalAmount] = useState('');
-  const [goalDate, setGoalDate] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
   const [skipInvite, setSkipInvite] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
@@ -44,7 +35,7 @@ export function OnboardingPage() {
     if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
-      setSuccessMessage('Enlace copiado. Ya puedes compartirlo.');
+      setSuccessMessage('Enlace de respaldo copiado. Puedes compartirlo si hace falta.');
     } catch {
       window.prompt('Copia este enlace para compartirlo:', inviteLink);
     }
@@ -59,12 +50,7 @@ export function OnboardingPage() {
       if (!householdCheck.valid) return setError(householdCheck.error || 'Revisa el nombre del hogar.');
     }
 
-    if (step === 1) {
-      const amountCheck = validateAmount(monthlyIncome);
-      if (!amountCheck.valid) return setError(amountCheck.error || 'Revisa el ingreso mensual.');
-    }
-
-    if (step === 4 && !skipInvite && memberEmail.trim()) {
+    if (step === 2 && !skipInvite && memberEmail.trim()) {
       const emailCheck = validateEmail(memberEmail);
       if (!emailCheck.valid) return setError(emailCheck.error || 'Revisa el email.');
     }
@@ -92,12 +78,12 @@ export function OnboardingPage() {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const { data, error: rpcResultError } = await supabase.rpc('create_household_setup', {
           p_name: householdName,
-          p_split_rule: splitRule,
-          p_monthly_income: Number.parseInt(monthlyIncome, 10) || 0,
-          p_goal_name: goalName || null,
-          p_goal_amount: Number.parseInt(goalAmount, 10) || 0,
+          p_split_rule: 'fifty_fifty',
+          p_monthly_income: 0,
+          p_goal_name: null,
+          p_goal_amount: 0,
           p_goal_date:
-            goalDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+            new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
           p_partner_email: !skipInvite && memberEmail ? memberEmail : null,
         });
 
@@ -129,11 +115,11 @@ export function OnboardingPage() {
         }
 
         setInviteLink(`${window.location.origin}/invitacion/${tokenData.token}`);
-        setSuccessMessage('Hogar listo. Comparte este enlace para sumar al otro miembro.');
+        setSuccessMessage('Hogar listo. La invitación quedó preparada y ya puedes seguir con el primer ingreso del mes.');
         return;
       }
 
-      navigate('/app/resumen?welcome=1');
+      navigate('/app/ingresos?create=1&welcome=1');
     } catch (unknownError) {
       setError(
         unknownError instanceof Error ? unknownError.message : 'No pudimos completar la configuración.',
@@ -150,7 +136,7 @@ export function OnboardingPage() {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Configuración inicial</p>
-              <h1 className="section-heading mt-2 text-3xl text-text">Pon el hogar en marcha.</h1>
+              <h1 className="section-heading mt-2 text-3xl text-text">Pongan el hogar en marcha.</h1>
             </div>
             <p className="text-sm text-text-muted">
               Paso {step + 1} de {STEPS.length}
@@ -208,13 +194,13 @@ export function OnboardingPage() {
                 <div className="space-y-5">
                   <InputField label="Enlace de invitación" value={inviteLink} onChange={() => {}} readOnly />
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button onClick={() => navigate('/app/resumen?welcome=1')}>
-                      Ir al resumen
+                    <Button onClick={() => navigate('/app/ingresos?create=1&welcome=1')}>
+                      Registrar primer ingreso
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                     <Button variant="secondary" onClick={copyInviteLink}>
                       <LinkIcon className="h-4 w-4" />
-                      Copiar enlace
+                      Copiar enlace de respaldo
                     </Button>
                   </div>
                 </div>
@@ -232,60 +218,28 @@ export function OnboardingPage() {
 
                   {step === 1 ? (
                     <div className="space-y-4">
-                      <InputField
-                        label="Ingreso mensual (CLP)"
-                        type="number"
-                        value={monthlyIncome}
-                        onChange={(event) => setMonthlyIncome(event.target.value)}
-                        placeholder="Ej: 1200000"
-                        required
+                      <div className="ui-panel ui-panel-subtle p-5">
+                        <p className="text-base font-semibold text-text">Lo primero será registrar este mes como realmente pasó.</p>
+                        <p className="mt-3 text-sm leading-7 text-text-muted">
+                          Apenas entres, partirás por anotar cuánto dinero entró. Después podrás sumar pagos obligatorios y el gasto del día a día.
+                        </p>
+                      </div>
+                      <div className="space-y-3 rounded-2xl border border-border bg-bg/70 px-4 py-4">
+                        <p className="text-sm font-semibold text-text">Orden sugerido</p>
+                        <ol className="space-y-2 text-sm leading-6 text-text-muted">
+                          <li>1. Registrar primer ingreso del mes.</li>
+                          <li>2. Dejar visibles los pagos que no se pueden pasar.</li>
+                          <li>3. Anotar el primer gasto del día a día.</li>
+                        </ol>
+                      </div>
+                      <AlertBanner
+                        type="info"
+                        message="Más adelante podrás ajustar cómo reparten los gastos del hogar desde Configuración."
                       />
-                      {monthlyIncome && Number.parseInt(monthlyIncome, 10) > 0 ? (
-                        <p className="text-sm text-text-muted">Base del mes: {formatCLP(Number.parseInt(monthlyIncome, 10))}</p>
-                      ) : null}
                     </div>
                   ) : null}
 
                   {step === 2 ? (
-                    <div className="space-y-4">
-                      <div className="ui-panel ui-panel-subtle p-5">
-                        <p className="text-sm font-medium text-text">{SPLIT_RULE_LABELS[splitRule]}</p>
-                        <p className="mt-2 text-sm leading-7 text-text-muted">{SPLIT_RULE_DESCRIPTIONS[splitRule]}</p>
-                      </div>
-                      <AlertBanner
-                        type="info"
-                        message="La base inicial queda en 50/50. Si el hogar necesita reglas más flexibles, se habilitan desde un plan superior."
-                      />
-                    </div>
-                  ) : null}
-
-                  {step === 3 ? (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <InputField
-                        label="Nombre de la meta"
-                        value={goalName}
-                        onChange={(event) => setGoalName(event.target.value)}
-                        placeholder='Ej: "Fondo de emergencia"'
-                      />
-                      <InputField
-                        label="Monto objetivo (CLP)"
-                        type="number"
-                        value={goalAmount}
-                        onChange={(event) => setGoalAmount(event.target.value)}
-                        placeholder="Ej: 500000"
-                      />
-                      <div className="sm:col-span-2">
-                        <InputField
-                          label="Fecha objetivo"
-                          type="date"
-                          value={goalDate}
-                          onChange={(event) => setGoalDate(event.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {step === 4 ? (
                     <div className="space-y-4">
                       {!skipInvite ? (
                         <>
@@ -331,7 +285,7 @@ export function OnboardingPage() {
                       Atrás
                     </Button>
                     <Button onClick={handleNext} loading={loading}>
-                      {step === STEPS.length - 1 ? 'Entrar al hogar' : 'Siguiente'}
+                      {step === STEPS.length - 1 ? 'Entrar y registrar ingreso' : 'Siguiente'}
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>

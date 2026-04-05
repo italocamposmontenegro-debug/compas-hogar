@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Button, Card, EmptyState, PlanBadge, UpgradePromptCard } from '../../components/ui';
+import { Button, Card, EmptyState, PlanBadge } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
@@ -336,19 +336,22 @@ export function DashboardPage() {
       </section>
 
       {!hasFeature('monthly_comparison') ? (
-        <UpgradePromptCard
-          badge={premiumUpgrade.badge}
-          title="Premium profundiza la lectura del hogar"
-          description="Free deja vivir el valor central. Premium agrega memoria entre meses, alertas e insights para decidir mejor."
-          highlights={[
-            'Comparación entre meses',
-            'Alertas e insights útiles',
-            'Detalle más profundo de Saldo Hogar',
-          ]}
-          actionLabel={premiumUpgrade.actionLabel || 'Desbloquear Premium'}
-          onAction={() => navigate(premiumUpgrade.route)}
-          compact
-        />
+        <Card padding="lg" className="border-border-light bg-surface-low/60">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold text-primary">Premium</p>
+              <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.03em] text-text">Si quieren más memoria del hogar</h3>
+              <p className="mt-3 text-sm leading-7 text-text-muted">
+                Free deja vivir el valor central. Premium suma comparación entre meses, alertas útiles y más detalle de Saldo Hogar.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Button variant="secondary" onClick={() => navigate(premiumUpgrade.route)}>
+                {premiumUpgrade.actionLabel || 'Desbloquear Premium'}
+              </Button>
+            </div>
+          </div>
+        </Card>
       ) : null}
 
       {!loading && transactions.length === 0 ? (

@@ -73,12 +73,12 @@ const BALANCE_RELEVANT_FLOW_TYPES: MovementFlowType[] = ['pago_obligatorio', 'ga
 export const FLOW_TYPE_LABELS: Record<MovementFlowType, string> = {
   income: 'Ingreso',
   pago_obligatorio: 'Pago obligatorio',
-  gasto_variable: 'Gasto del dia a dia',
+  gasto_variable: 'Gasto del día a día',
   ahorro: 'Ahorro',
-  inversion: 'Inversion',
+  inversion: 'Inversión',
   ocio: 'Ocio',
   imprevisto: 'Imprevisto',
-  abono_saldo_hogar: 'Abono de Saldo Hogar',
+  abono_saldo_hogar: 'Abono de puesta al día',
 };
 
 export function getTransactionFlowType(transaction: Pick<Transaction, 'type' | 'expense_type' | 'flow_type' | 'category_id'>, categories: Category[] = []): MovementFlowType {
