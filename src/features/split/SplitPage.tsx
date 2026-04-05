@@ -31,6 +31,7 @@ export function SplitPage() {
   const [settlementReceivedBy, setSettlementReceivedBy] = useState('');
   const [settlementNotes, setSettlementNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [quickSettlingAll, setQuickSettlingAll] = useState(false);
   const [quickSettlingOriginId, setQuickSettlingOriginId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -104,45 +105,95 @@ export function SplitPage() {
     }
   }
 
+  async function createSettlement({
+    amount,
+    paidByMemberId,
+    receivedByMemberId,
+    description,
+    notes,
+    successMessage,
+  }: {
+    amount: number;
+    paidByMemberId: string;
+    receivedByMemberId: string;
+    description: string;
+    notes: string | null;
+    successMessage: string;
+  }) {
+    if (!household) return;
+
+    const { error } = await supabase.functions.invoke('manage-transaction', {
+      body: {
+        action: 'create',
+        householdId: household.id,
+        type: 'expense',
+        flowType: 'abono_saldo_hogar',
+        description,
+        amountClp: amount,
+        categoryId: null,
+        goalId: null,
+        occurredOn: settlementDate,
+        paidByMemberId,
+        assignedToMemberId: receivedByMemberId,
+        scope: 'shared',
+        expenseType: 'variable',
+        affectsHouseholdBalance: false,
+        notes,
+      },
+    });
+
+    if (error) throw error;
+    setMessageType('success');
+    setMessage(successMessage);
+    await load();
+  }
+
   async function handleRegisterSettlement() {
-    if (!household || !settlementAmount || !settlementPaidBy || !settlementReceivedBy) return;
+    if (!settlementAmount || !settlementPaidBy || !settlementReceivedBy) return;
 
     setSaving(true);
     setMessage('');
 
     try {
-      const { error } = await supabase.functions.invoke('manage-transaction', {
-        body: {
-          action: 'create',
-          householdId: household.id,
-          type: 'expense',
-          flowType: 'abono_saldo_hogar',
-          description: 'Abono de Saldo Hogar',
-          amountClp: Number.parseInt(settlementAmount, 10),
-          categoryId: null,
-          goalId: null,
-          occurredOn: settlementDate,
-          paidByMemberId: settlementPaidBy,
-          assignedToMemberId: settlementReceivedBy,
-          scope: 'shared',
-          expenseType: 'variable',
-          affectsHouseholdBalance: false,
-          notes: settlementNotes || null,
-        },
+      await createSettlement({
+        amount: Number.parseInt(settlementAmount, 10),
+        paidByMemberId: settlementPaidBy,
+        receivedByMemberId: settlementReceivedBy,
+        description: 'Abono de Saldo Hogar',
+        notes: settlementNotes || null,
+        successMessage: 'Abono registrado. El Saldo Hogar ya quedó actualizado.',
       });
-
-      if (error) throw error;
-      setMessageType('success');
-      setMessage('Abono registrado. El Saldo Hogar ya quedó actualizado.');
       setShowSettlementForm(false);
       setSettlementAmount('');
       setSettlementNotes('');
-      await load();
     } catch (error) {
       setMessageType('danger');
       setMessage(error instanceof Error ? error.message : 'No pudimos registrar el abono.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRegisterFullBalanceSettlement() {
+    if (!balanceSummary.pendingMemberId || !balanceSummary.favoredMemberId || balanceSummary.netAmount <= 0) return;
+
+    setQuickSettlingAll(true);
+    setMessage('');
+
+    try {
+      await createSettlement({
+        amount: balanceSummary.netAmount,
+        paidByMemberId: balanceSummary.pendingMemberId,
+        receivedByMemberId: balanceSummary.favoredMemberId,
+        description: 'Puesta al día total del hogar',
+        notes: 'Cierre total del saldo pendiente entre ambos.',
+        successMessage: `${balanceSummary.pendingMemberName || 'La otra persona'} ya quedó al día con ${balanceSummary.favoredMemberName || 'la otra persona'}.`,
+      });
+    } catch (error) {
+      setMessageType('danger');
+      setMessage(error instanceof Error ? error.message : 'No pudimos registrar la puesta al día total.');
+    } finally {
+      setQuickSettlingAll(false);
     }
   }
 
@@ -153,30 +204,14 @@ export function SplitPage() {
     setMessage('');
 
     try {
-      const { error } = await supabase.functions.invoke('manage-transaction', {
-        body: {
-          action: 'create',
-          householdId: household.id,
-          type: 'expense',
-          flowType: 'abono_saldo_hogar',
-          description: `Puesta al día · ${origin.description}`,
-          amountClp: origin.remainingAmount,
-          categoryId: null,
-          goalId: null,
-          occurredOn: new Date().toISOString().split('T')[0],
-          paidByMemberId: origin.counterpartyMemberId,
-          assignedToMemberId: origin.paidByMemberId,
-          scope: 'shared',
-          expenseType: 'variable',
-          affectsHouseholdBalance: false,
-          notes: `Cierre total del saldo pendiente de ${origin.description}`,
-        },
+      await createSettlement({
+        amount: origin.remainingAmount,
+        paidByMemberId: origin.counterpartyMemberId,
+        receivedByMemberId: origin.paidByMemberId,
+        description: `Puesta al día · ${origin.description}`,
+        notes: `Cierre total del saldo pendiente de ${origin.description}`,
+        successMessage: `${origin.counterpartyMemberName || 'La otra persona'} ya quedó al día con ${origin.paidByMemberName}.`,
       });
-
-      if (error) throw error;
-      setMessageType('success');
-      setMessage(`${origin.counterpartyMemberName || 'La otra persona'} ya quedó al día con ${origin.paidByMemberName}.`);
-      await load();
     } catch (error) {
       setMessageType('danger');
       setMessage(error instanceof Error ? error.message : 'No pudimos registrar la puesta al día.');
@@ -198,13 +233,29 @@ export function SplitPage() {
               Aquí ves cuándo uno adelantó más de lo que correspondía en gastos compartidos y cómo va la puesta al día.
             </p>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Si ya devolvieron todo lo pendiente, usa <strong className="font-semibold text-text">Marcar como puesto al día</strong>. Si fue solo una parte, usa <strong className="font-semibold text-text">Registrar abono</strong>.
+              Si ya devolvieron todo lo pendiente, usa <strong className="font-semibold text-text">Saldar todo con mi pareja</strong>. Si fue solo una parte, usa <strong className="font-semibold text-text">Registrar abono parcial</strong>.
             </p>
           </div>
 
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setShowSettlementForm(true)} disabled={balanceSummary.status === 'Puesta al dia'}>
-            Registrar abono
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {balanceSummary.status !== 'Puesta al dia' ? (
+              <Button
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                onClick={handleRegisterFullBalanceSettlement}
+                loading={quickSettlingAll}
+              >
+                {`Saldar todo con mi pareja · ${formatCLP(balanceSummary.netAmount)}`}
+              </Button>
+            ) : null}
+            <Button
+              icon={<Plus className="h-4 w-4" />}
+              variant={balanceSummary.status === 'Puesta al dia' ? 'secondary' : 'secondary'}
+              onClick={() => setShowSettlementForm(true)}
+              disabled={balanceSummary.status === 'Puesta al dia'}
+            >
+              Registrar abono parcial
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -334,10 +385,10 @@ export function SplitPage() {
         </section>
       )}
 
-      <Modal open={showSettlementForm} onClose={() => !saving && setShowSettlementForm(false)} title="Registrar abono" size="md">
+      <Modal open={showSettlementForm} onClose={() => !saving && setShowSettlementForm(false)} title="Registrar abono parcial" size="md">
         <div className="space-y-5">
           <p className="text-sm leading-7 text-text-muted">
-            Usa este registro cuando uno de ustedes se ponga al día con el saldo pendiente del hogar.
+            Usa este registro cuando uno de ustedes se ponga al día solo con una parte del saldo pendiente del hogar.
           </p>
           <InputField
             label="Monto del abono (CLP)"
@@ -377,7 +428,7 @@ export function SplitPage() {
               Cancelar
             </Button>
             <Button onClick={handleRegisterSettlement} loading={saving}>
-              Registrar abono
+              Registrar abono parcial
             </Button>
           </div>
         </div>
