@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
-import { Button, Card, EmptyState, PlanBadge } from '../../components/ui';
+import { AlertBanner, Button, Card, ConfirmDialog, EmptyState, PlanBadge } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
@@ -29,7 +29,7 @@ import {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { household, members } = useHousehold();
+  const { household, members, currentMember } = useHousehold();
   const { planName, hasFeature, getUpgradeCopy } = useSubscription();
   const { year, month } = getCurrentMonthYear();
   const { start, end } = getMonthRange(year, month);
@@ -43,14 +43,17 @@ export function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'danger'>('success');
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingData, setResettingData] = useState(false);
 
-  useEffect(() => {
+  const loadDashboardData = useCallback(async () => {
     if (!household) return;
-    let mounted = true;
     const householdId = household.id;
+    setLoading(true);
 
-    async function load() {
-      const [transactionsResult, previousTransactionsResult, paymentsResult, categoriesResult, goalsResult] = await Promise.all([
+    const [transactionsResult, previousTransactionsResult, paymentsResult, categoriesResult, goalsResult] = await Promise.all([
         supabase
           .from('transactions')
           .select('*')
@@ -83,23 +86,19 @@ export function DashboardPage() {
           .select('*')
           .eq('household_id', householdId)
           .order('is_primary', { ascending: false }),
-      ]);
+    ]);
 
-      if (!mounted) return;
-
-      setTransactions((transactionsResult.data || []) as Transaction[]);
-      setPreviousTransactions((previousTransactionsResult.data || []) as Transaction[]);
-      setPayments((paymentsResult.data || []) as PaymentCalendarItem[]);
-      setCategories((categoriesResult.data || []) as Category[]);
-      setGoals((goalsResult.data || []) as SavingsGoal[]);
-      setLoading(false);
-    }
-
-    void load();
-    return () => {
-      mounted = false;
-    };
+    setTransactions((transactionsResult.data || []) as Transaction[]);
+    setPreviousTransactions((previousTransactionsResult.data || []) as Transaction[]);
+    setPayments((paymentsResult.data || []) as PaymentCalendarItem[]);
+    setCategories((categoriesResult.data || []) as Category[]);
+    setGoals((goalsResult.data || []) as SavingsGoal[]);
+    setLoading(false);
   }, [end, household, prevEnd, prevStart, start]);
+
+  useEffect(() => {
+    void loadDashboardData();
+  }, [loadDashboardData]);
 
   const snapshot = useMemo<HouseholdMonthSnapshot>(() => buildHouseholdMonthSnapshot({
     transactions,
@@ -189,6 +188,32 @@ export function DashboardPage() {
   ];
 
   const premiumUpgrade = getUpgradeCopy('monthly_comparison');
+  const isOwner = currentMember?.role === 'owner';
+
+  async function handleResetHouseholdData() {
+    setResettingData(true);
+    setMessage('');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-household-data', {
+        body: {},
+      });
+
+      if (error) throw error;
+
+      await loadDashboardData();
+      setResetDialogOpen(false);
+      setMessageType('success');
+      setMessage(
+        `Reiniciamos el hogar y dejamos limpio el historial operativo. Borramos ${data?.counts?.transactions ?? 0} movimientos, ${data?.counts?.payment_calendar_items ?? 0} pagos programados y ${data?.counts?.savings_goals ?? 0} metas.`
+      );
+    } catch (error) {
+      setMessageType('danger');
+      setMessage(error instanceof Error ? error.message : 'No pudimos reiniciar el hogar.');
+    } finally {
+      setResettingData(false);
+    }
+  }
 
   return (
     <div className="app-page max-w-7xl">
@@ -215,6 +240,8 @@ export function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {message ? <AlertBanner type={messageType} message={message} onClose={() => setMessage('')} /> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <SummaryCard
@@ -354,6 +381,31 @@ export function DashboardPage() {
         </Card>
       ) : null}
 
+      {isOwner ? (
+        <Card padding="lg" className="border-danger/20 bg-danger-bg/40">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold text-danger">Volver a empezar</p>
+              <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.03em] text-text">Reiniciar los datos del hogar</h3>
+              <p className="mt-3 text-sm leading-7 text-text-muted">
+                Úsalo si quieres limpiar montos viejos o empezar de nuevo sin borrar tu cuenta, el hogar, los integrantes ni la suscripción.
+              </p>
+              <p className="mt-2 text-sm leading-7 text-text-muted">
+                Se borran movimientos, pagos programados, recurrencias, metas, revisiones mensuales, imports e invitaciones pendientes.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Button
+                variant="danger"
+                onClick={() => setResetDialogOpen(true)}
+              >
+                Empezar de cero
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       {!loading && transactions.length === 0 ? (
         <EmptyState
           eyebrow="Resumen"
@@ -362,6 +414,16 @@ export function DashboardPage() {
           action={{ label: 'Registrar ingreso', onClick: () => navigate('/app/ingresos?create=1') }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={resetDialogOpen}
+        onClose={() => !resettingData && setResetDialogOpen(false)}
+        onConfirm={handleResetHouseholdData}
+        title="Empezar de cero en este hogar"
+        message="Esto borrará la historia operativa del hogar: movimientos, pagos programados, recurrencias, metas, revisiones mensuales, imports e invitaciones pendientes. No borra tu cuenta, el hogar, los integrantes, las categorías ni la suscripción."
+        confirmLabel="Sí, limpiar todo"
+        loading={resettingData}
+      />
     </div>
   );
 }
