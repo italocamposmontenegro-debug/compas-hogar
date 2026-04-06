@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.master-control-overview]
 verify_jwt = false
+
+[functions.reset-household-data]
+verify_jwt = false
