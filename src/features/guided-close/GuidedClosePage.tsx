@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { formatCLP } from '../../utils/format-clp';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import type { Transaction } from '../../types/database';
 
 export function GuidedClosePage() {
   const { household } = useHousehold();
@@ -35,8 +36,9 @@ export function GuidedClosePage() {
         .gte('occurred_on', start)
         .lte('occurred_on', end);
 
-      const income = (txs || []).filter((t) => t.type === 'income').reduce((acc, curr) => acc + curr.amount_clp, 0);
-      const expenses = (txs || []).filter((t) => t.type === 'expense').reduce((acc, curr) => acc + curr.amount_clp, 0);
+      const transactionRows = ((txs || []) as Pick<Transaction, 'amount_clp' | 'type'>[]);
+      const income = transactionRows.filter((t) => t.type === 'income').reduce((acc, curr) => acc + curr.amount_clp, 0);
+      const expenses = transactionRows.filter((t) => t.type === 'expense').reduce((acc, curr) => acc + curr.amount_clp, 0);
       
       setTotals({ income, expenses, balance: income - expenses });
     } finally {

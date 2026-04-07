@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useHousehold } from '../../hooks/useHousehold';
 import { formatCLP } from '../../utils/format-clp';
 import { startOfMonth, subMonths, endOfMonth } from 'date-fns';
-import type { Category } from '../../types/database';
+import type { Category, Transaction } from '../../types/database';
 
 export function ComparisonPage() {
   const { household } = useHousehold();
@@ -58,20 +58,23 @@ export function ComparisonPage() {
           .is('deleted_at', null),
       ]);
 
-      const current = (curRes.data || []).reduce((acc, curr) => acc + curr.amount_clp, 0);
-      const previous = (prevRes.data || []).reduce((acc, curr) => acc + curr.amount_clp, 0);
+      const currentRows = ((curRes.data || []) as Pick<Transaction, 'amount_clp' | 'category_id'>[]);
+      const previousRows = ((prevRes.data || []) as Pick<Transaction, 'amount_clp' | 'category_id'>[]);
+
+      const current = currentRows.reduce((acc, curr) => acc + curr.amount_clp, 0);
+      const previous = previousRows.reduce((acc, curr) => acc + curr.amount_clp, 0);
       const diff = current - previous;
       const percent = previous > 0 ? (diff / previous) * 100 : 0;
       const categories = (categoriesRes.data || []) as Category[];
 
       const currentByCategory = new Map<string, number>();
-      for (const row of curRes.data || []) {
+      for (const row of currentRows) {
         const key = row.category_id || 'uncategorized';
         currentByCategory.set(key, (currentByCategory.get(key) || 0) + row.amount_clp);
       }
 
       const previousByCategory = new Map<string, number>();
-      for (const row of prevRes.data || []) {
+      for (const row of previousRows) {
         const key = row.category_id || 'uncategorized';
         previousByCategory.set(key, (previousByCategory.get(key) || 0) + row.amount_clp);
       }

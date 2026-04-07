@@ -24,6 +24,11 @@ interface SmtpConfig {
   fromName: string;
 }
 
+interface ResendConfig {
+  apiKey: string;
+  fromEmail: string;
+}
+
 type MailContent = {
   subject: string;
   previewLabel?: string;
@@ -57,6 +62,8 @@ function looksLikePlaceholder(value: string) {
     || normalized === 'your-smtp-user'
     || normalized === 'your-smtp-password'
     || normalized === 'your-smtp-host'
+    || normalized === 'your_resend_key'
+    || normalized === 're_placeholder'
     || normalized === 'your@email.com'
     || normalized === 'smtp.example.com'
     || normalized.startsWith('your-')
@@ -93,6 +100,17 @@ function getSmtpConfig(): SmtpConfig | null {
   }
 
   return { host, port, user, pass, fromEmail, fromName };
+}
+
+function getResendConfig(): ResendConfig | null {
+  const apiKey = Deno.env.get('RESEND_API_KEY')?.trim();
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim() || 'noreply@compashogar.cl';
+
+  if (!apiKey || looksLikePlaceholder(apiKey) || looksLikePlaceholder(fromEmail)) {
+    return null;
+  }
+
+  return { apiKey, fromEmail };
 }
 
 function buildEmailHtml(content: MailContent) {
@@ -142,6 +160,48 @@ function buildEmailText(content: MailContent) {
 }
 
 async function sendMail(to: string, content: MailContent): Promise<EmailDeliveryResult> {
+  const resendConfig = getResendConfig();
+
+  if (resendConfig) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendConfig.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: resendConfig.fromEmail,
+          to,
+          subject: content.subject,
+          html: buildEmailHtml(content),
+        }),
+      });
+
+      if (response.ok) {
+        return {
+          attempted: true,
+          sent: true,
+        };
+      }
+
+      return {
+        attempted: true,
+        sent: false,
+        error: await response.text(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No pudimos enviar el correo';
+      console.error('Resend email failed', message);
+
+      return {
+        attempted: true,
+        sent: false,
+        error: message,
+      };
+    }
+  }
+
   const config = getSmtpConfig();
 
   if (!config) {

@@ -12,9 +12,9 @@ export type Json =
   | Json[];
 
 type TableDefinition<Row, Insert, Update> = {
-  Row: Row & Record<string, unknown>;
-  Insert: Insert & Record<string, unknown>;
-  Update: Update & Record<string, unknown>;
+  Row: Row;
+  Insert: Insert;
+  Update: Update;
   Relationships: GenericRelationship[];
 };
 
@@ -26,8 +26,8 @@ type GenericRelationship = {
   referencedColumns: string[];
 };
 
-type FunctionArgs<T> = T & Record<string, unknown>;
-type FunctionReturns<T> = T & Record<string, unknown>;
+type FunctionArgs<T> = T;
+type FunctionReturns<T> = T;
 
 // ============================================
 // Row types

@@ -6,6 +6,7 @@ import { useHousehold } from '../../hooks/useHousehold';
 import { AlertBanner, Button, Card, InputField } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import { trackEvent } from '../../lib/analytics';
+import type { Database } from '../../types/database';
 import { validateEmail, validateHouseholdName } from '../../utils/validators';
 
 const STEPS = [
@@ -30,6 +31,8 @@ export function OnboardingPage() {
   const [inviteLink, setInviteLink] = useState('');
 
   const currentStep = STEPS[step];
+  type CreateHouseholdSetupArgs = Database['public']['Functions']['create_household_setup']['Args'];
+  type CreateHouseholdSetupResult = Database['public']['Functions']['create_household_setup']['Returns'];
 
   async function copyInviteLink() {
     if (!inviteLink) return;
@@ -76,7 +79,7 @@ export function OnboardingPage() {
       let newHouseholdId: string | null = null;
 
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        const { data, error: rpcResultError } = await supabase.rpc('create_household_setup', {
+        const args: CreateHouseholdSetupArgs = {
           p_name: householdName,
           p_split_rule: 'fifty_fifty',
           p_monthly_income: 0,
@@ -85,7 +88,10 @@ export function OnboardingPage() {
           p_goal_date:
             new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
           p_partner_email: !skipInvite && memberEmail ? memberEmail : null,
-        });
+        };
+        const rpcResponse = await supabase.rpc('create_household_setup', args as never);
+        const data = rpcResponse.data as CreateHouseholdSetupResult | null;
+        const rpcResultError = rpcResponse.error;
 
         rpcError = rpcResultError;
         invitationTokenId = data?.invitation_token_id ?? null;
@@ -108,7 +114,7 @@ export function OnboardingPage() {
           .from('invitation_tokens')
           .select('token')
           .eq('id', invitationTokenId)
-          .maybeSingle();
+          .maybeSingle<{ token: string }>();
 
         if (tokenError || !tokenData) {
           throw new Error('El hogar quedó creado, pero no pudimos preparar el enlace de invitación.');
