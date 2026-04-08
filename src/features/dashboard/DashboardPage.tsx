@@ -6,6 +6,7 @@ import { AlertBanner, Button, Card, ConfirmDialog, EmptyState, PlanBadge } from 
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
+import { DashboardCharts } from './DashboardCharts';
 import {
   buildHouseholdMonthSnapshot,
   calculateHouseholdBalance,
@@ -322,6 +323,18 @@ export function DashboardPage() {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {!loading && transactions.length > 0 ? (
+        <DashboardCharts
+          balanceSummary={balanceSummary}
+          categories={categories}
+          household={household}
+          members={members}
+          month={month}
+          transactions={transactions}
+          year={year}
+        />
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
