@@ -12,6 +12,7 @@ import {
   Modal,
   SelectField,
 } from '../../components/ui';
+import { syncRecurringItems } from '../../lib/recurring';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatDate, formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
@@ -147,6 +148,7 @@ export function TransactionsPage() {
     if (!household) return;
 
     setLoading(true);
+    await syncRecurringItems(household.id).catch(() => null);
     const [selectedYear, selectedMonth] = currentMonth.split('-').map(Number);
     const { start, end } = getMonthRange(selectedYear, selectedMonth);
 

@@ -149,6 +149,7 @@ export interface RecurringTransaction {
   id: string;
   household_id: string;
   created_by: string | null;
+  transaction_type: 'expense' | 'income';
   description: string;
   amount_clp: number;
   category_id: string | null;
@@ -392,6 +393,7 @@ export interface TransactionInsert {
 export interface RecurringTransactionInsert {
   household_id: string;
   created_by?: string | null;
+  transaction_type?: 'expense' | 'income';
   description: string;
   amount_clp: number;
   category_id?: string | null;

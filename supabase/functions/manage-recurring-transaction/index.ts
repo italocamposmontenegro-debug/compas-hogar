@@ -11,6 +11,7 @@ const CORS_HEADERS = {
 
 type Action = 'create' | 'update' | 'toggle' | 'delete';
 type Scope = 'personal' | 'shared';
+type TransactionType = 'expense' | 'income';
 
 function parseRequiredText(value: unknown, label: string) {
   if (typeof value !== 'string' || !value.trim()) {
@@ -31,11 +32,15 @@ function parseAmount(value: unknown) {
 
 function parseDayOfMonth(value: unknown) {
   const parsed = Number.parseInt(String(value), 10);
-  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 28) {
-    throw new Error('El dia del mes debe estar entre 1 y 28.');
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 31) {
+    throw new Error('El dia del mes debe estar entre 1 y 31.');
   }
 
   return parsed;
+}
+
+function parseTransactionType(value: unknown): TransactionType {
+  return value === 'income' ? 'income' : 'expense';
 }
 
 function parseScope(value: unknown): Scope {
@@ -182,6 +187,7 @@ serve(async (req) => {
       action?: Action;
       recurringId?: string;
       householdId?: string;
+      transactionType?: unknown;
       description?: unknown;
       amountClp?: unknown;
       categoryId?: string | null;
@@ -200,9 +206,10 @@ serve(async (req) => {
 
       const description = parseRequiredText(body.description, 'La descripcion');
       const amountClp = parseAmount(body.amountClp);
-      const categoryId = body.categoryId ?? null;
+      const transactionType = parseTransactionType(body.transactionType);
+      const categoryId = transactionType === 'expense' ? body.categoryId ?? null : null;
       const dayOfMonth = parseDayOfMonth(body.dayOfMonth);
-      const scope = parseScope(body.scope);
+      const scope = transactionType === 'income' ? 'personal' : parseScope(body.scope);
       const paidByMemberId = parseRequiredText(body.paidByMemberId, 'El miembro responsable');
 
       await assertCategory(householdId, categoryId);
@@ -213,6 +220,7 @@ serve(async (req) => {
         .insert({
           household_id: householdId,
           created_by: user.id,
+          transaction_type: transactionType,
           description,
           amount_clp: amountClp,
           category_id: categoryId,
@@ -250,7 +258,9 @@ serve(async (req) => {
     await assertHouseholdFeature(supabase, recurring.household_id, 'recurring_transactions');
 
     if (action === 'delete') {
-      await deletePendingGeneratedItems(recurring.id);
+      if ((recurring.transaction_type ?? 'expense') === 'expense') {
+        await deletePendingGeneratedItems(recurring.id);
+      }
 
       const { error } = await supabase
         .from('recurring_transactions')
@@ -286,9 +296,10 @@ serve(async (req) => {
 
     const description = parseRequiredText(body.description, 'La descripcion');
     const amountClp = parseAmount(body.amountClp);
-    const categoryId = body.categoryId ?? null;
+    const transactionType = parseTransactionType(body.transactionType ?? recurring.transaction_type);
+    const categoryId = transactionType === 'expense' ? body.categoryId ?? null : null;
     const dayOfMonth = parseDayOfMonth(body.dayOfMonth);
-    const scope = parseScope(body.scope);
+    const scope = transactionType === 'income' ? 'personal' : parseScope(body.scope);
     const paidByMemberId = parseRequiredText(body.paidByMemberId, 'El miembro responsable');
 
     await assertCategory(recurring.household_id, categoryId);
@@ -302,6 +313,7 @@ serve(async (req) => {
     const { data, error } = await supabase
       .from('recurring_transactions')
       .update({
+        transaction_type: transactionType,
         description,
         amount_clp: amountClp,
         category_id: categoryId,
@@ -317,13 +329,19 @@ serve(async (req) => {
       throw error ?? new Error('No pudimos actualizar la recurrencia.');
     }
 
-    await updateCurrentMonthGeneratedItems(recurring.id, {
-      description,
-      amountClp,
-      categoryId,
-      dueDate: nextDueDate,
-      nextStatus,
-    });
+    if ((recurring.transaction_type ?? 'expense') === 'expense' && transactionType === 'income') {
+      await deletePendingGeneratedItems(recurring.id);
+    }
+
+    if (transactionType === 'expense') {
+      await updateCurrentMonthGeneratedItems(recurring.id, {
+        description,
+        amountClp,
+        categoryId,
+        dueDate: nextDueDate,
+        nextStatus,
+      });
+    }
 
     return new Response(JSON.stringify({ item: data }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },

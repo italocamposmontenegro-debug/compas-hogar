@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { AlertBanner, Button, Card, ConfirmDialog, EmptyState, PlanBadge } from '../../components/ui';
+import { syncRecurringItems } from '../../lib/recurring';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
 import { formatMonthYear, getCurrentMonthYear, getMonthRange } from '../../utils/dates-chile';
@@ -53,6 +54,8 @@ export function DashboardPage() {
     if (!household) return;
     const householdId = household.id;
     setLoading(true);
+
+    await syncRecurringItems(householdId).catch(() => null);
 
     const [transactionsResult, previousTransactionsResult, paymentsResult, categoriesResult, goalsResult] = await Promise.all([
         supabase
