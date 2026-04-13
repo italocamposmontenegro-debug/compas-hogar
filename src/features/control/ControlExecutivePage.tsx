@@ -12,7 +12,7 @@ export function ControlExecutivePage() {
     <div className="space-y-6">
       <ControlModuleIntro
         eyebrow="Cockpit ejecutivo"
-        title="Lo esencial del negocio en una sola lectura"
+        title="Lo esencial del negocio, claro y directo"
         description="Este módulo condensa crecimiento, salud comercial y riesgo operativo para responder rápido cómo va Compás Hogar y dónde mirar primero."
       />
 
@@ -48,7 +48,7 @@ export function ControlExecutivePage() {
             <ControlSection
               eyebrow="Movimiento comercial"
               title="Tendencia reciente"
-              description="Seguimiento mensual de checkouts, activaciones y cancelaciones visibles en el sistema."
+              description="Lectura mensual de checkouts, activaciones y cancelaciones visibles en el sistema."
             >
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {data.movement.map((row) => (

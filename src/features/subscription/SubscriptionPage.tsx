@@ -234,7 +234,7 @@ export function SubscriptionPage() {
               Tu plan para ordenar y hacer crecer el hogar
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Desde aquí pueden decidir si quieren seguir con una base simple o activar una capa más completa de orden, anticipación y proyectos compartidos.
+              Desde aquí pueden decidir si quieren seguir con una base simple o activar una versión más completa para ordenar pagos, aportes y proyectos compartidos.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -317,7 +317,7 @@ export function SubscriptionPage() {
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-text-muted">
               {isActivePaidPlan
-                ? 'Premium les da más profundidad para ordenar pagos, aportes y decisiones del mes con mejor anticipación.'
+                ? 'Premium les da más profundidad para ordenar pagos, aportes y decisiones del mes con más calma.'
                 : 'Free sirve para empezar. Premium suma más claridad para sostener el orden del hogar y avanzar con más tranquilidad.'}
             </p>
           </div>
@@ -327,12 +327,12 @@ export function SubscriptionPage() {
             <p className="mt-3 text-base font-semibold tracking-tight text-text">
               {isActivePaidPlan
                 ? 'Mantener el orden del hogar con más profundidad'
-                : 'Activar una capa más completa cuando el hogar lo pida'}
+                : 'Activar una versión más completa cuando el hogar lo pida'}
             </p>
             <p className="mt-3 text-sm leading-7 text-text-muted">
               {isActivePaidPlan
                 ? 'Calendario completo, recurrencias, importación y proyección para decidir mejor como pareja.'
-                : 'Pagos, aportes y proyección en una sola lectura para que el hogar avance con menos fricción.'}
+                : 'Pagos, aportes y proyección en un mismo sistema para que el hogar avance con menos fricción.'}
             </p>
           </div>
         </div>
@@ -396,7 +396,7 @@ export function SubscriptionPage() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-text-muted">
               {PREMIUM_TRIAL_ENABLED
                 ? 'Todos los hogares pueden probar Premium durante 30 días. Luego deciden si seguir en Free o activar Premium por $4.990 al mes.'
-                : 'Free sirve para empezar. Premium es para sostener el orden del hogar con más claridad, más seguimiento y mejor proyección.'}
+                : 'Free sirve para empezar. Premium es para sostener el orden del hogar con más claridad, más contexto y mejor proyección.'}
             </p>
           </div>
 
@@ -600,7 +600,7 @@ function getVisiblePlanState(status: string | null, isActivePaidPlan: boolean) {
 
   if (isActivePaidPlan) {
     return {
-      title: 'Hoy el hogar tiene Premium activo para ordenar el mes con más profundidad y anticipación.',
+      title: 'Hoy el hogar tiene Premium activo para ordenar el mes con más profundidad y calma.',
       description: 'Premium ayuda a ordenar pagos, aportes y proyectos compartidos con una lectura más completa del hogar.',
     };
   }

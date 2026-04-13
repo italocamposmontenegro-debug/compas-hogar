@@ -231,10 +231,10 @@ export function DashboardPage() {
               </span>
             </div>
             <h1 className="mt-4 text-[clamp(2rem,2.8vw,2.9rem)] font-semibold tracking-[-0.04em] text-text">
-              Radiografía del hogar
+              Así va el hogar este mes
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Una lectura clara del mes: cuánto entró, qué pagos pesan, cuánto queda y cómo va el equilibrio entre ustedes.
+              Una lectura clara del mes: cuánto entró, qué falta por cubrir, cuánto puso cada uno y cómo va el hogar.
             </p>
           </div>
 

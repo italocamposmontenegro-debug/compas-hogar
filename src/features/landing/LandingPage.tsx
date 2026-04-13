@@ -183,7 +183,7 @@ export function LandingPage() {
               <p className="mt-3 text-sm leading-7 text-text-muted">
                 {PREMIUM_TRIAL_ENABLED
                   ? 'Todos los hogares pueden probar Premium durante 30 días. Después pueden seguir en Free o activar Premium por $4.990 al mes.'
-                  : 'Empiecen con Free y activen Premium por $4.990 al mes cuando el hogar necesite más orden, seguimiento y proyección.'}
+                  : 'Empiecen con Free y activen Premium por $4.990 al mes cuando el hogar necesite más orden, más claridad y mejor proyección.'}
               </p>
             </div>
 

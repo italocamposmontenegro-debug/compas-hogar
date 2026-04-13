@@ -342,7 +342,7 @@ export function CalendarPage() {
       {visibleItems.length === 0 ? (
         <EmptyState
           icon={<CalendarClock className="h-8 w-8" />}
-          eyebrow="Seguimiento del mes"
+          eyebrow="Pagos del mes"
           title="Aún no hay pagos registrados"
           description="Usa el calendario para ordenar vencimientos."
           secondaryText="Empieza por los pagos que no quieres volver a recordar de memoria."
