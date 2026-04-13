@@ -12,6 +12,7 @@ import {
   Modal,
   SelectField,
 } from '../../components/ui';
+import { trackEvent } from '../../lib/analytics';
 import { syncRecurringItems } from '../../lib/recurring';
 import { supabase } from '../../lib/supabase';
 import { formatCLP } from '../../utils/format-clp';
@@ -222,10 +223,10 @@ export function TransactionsPage() {
           ? 'Sin registros'
           : contributorNames.length === 1
             ? contributorNames[0]
-            : `${contributorNames.length} integrantes`,
+            : `${contributorNames.length} personas`,
         secondNote: contributorNames.length <= 1
-          ? 'Cada ingreso queda asociado a quien lo registró.'
-          : 'Los ingresos del mes ya quedaron repartidos entre ambos.',
+          ? 'Cada ingreso queda asociado a la persona que lo registró.'
+          : 'Los ingresos del mes ya quedaron visibles para ambos.',
       };
     }
 
@@ -370,6 +371,39 @@ export function TransactionsPage() {
         });
 
         if (error) throw error;
+        if (mode === 'income') {
+          const { count } = await supabase
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('household_id', household.id)
+            .eq('type', 'income')
+            .is('deleted_at', null);
+
+          if (count === 1) {
+            trackEvent('first_income_created', {
+              household_id: household.id,
+              occurred_on: formDate,
+            });
+          }
+        }
+
+        if ((mode === 'expenses' || mode === 'legacy') && formScope === 'shared') {
+          const { count } = await supabase
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('household_id', household.id)
+            .eq('type', 'expense')
+            .eq('scope', 'shared')
+            .is('deleted_at', null);
+
+          if (count === 1) {
+            trackEvent('first_shared_expense_created', {
+              household_id: household.id,
+              occurred_on: formDate,
+            });
+          }
+        }
+
         setMessageType('success');
         setMessage(mode === 'income' ? 'Ingreso registrado correctamente.' : mode === 'savings' ? 'Ahorro registrado correctamente.' : 'Gasto registrado correctamente.');
       }
@@ -499,7 +533,7 @@ export function TransactionsPage() {
                 flowType={getTransactionFlowType(transaction, categories)}
                 categoryName={categories.find((category) => category.id === transaction.category_id)?.name ?? 'Sin categoría'}
                 goalName={goals.find((goal) => goal.id === transaction.goal_id)?.name ?? null}
-                memberName={members.find((member) => member.id === transaction.paid_by_member_id)?.display_name ?? 'Integrante'}
+                memberName={members.find((member) => member.id === transaction.paid_by_member_id)?.display_name ?? 'Persona del hogar'}
                 onEdit={canWrite ? () => openEditForm(transaction) : undefined}
               />
             ))}
@@ -534,7 +568,7 @@ export function TransactionsPage() {
             />
             <InputField label="Fecha" type="date" value={formDate} onChange={(event) => setFormDate(event.target.value)} />
             <SelectField
-              label={mode === 'income' ? 'Integrante' : 'Pagó'}
+              label={mode === 'income' ? 'Quién registra el ingreso' : 'Pagó'}
               value={formPaidBy}
               onChange={setFormPaidBy}
               options={members.map((member) => ({ value: member.id, label: member.display_name }))}
@@ -738,7 +772,7 @@ function MovementCard({
         <DetailCard label="Monto" value={`${transaction.type === 'income' ? '+' : '-'}${formatCLP(transaction.amount_clp)}`} />
         <DetailCard label="Fecha" value={formatDate(transaction.occurred_on)} icon={<CalendarDays className="h-3.5 w-3.5" />} />
         <DetailCard label={goalName ? 'Meta' : 'Categoría'} value={goalName || categoryName} icon={goalName ? <PiggyBank className="h-3.5 w-3.5" /> : <ReceiptText className="h-3.5 w-3.5" />} />
-        <DetailCard label="Integrante" value={memberName} icon={<Wallet className="h-3.5 w-3.5" />} />
+        <DetailCard label="Quién lo registró" value={memberName} icon={<Wallet className="h-3.5 w-3.5" />} />
       </div>
     </div>
   );

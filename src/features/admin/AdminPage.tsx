@@ -167,7 +167,7 @@ export function AdminPage() {
                   <tr className="border-b border-border-light text-text-light">
                     <th className="px-3 py-3 font-medium">Hogar</th>
                     <th className="px-3 py-3 font-medium">Owner</th>
-                    <th className="px-3 py-3 font-medium">Miembros</th>
+                    <th className="px-3 py-3 font-medium">Personas</th>
                     <th className="px-3 py-3 font-medium">Plan</th>
                     <th className="px-3 py-3 font-medium">Estado</th>
                     <th className="px-3 py-3 font-medium">Precio</th>

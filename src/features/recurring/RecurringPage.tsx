@@ -180,7 +180,7 @@ export function RecurringPage() {
 
     if (!desc.trim() || !amount || !day || !paidBy) {
       setMsgType('danger');
-      setMsg('Completa descripción, monto, día y el integrante al que pertenece la recurrencia.');
+      setMsg('Completa descripción, monto, día y la persona a la que pertenece la recurrencia.');
       return;
     }
 

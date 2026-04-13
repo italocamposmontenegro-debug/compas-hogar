@@ -11,25 +11,25 @@ import {
 } from 'lucide-react';
 import { Button, PlanBadge } from '../../components/ui';
 import { BrandLogo } from '../../components/ui/BrandLogo';
-import { COMMERCIAL_PLAN_INFO, COMMERCIAL_PLAN_ORDER, type CommercialPlanTier } from '../../lib/constants';
+import { COMMERCIAL_PLAN_INFO, COMMERCIAL_PLAN_ORDER, PREMIUM_TRIAL_ENABLED, type CommercialPlanTier } from '../../lib/constants';
 import { trackEvent } from '../../lib/analytics';
 import { formatCLP } from '../../utils/format-clp';
 
 const VALUE_PILLARS = [
   {
     icon: CircleDollarSign,
-    title: 'Una sola lectura del mes',
-    description: 'Saldo, pagos y metas en una vista que reduce dudas y acelera decisiones.',
+    title: 'Los dos ven el mismo mes',
+    description: 'Ingresos, pagos y prioridades del hogar en una lectura común y fácil de entender.',
   },
   {
     icon: Users,
-    title: 'Acuerdos visibles',
-    description: 'Cada persona mira el mismo hogar, con menos espacio para fricción o supuestos.',
+    title: 'Quién puso qué, claro y al día',
+    description: 'Menos dudas, menos supuestos y menos conversaciones sueltas sobre la plata del hogar.',
   },
   {
     icon: Target,
-    title: 'Seguimiento que ayuda a actuar',
-    description: 'Lo importante aparece claro antes de que el mes se desordene.',
+    title: 'Del orden al proyecto familiar',
+    description: 'Cuando el mes se ordena, ahorrar, decidir y avanzar juntos se vuelve más posible.',
   },
 ];
 
@@ -42,9 +42,9 @@ export function LandingPage() {
     navigate('/registro');
   }
 
-  function handlePlansCta(context: string) {
-    trackEvent('landing_cta_plans_click', { context });
-    document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  function handleExampleCta(context: string) {
+    trackEvent('landing_cta_example_click', { context });
+    document.getElementById('hero-mockup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   return (
@@ -76,24 +76,29 @@ export function LandingPage() {
               </div>
               <div className="eyebrow">
                 <Sparkles className="h-4 w-4" />
-                Claridad, control y seguimiento real
+                Finanzas claras para construir juntos
               </div>
-              <h1 className="display-heading mt-6 max-w-[11ch] text-[clamp(2.7rem,6vw,5rem)] text-text">
-                Todo lo importante del hogar, en una sola vista.
+              <h1 className="display-heading mt-6 max-w-[13ch] text-[clamp(2.7rem,6vw,5rem)] text-text">
+                Ordenen la plata del hogar sin discusiones, planillas ni supuestos.
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-8 text-text-secondary">
-                Saldo, pagos y acuerdos en una referencia clara para decidir a tiempo.
+                Compás Hogar ayuda a una pareja a ver el mismo mes, entender cuánto puso cada uno, qué falta por cubrir y avanzar con más calma hacia sus proyectos en común.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" onClick={() => handlePrimaryCta('hero')}>
-                  Crear cuenta
+                  Probar con mi pareja
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-                <Button variant="secondary" size="lg" onClick={() => handlePlansCta('hero')}>
-                  Ver cómo funciona
+                <Button variant="secondary" size="lg" onClick={() => handleExampleCta('hero')}>
+                  Ver un mes de ejemplo
                 </Button>
               </div>
+              <p className="mt-4 text-sm text-text-muted">
+                {PREMIUM_TRIAL_ENABLED
+                  ? '30 días de Premium gratis · sin tarjeta · después ustedes deciden'
+                  : 'Empiecen gratis · sin fricción · elijan Premium cuando el hogar lo necesite'}
+              </p>
             </div>
 
             <div id="hero-mockup" className="ui-panel overflow-hidden p-6 sm:p-7" aria-labelledby="landing-mockup-title">
@@ -174,9 +179,11 @@ export function LandingPage() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Planes</p>
-              <h2 className="section-heading mt-2 text-[clamp(2rem,3vw,2.75rem)] text-text">Elige el nivel de control que necesita tu hogar</h2>
+              <h2 className="section-heading mt-2 text-[clamp(2rem,3vw,2.75rem)] text-text">Empiecen gratis. Cuando el hogar pida más orden, activen Premium.</h2>
               <p className="mt-3 text-sm leading-7 text-text-muted">
-                Empieza simple, ordena el mes y suma más visión cuando el hogar necesite anticiparse mejor.
+                {PREMIUM_TRIAL_ENABLED
+                  ? 'Todos los hogares pueden probar Premium durante 30 días. Después pueden seguir en Free o activar Premium por $4.990 al mes.'
+                  : 'Empiecen con Free y activen Premium por $4.990 al mes cuando el hogar necesite más orden, seguimiento y proyección.'}
               </p>
             </div>
 
@@ -222,19 +229,19 @@ export function LandingPage() {
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Compás Hogar</p>
-                <h2 className="section-heading mt-2 text-3xl text-white">Empieza con una vista clara del hogar.</h2>
+                <h2 className="section-heading mt-2 text-3xl text-white">Empiecen a ordenar el hogar como equipo.</h2>
                 <p className="mt-3 text-sm leading-7 text-white/80">
-                  Una base confiable para registrar, seguir y decidir sin depender de conversaciones sueltas.
+                  Una base clara para ver el mismo mes, bajar fricción y avanzar con más tranquilidad hacia lo que están construyendo juntos.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" onClick={() => handlePrimaryCta('closing-cta')} className="!bg-white !text-primary hover:!bg-white/94">
-                  Crear cuenta
+                  Crear hogar gratis
                 </Button>
                 <Button
                   variant="secondary"
                   size="lg"
-                  onClick={() => handlePlansCta('closing-cta')}
+                  onClick={() => handleExampleCta('closing-cta')}
                   className="!border-white/25 !bg-white/10 !text-white hover:!bg-white/16"
                 >
                   Ver cómo funciona
@@ -260,11 +267,8 @@ function PricingCard({
   const plan = COMMERCIAL_PLAN_INFO[tier];
   const price = annual ? plan.prices.yearly : plan.prices.monthly;
   const badge = tier === 'premium' ? 'Recomendado' : null;
-  const metaLabel = tier === 'free' ? 'Inicio' : 'Premium';
-  const description =
-    tier === 'free'
-      ? 'Para empezar a registrar y ver el mes con claridad.'
-      : 'Para ordenar mejor el mes y sumar más anticipación cuando el hogar lo necesite.';
+  const metaLabel = tier === 'free' ? 'Base de arranque' : 'Premium';
+  const description = plan.description;
 
   return (
     <article
@@ -309,7 +313,7 @@ function PricingCard({
 
         <div className="mt-6">
           <Button variant={tier === 'premium' ? 'primary' : 'secondary'} className="w-full" onClick={onSelect}>
-            {tier === 'free' ? 'Empezar gratis' : 'Elegir Premium'}
+            {tier === 'free' ? 'Empezar gratis' : 'Activar Premium'}
           </Button>
         </div>
       </div>

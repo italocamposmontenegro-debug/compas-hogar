@@ -9,11 +9,10 @@ import {
   APP_NAME,
   COMMERCIAL_PLAN_INFO,
   COMMERCIAL_PLAN_ORDER,
-  PUBLIC_PLAN_INFO,
+  PREMIUM_TRIAL_ENABLED,
   SUBSCRIPTION_STATUS_LABELS,
   getFeatureUpgradeCopy,
   mapBillingPlanCodeToTier,
-  getPlanName,
   type BillingPlanCode,
   type CommercialPlanTier,
   type FeatureKey,
@@ -34,12 +33,13 @@ export function SubscriptionPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [autoSyncedSubscriptionId, setAutoSyncedSubscriptionId] = useState<string | null>(null);
   const isOwner = currentMember?.role === 'owner';
-  const currentPlanName = getPlanName(planTier);
+  const currentCommercialPlan: CommercialPlanTier = planTier === 'free' ? 'free' : 'premium';
+  const currentPlanInfo = COMMERCIAL_PLAN_INFO[currentCommercialPlan];
+  const currentPlanName = currentPlanInfo.name;
   const currentCycleLabel = billingCycle === 'monthly' ? 'Mensual' : billingCycle === 'yearly' ? 'Anual' : '—';
-  const currentPlanPromise = planTier === 'free' ? COMMERCIAL_PLAN_INFO.free.promise : PUBLIC_PLAN_INFO[planTier].promise;
-  const currentPlanHighlights = planTier === 'free'
-    ? COMMERCIAL_PLAN_INFO.free.featureHighlights
-    : PUBLIC_PLAN_INFO[planTier].featureHighlights;
+  const currentPlanPromise = currentPlanInfo.promise;
+  const currentPlanHighlights = currentPlanInfo.featureHighlights;
+  const visiblePlanState = getVisiblePlanState(status, isActivePaidPlan);
   const featureUpgrade = useMemo(() => {
     const feature = searchParams.get('feature') as FeatureKey | null;
     return feature ? getFeatureUpgradeCopy(feature) : null;
@@ -58,6 +58,12 @@ export function SubscriptionPage() {
       `subscription-view:${household.id}`,
       'subscription_page_viewed',
       { household_id: household.id, plan: planTier, status: status || 'free' },
+      'session',
+    );
+    trackOnce(
+      `premium-viewed:${household.id}:${planTier}`,
+      'premium_viewed',
+      { household_id: household.id, current_plan: planTier, status: status || 'free', surface: 'subscription-page' },
       'session',
     );
   }, [household, planTier, status]);
@@ -151,7 +157,7 @@ export function SubscriptionPage() {
       });
       if (error) throw error;
       await refetch();
-      setSyncMessage('Tu hogar volvió al plan Free.');
+      setSyncMessage('El hogar volvió a la base Free.');
     } catch (error) {
       alert(await resolveSubscriptionError(error));
     } finally {
@@ -220,22 +226,22 @@ export function SubscriptionPage() {
             <div className="flex flex-wrap items-center gap-3">
               <PlanBadge>{currentPlanName}</PlanBadge>
               <span className="text-xs uppercase tracking-[0.18em] text-text-light">
-                {status ? SUBSCRIPTION_STATUS_LABELS[status] : 'Plan Free'}
+                {status ? SUBSCRIPTION_STATUS_LABELS[status] : 'Free'}
               </span>
             </div>
 
             <h1 id="subscription-overview-title" className="mt-4 max-w-xl text-[clamp(1.85rem,2.2vw,2.35rem)] font-semibold tracking-[-0.04em] text-text">
-              Plan y dirección del hogar
+              Tu plan para ordenar y hacer crecer el hogar
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              {currentPlanPromise} Desde aquí ves en qué etapa está el hogar y qué nivel de seguimiento conviene activar para el mes.
+              Desde aquí pueden decidir si quieren seguir con una base simple o activar una capa más completa de orden, anticipación y proyectos compartidos.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <SubscriptionSignal
                 label="Plan actual"
                 value={currentPlanName}
-                description={planTier === 'free' ? 'Visibilidad básica y hábito inicial.' : PUBLIC_PLAN_INFO[planTier].promise}
+                description={currentPlanPromise}
               />
               <SubscriptionSignal
                 label="Ciclo"
@@ -245,7 +251,7 @@ export function SubscriptionPage() {
               <SubscriptionSignal
                 label="Precio"
                 value={subscription?.price_amount_clp ? formatCLP(subscription.price_amount_clp) : 'Gratis'}
-                description={subscription?.current_period_end ? `Vigente hasta ${formatDateLong(subscription.current_period_end)}` : 'Puedes empezar gratis y subir después.'}
+                description={subscription?.current_period_end ? `Vigente hasta ${formatDateLong(subscription.current_period_end)}` : 'Empiecen con Free y activen Premium cuando el hogar lo necesite.'}
               />
             </div>
 
@@ -272,7 +278,8 @@ export function SubscriptionPage() {
             <div className="grid gap-4">
               <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Lectura rápida</p>
-                <p className="mt-3 text-lg font-semibold tracking-tight text-text">{currentPlanPromise}</p>
+                <p className="mt-3 text-lg font-semibold tracking-tight text-text">{visiblePlanState.title}</p>
+                <p className="mt-3 text-sm leading-7 text-text-muted">{visiblePlanState.description}</p>
                 <ul className="mt-4 space-y-3">
                   {currentPlanHighlights.slice(0, 3).map((feature) => (
                     <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-text-secondary">
@@ -285,11 +292,11 @@ export function SubscriptionPage() {
 
               <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Gestión</p>
-                <p className="mt-3 text-base font-semibold tracking-tight text-text">{isOwner ? 'Administra tu plan desde aquí' : 'Solo el owner puede cambiarlo'}</p>
+                <p className="mt-3 text-base font-semibold tracking-tight text-text">{isOwner ? 'Administra el plan del hogar desde aquí' : 'Solo quien administra el hogar puede cambiarlo'}</p>
                 <p className="mt-3 text-sm leading-7 text-text-muted">
                   {isOwner
-                    ? `Puedes subir, bajar o sincronizar la suscripción de ${APP_NAME} sin salir del flujo del hogar.`
-                    : 'Puedes revisar el estado del plan y su valor actual, pero el cambio de suscripción lo hace el owner del hogar.'}
+                    ? `Puedes activar Premium, volver a Free o sincronizar el estado sin salir de ${APP_NAME}.`
+                    : 'Puedes revisar el estado del plan y su valor actual, pero el cambio lo hace quien administra el hogar.'}
                 </p>
               </div>
             </div>
@@ -298,42 +305,34 @@ export function SubscriptionPage() {
       </section>
 
       {!isOwner && (
-        <AlertBanner type="info" message="Solo el owner puede cambiar la suscripción." />
+        <AlertBanner type="info" message="Solo quien administra el hogar puede cambiar el plan." />
       )}
 
       <section className="ui-panel overflow-hidden p-6 lg:p-7" aria-labelledby="subscription-progress-title">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Progresión del hogar</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Estado del plan</p>
             <h2 id="subscription-progress-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-              {planTier === 'free'
-                ? 'El hogar ya empezó con una lectura básica.'
-                : planTier === 'essential'
-                  ? 'El hogar ya está en una configuración pagada activa.'
-                  : 'El hogar ya tiene Premium completo activo.'}
+              {visiblePlanState.title}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-text-muted">
-              {planTier === 'free'
-                ? 'El siguiente salto natural es Premium cuando el hogar ya necesita categorías propias, más de una meta y mejor seguimiento para sostener el mes.'
-                : planTier === 'essential'
-                  ? 'Tu configuración pagada actual sigue funcionando. Si el hogar necesita proyección, alertas y comparación, puedes actualizar a Premium completo desde aquí.'
-                  : 'Ahora el foco no está en subir de plan, sino en aprovechar mejor la proyección, las alertas y las recomendaciones para conducir el hogar con continuidad.'}
+              {isActivePaidPlan
+                ? 'Premium les da más profundidad para ordenar pagos, aportes y decisiones del mes con mejor anticipación.'
+                : 'Free sirve para empezar. Premium suma más claridad para sostener el orden del hogar y avanzar con más tranquilidad.'}
             </p>
           </div>
 
           <div className="ui-panel ui-panel-subtle overflow-hidden p-6 shadow-none">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Siguiente paso útil</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Lo que suma Premium</p>
             <p className="mt-3 text-base font-semibold tracking-tight text-text">
-              {planTier === 'free'
-                ? 'Subir a Premium cuando el mes ya pide más seguimiento.'
-                : planTier === 'essential'
-                  ? 'Actualizar a Premium completo cuando el hogar necesita anticiparse.'
-                  : 'Mantener continuidad y usar mejor las señales del mes.'}
+              {isActivePaidPlan
+                ? 'Mantener el orden del hogar con más profundidad'
+                : 'Activar una capa más completa cuando el hogar lo pida'}
             </p>
             <p className="mt-3 text-sm leading-7 text-text-muted">
-              {planTier === 'strategic'
-                ? 'Revisa con frecuencia las alertas, la proyección y la comparación mensual para convertir continuidad en criterio.'
-                : 'La suscripción no es solo un cobro. Es la etapa desde la que el hogar puede ordenar mejor o decidir mejor.'}
+              {isActivePaidPlan
+                ? 'Calendario completo, recurrencias, importación y proyección para decidir mejor como pareja.'
+                : 'Pagos, aportes y proyección en una sola lectura para que el hogar avance con menos fricción.'}
             </p>
           </div>
         </div>
@@ -370,8 +369,8 @@ export function SubscriptionPage() {
       {planTier === 'free' && (
         <UpgradePromptCard
           badge="Premium"
-          title="Free sirve para partir. El siguiente salto es ordenar el mes."
-          description="Sube a Premium cuando ya necesitas categorías propias, metas múltiples, calendario completo y mejor anticipación."
+          title="Free sirve para empezar. Premium ayuda a sostener el orden del hogar."
+          description="Activen Premium cuando necesiten categorías propias, metas múltiples, calendario completo y mejor proyección del mes."
           highlights={['Categorías personalizadas', 'Metas múltiples', 'Calendario completo y proyección']}
           actionLabel="Ver Premium"
           onAction={() => document.getElementById('planes-disponibles')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -392,10 +391,12 @@ export function SubscriptionPage() {
           <div className="max-w-3xl">
             <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Planes disponibles</p>
             <h2 id="subscription-plans-title" className="mt-2 text-[1.75rem] font-semibold tracking-[-0.035em] text-text">
-              {isActivePaidPlan ? 'Gestiona tu plan' : 'Elige un plan para comenzar'}
+              {isActivePaidPlan ? 'Gestionen su plan con claridad' : 'Elige cómo quieren usar Compás'}
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-text-muted">
-              Free sirve para empezar con claridad. Premium concentra la oferta pagada visible y mantiene el checkout nuevo en el plan más completo.
+              {PREMIUM_TRIAL_ENABLED
+                ? 'Todos los hogares pueden probar Premium durante 30 días. Luego deciden si seguir en Free o activar Premium por $4.990 al mes.'
+                : 'Free sirve para empezar. Premium es para sostener el orden del hogar con más claridad, más seguimiento y mejor proyección.'}
             </p>
           </div>
 
@@ -493,21 +494,16 @@ function PlanOptionCard({
   const isCurrent =
     tier === 'free'
       ? currentPlanTier === 'free'
-      : currentPlanTier === 'strategic' && billingCycle === currentCycle;
+      : currentPlanTier !== 'free' && billingCycle === currentCycle;
   const billingPlanCode = plan.billingPlanCode as BillingPlanCode | null;
-  const metaLabel = tier === 'free' ? 'Primer paso' : 'Premium';
+  const metaLabel = tier === 'free' ? 'Base' : 'Premium';
   const badge =
     isCurrent
       ? 'Actual'
       : tier === 'premium'
         ? 'Recomendado'
         : null;
-  const description =
-    tier === 'free'
-      ? 'Empieza con una vista simple del mes, una meta visible y los movimientos esenciales.'
-      : currentPlanTier === 'essential'
-        ? 'Actualiza tu configuración pagada al checkout Premium visible para sumar proyección, alertas y comparación.'
-        : 'Desbloquea la capa pagada completa para ordenar mejor el mes y decidir con más anticipación.';
+  const description = plan.description;
 
   return (
     <div
@@ -584,7 +580,7 @@ function PlanOptionCard({
               loading={loading}
               disabled={!isOwner}
             >
-              {isActivePaidPlan ? `Actualizar a ${plan.name}` : `Elegir ${plan.name}`}
+              {isActivePaidPlan ? `Gestionar ${plan.name}` : `Elegir ${plan.name}`}
               <ArrowRight className="h-4 w-4" />
             </Button>
           )}
@@ -592,4 +588,25 @@ function PlanOptionCard({
       </div>
     </div>
   );
+}
+
+function getVisiblePlanState(status: string | null, isActivePaidPlan: boolean) {
+  if (status === 'pending') {
+    return {
+      title: 'La activación está en curso. Apenas se confirme, el hogar quedará con Premium activo.',
+      description: 'Si ya terminaron el pago, pueden sincronizar el estado para actualizar la información del plan.',
+    };
+  }
+
+  if (isActivePaidPlan) {
+    return {
+      title: 'Hoy el hogar tiene Premium activo para ordenar el mes con más profundidad y anticipación.',
+      description: 'Premium ayuda a ordenar pagos, aportes y proyectos compartidos con una lectura más completa del hogar.',
+    };
+  }
+
+  return {
+    title: 'Hoy están usando la base gratuita del hogar.',
+    description: 'Es una base simple para empezar a ordenar el mes y decidir cuándo vale la pena activar Premium.',
+  };
 }

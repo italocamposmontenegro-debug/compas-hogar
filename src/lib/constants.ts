@@ -5,7 +5,7 @@
 import type { SubscriptionStatus } from './plans';
 
 export const APP_NAME = 'Compás Hogar';
-export const APP_TAGLINE = 'Gestión financiera para tu hogar.';
+export const APP_TAGLINE = 'Orden financiero para parejas que construyen hogar.';
 export const CURRENCY = 'CLP';
 export const TIMEZONE = 'America/Santiago';
 export const LOCALE = 'es-CL';
@@ -17,6 +17,7 @@ export {
   PLAN_FEATURES,
   PLAN_LIMITS,
   PLAN_TIER_ORDER,
+  PREMIUM_TRIAL_ENABLED,
   canCreateGoal,
   getFeatureRequiredPlan,
   getCommercialPlanInfo,
@@ -160,10 +161,10 @@ export const SPLIT_RULE_LABELS: Record<SplitRuleType, string> = {
 };
 
 export const SPLIT_RULE_DESCRIPTIONS: Record<SplitRuleType, string> = {
-  fifty_fifty: 'Cada miembro aporta la mitad de los gastos compartidos.',
-  proportional: 'El aporte se calcula en proporción al ingreso de cada miembro.',
-  fixed_amount: 'Cada miembro aporta un monto fijo mensual al gasto compartido.',
-  custom_percent: 'Tú defines qué porcentaje aporta cada miembro.',
+  fifty_fifty: 'Cada persona aporta la mitad de los gastos compartidos.',
+  proportional: 'El aporte se calcula en proporción al ingreso de cada persona.',
+  fixed_amount: 'Cada persona aporta un monto fijo mensual al gasto compartido.',
+  custom_percent: 'Ustedes definen qué porcentaje aporta cada persona.',
 };
 
 // ============================================

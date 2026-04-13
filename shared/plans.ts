@@ -3,6 +3,7 @@ export type BillingPlanCode = 'base' | 'plus' | 'admin';
 export type BillingCycle = 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'pending' | 'cancelled' | 'expired' | 'failed' | 'inactive';
 export type CommercialPlanTier = 'free' | 'premium';
+export const PREMIUM_TRIAL_ENABLED = false;
 
 export type FeatureKey =
   | 'dashboard_basic'
@@ -184,12 +185,12 @@ export const PUBLIC_PLAN_INFO: Record<PlanTier, PublicPlanInfo> = {
     tier: 'free',
     billingPlanCode: null,
     name: 'Free',
-    promise: 'Lectura básica del mes',
-    description: 'Empieza a ordenar tu hogar sin fricción.',
+    promise: 'Base clara para empezar en pareja',
+    description: 'Empiecen a ordenar el mes del hogar con una estructura simple y compartida.',
     featureHighlights: [
-      'Movimientos manuales',
+      'Registro base del mes',
       '1 meta visible',
-      'Referencia compartida',
+      'Referencia compartida del hogar',
     ],
     prices: { monthly: null, yearly: null },
     savings: { yearly: 0 },
@@ -197,13 +198,13 @@ export const PUBLIC_PLAN_INFO: Record<PlanTier, PublicPlanInfo> = {
   essential: {
     tier: 'essential',
     billingPlanCode: 'base',
-    name: 'Esencial',
-    promise: 'Orden operativo real',
-    description: 'Categorías propias, reparto y metas múltiples para el día a día.',
+    name: 'Premium Base',
+    promise: 'Más orden para sostener el mes del hogar',
+    description: 'Categorías propias, metas múltiples y reparto claro para ordenar el día a día de la pareja.',
     featureHighlights: [
       'Categorías personalizadas',
       'Múltiples metas',
-      'Reglas de reparto',
+      'Reparto claro del hogar',
     ],
     prices: { monthly: 2990, yearly: 29900 },
     savings: { yearly: 5980 },
@@ -211,13 +212,13 @@ export const PUBLIC_PLAN_INFO: Record<PlanTier, PublicPlanInfo> = {
   strategic: {
     tier: 'strategic',
     billingPlanCode: 'plus',
-    name: 'Estratégico',
-    promise: 'Visión y anticipación',
-    description: 'Proyección, alertas y análisis para decidir con criterio.',
+    name: 'Premium',
+    promise: 'Orden financiero para crecer como hogar',
+    description: 'Recurrencias, alertas, comparación y proyección para decidir mejor y avanzar con más tranquilidad.',
     featureHighlights: [
       'Recurrencias e importación',
       'Proyección y alertas',
-      'Comparación mensual',
+      'Comparación del hogar',
     ],
     prices: { monthly: 4990, yearly: 49900 },
     savings: { yearly: 9980 },
@@ -229,12 +230,12 @@ export const COMMERCIAL_PLAN_INFO: Record<CommercialPlanTier, CommercialPlanInfo
     tier: 'free',
     billingPlanCode: null,
     name: 'Free',
-    promise: 'Lectura básica del mes',
-    description: 'Empieza a ordenar tu hogar sin fricción.',
+    promise: 'Base clara para empezar en pareja',
+    description: 'Empiecen a ordenar el mes del hogar con una estructura simple y compartida.',
     featureHighlights: [
-      'Movimientos manuales',
+      'Registro base del mes',
       '1 meta visible',
-      'Referencia compartida',
+      'Referencia compartida del hogar',
     ],
     prices: { monthly: null, yearly: null },
     savings: { yearly: 0 },
@@ -243,8 +244,8 @@ export const COMMERCIAL_PLAN_INFO: Record<CommercialPlanTier, CommercialPlanInfo
     tier: 'premium',
     billingPlanCode: 'plus',
     name: 'Premium',
-    promise: 'Más claridad para decidir y anticiparte a tiempo.',
-    description: 'Una capa pagada única para ordenar mejor el mes y sumar visión cuando el hogar lo necesite.',
+    promise: 'Orden financiero para crecer como hogar',
+    description: 'Pagos, aportes y proyección en un solo sistema para que la pareja decida mejor y avance con más tranquilidad.',
     featureHighlights: [
       'Categorías personalizadas y múltiples metas',
       'Calendario completo y seguimiento compartido',

@@ -227,10 +227,10 @@ export function calculateHouseholdBalance({
       amount: transaction.amount_clp,
       occurredOn: transaction.occurred_on,
       paidByMemberId: transaction.paid_by_member_id,
-      paidByMemberName: memberMap.get(transaction.paid_by_member_id)?.display_name ?? 'Integrante',
+      paidByMemberName: memberMap.get(transaction.paid_by_member_id)?.display_name ?? 'Persona del hogar',
       receivedByMemberId: transaction.assigned_to_member_id,
       receivedByMemberName: transaction.assigned_to_member_id
-        ? (memberMap.get(transaction.assigned_to_member_id)?.display_name ?? 'Integrante')
+        ? (memberMap.get(transaction.assigned_to_member_id)?.display_name ?? 'Persona del hogar')
         : null,
       description: transaction.description,
       notes: transaction.notes,
@@ -273,7 +273,7 @@ export function calculateHouseholdBalance({
         amount: transaction.amount_clp,
         flowType,
         paidByMemberId: transaction.paid_by_member_id,
-        paidByMemberName: payer?.display_name ?? 'Integrante',
+        paidByMemberName: payer?.display_name ?? 'Persona del hogar',
         counterpartyMemberId: counterparty?.id ?? null,
         counterpartyMemberName: counterparty?.display_name ?? null,
         compensableAmount: 0,
