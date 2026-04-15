@@ -10,9 +10,9 @@ import type { Database } from '../../types/database';
 import { validateEmail, validateHouseholdName } from '../../utils/validators';
 
 const STEPS = [
-  { id: 'hogar', label: 'Crea el hogar', hint: 'Ponle nombre al espacio que comparten.', icon: Home },
-  { id: 'primer-mes', label: 'Empieza por este mes', hint: 'Lo primero será registrar ingreso, pagos y gasto real.', icon: DollarSign },
-  { id: 'invitar', label: 'Invita a tu pareja', hint: 'Puedes hacerlo ahora o después, sin frenar el arranque.', icon: Users },
+  { id: 'hogar', label: 'Nombren su hogar', hint: 'Este espacio es para ordenar lo que construyen juntos.', icon: Home },
+  { id: 'primer-mes', label: 'Carguen su primer mes', hint: 'En minutos verán cuánto entró, qué pagos vienen y qué falta por cubrir.', icon: DollarSign },
+  { id: 'invitar', label: 'Invita a tu pareja', hint: 'Lo ideal es que ambos vean el mismo mes desde el inicio.', icon: Users },
 ];
 
 export function OnboardingPage() {
@@ -104,6 +104,10 @@ export function OnboardingPage() {
       if (rpcError) throw new Error(rpcError.message || 'No pudimos crear el hogar.');
 
       await refetch();
+      trackEvent('household_created', {
+        household_id: newHouseholdId,
+        invited_partner: !skipInvite && !!memberEmail,
+      });
       trackEvent('onboarding_completed', {
         household_id: newHouseholdId,
         invited_partner: !skipInvite && !!memberEmail,
@@ -120,8 +124,12 @@ export function OnboardingPage() {
           throw new Error('El hogar quedó creado, pero no pudimos preparar el enlace de invitación.');
         }
 
+        trackEvent('partner_invite_sent', {
+          household_id: newHouseholdId,
+          source: 'onboarding',
+        });
         setInviteLink(`${window.location.origin}/invitacion/${tokenData.token}`);
-        setSuccessMessage('Hogar listo. La invitación quedó preparada y ya puedes seguir con el primer ingreso del mes.');
+        setSuccessMessage('Hogar listo. La invitación para tu pareja quedó preparada y ya puedes seguir con el primer ingreso del mes.');
         return;
       }
 
@@ -142,7 +150,7 @@ export function OnboardingPage() {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-light">Configuración inicial</p>
-              <h1 className="section-heading mt-2 text-3xl text-text">Pongan el hogar en marcha.</h1>
+              <h1 className="section-heading mt-2 text-3xl text-text">Pongan el hogar en marcha de verdad.</h1>
             </div>
             <p className="text-sm text-text-muted">
               Paso {step + 1} de {STEPS.length}
@@ -225,17 +233,18 @@ export function OnboardingPage() {
                   {step === 1 ? (
                     <div className="space-y-4">
                       <div className="ui-panel ui-panel-subtle p-5">
-                        <p className="text-base font-semibold text-text">Lo primero será registrar este mes como realmente pasó.</p>
+                        <p className="text-base font-semibold text-text">En 2 minutos Compás te mostrará la base real del hogar.</p>
                         <p className="mt-3 text-sm leading-7 text-text-muted">
-                          Apenas entres, partirás por anotar cuánto dinero entró. Después podrás sumar pagos obligatorios y el gasto del día a día.
+                          Primero cargarás cuánto entró este mes. Después dejarás visibles los pagos que no pueden esperar. Con eso ya podrán ver una primera lectura clara del hogar y empezar a decidir mejor.
                         </p>
                       </div>
                       <div className="space-y-3 rounded-2xl border border-border bg-bg/70 px-4 py-4">
                         <p className="text-sm font-semibold text-text">Orden sugerido</p>
                         <ol className="space-y-2 text-sm leading-6 text-text-muted">
-                          <li>1. Registrar primer ingreso del mes.</li>
-                          <li>2. Dejar visibles los pagos que no se pueden pasar.</li>
-                          <li>3. Anotar el primer gasto del día a día.</li>
+                          <li>1. Registrar el ingreso principal del mes.</li>
+                          <li>2. Dejar visibles los pagos obligatorios.</li>
+                          <li>3. Anotar el primer gasto compartido real.</li>
+                          <li>4. Ver cuánto queda por cubrir.</li>
                         </ol>
                       </div>
                       <AlertBanner
@@ -250,11 +259,11 @@ export function OnboardingPage() {
                       {!skipInvite ? (
                         <>
                           <InputField
-                            label="Email del nuevo miembro"
+                            label="Correo de tu pareja"
                             type="email"
                             value={memberEmail}
                             onChange={(event) => setMemberEmail(event.target.value)}
-                            placeholder="miembro@email.com"
+                            placeholder="pareja@email.com"
                           />
                           <button
                             type="button"
@@ -267,7 +276,7 @@ export function OnboardingPage() {
                       ) : (
                         <div className="ui-panel ui-panel-subtle p-5">
                           <p className="text-sm leading-7 text-text-muted">
-                            Podrás invitar al otro miembro desde Configuración cuando el hogar ya esté andando.
+                            Podrás invitar a tu pareja después, pero el mayor valor aparece cuando ambos ven el mismo mes.
                           </p>
                           <button
                             type="button"

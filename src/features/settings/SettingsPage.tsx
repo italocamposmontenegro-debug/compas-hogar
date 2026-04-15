@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useSubscription } from '../../hooks/useSubscription';
 import { AlertBanner, Button, Card, ConfirmDialog, InputField, Modal, SelectField, UpgradePromptCard } from '../../components/ui';
+import { trackEvent } from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
 import { MAX_HOUSEHOLD_MEMBERS, SPLIT_RULE_LABELS, type SplitRuleType } from '../../lib/constants';
 import { validateEmail, validateHouseholdName, validateRequired } from '../../utils/validators';
@@ -163,9 +164,9 @@ export function SettingsPage() {
     try {
       await navigator.clipboard.writeText(pendingInvitation.invitation_url);
       setMsgType('success');
-      setMsg('Enlace copiado. Ya puedes compartirlo con el nuevo miembro.');
+      setMsg('Enlace copiado. Ya puedes compartirlo con tu pareja.');
     } catch {
-      window.prompt('Copia este enlace para invitar al nuevo miembro:', pendingInvitation.invitation_url);
+      window.prompt('Copia este enlace para invitar a tu pareja:', pendingInvitation.invitation_url);
     }
   }
 
@@ -208,6 +209,11 @@ export function SettingsPage() {
 
       if (error) throw error;
       setPendingInvitation(data.invitation);
+      trackEvent('partner_invite_sent', {
+        household_id: household?.id || null,
+        source: 'settings',
+        delivery_sent: !!data?.email_delivery?.sent,
+      });
       setInviteEmail('');
       setMsgType('success');
       setMsg(data?.email_delivery?.sent
@@ -296,7 +302,7 @@ export function SettingsPage() {
 
     if (!normalizedName) {
       setMsgType('danger');
-      setMsg('El nombre visible del miembro es obligatorio.');
+      setMsg('El nombre visible es obligatorio.');
       return;
     }
 
@@ -323,10 +329,10 @@ export function SettingsPage() {
       await refetch();
       closePartnerEditor();
       setMsgType('success');
-      setMsg('Actualizamos los datos del miembro.');
+      setMsg('Actualizamos los datos de tu pareja.');
     } catch (error) {
       setMsgType('danger');
-      setMsg(error instanceof Error ? error.message : 'No pudimos actualizar los datos del miembro.');
+      setMsg(error instanceof Error ? error.message : 'No pudimos actualizar los datos de tu pareja.');
     } finally {
       setMemberActionLoading(false);
     }
@@ -352,10 +358,10 @@ export function SettingsPage() {
       closePartnerEditor();
       setRemovePartnerOpen(false);
       setMsgType('success');
-      setMsg('El miembro salió del hogar. Sus movimientos históricos siguen guardados.');
+      setMsg('Tu pareja salió del hogar. Sus movimientos históricos siguen guardados.');
     } catch (error) {
       setMsgType('danger');
-      setMsg(error instanceof Error ? error.message : 'No pudimos quitar a este miembro del hogar.');
+      setMsg(error instanceof Error ? error.message : 'No pudimos quitar a esta persona del hogar.');
     } finally {
       setMemberActionLoading(false);
     }
@@ -437,7 +443,7 @@ export function SettingsPage() {
         <SettingsCard
           icon={<Users className="h-5 w-5" />}
           eyebrow="Personas"
-          title="Miembros"
+          title="Personas del hogar"
           description="Quién forma parte del hogar y cómo se muestra en la cuenta."
         >
           <div className="space-y-3">
@@ -527,7 +533,7 @@ export function SettingsPage() {
             ) : householdIsFull ? (
               <div className="rounded-2xl border border-border bg-bg/70 px-4 py-4">
                 <p className="text-sm leading-7 text-text-muted">
-                  Tu hogar ya tiene los {MAX_HOUSEHOLD_MEMBERS} miembros permitidos. Si más adelante quieres hacer un cambio, puedes gestionarlo desde la sección de miembros.
+                  Tu hogar ya tiene las {MAX_HOUSEHOLD_MEMBERS} personas permitidas. Si más adelante necesitas hacer un cambio, puedes gestionarlo desde esta misma sección.
                 </p>
               </div>
             ) : (
@@ -573,7 +579,7 @@ export function SettingsPage() {
         </section>
       ) : null}
 
-      <Modal open={!!editingPartner} onClose={closePartnerEditor} title="Editar miembro" size="sm">
+      <Modal open={!!editingPartner} onClose={closePartnerEditor} title="Editar datos de tu pareja" size="sm">
         <div className="space-y-5">
           <p className="text-sm leading-7 text-text-muted">
             Ajusta el nombre visible o el ingreso mensual para que la lectura del hogar siga clara.
@@ -630,8 +636,8 @@ export function SettingsPage() {
         open={removePartnerOpen}
         onClose={() => !memberActionLoading && setRemovePartnerOpen(false)}
         onConfirm={removePartnerFromHousehold}
-        title="Quitar acceso a este miembro"
-        message="Esta persona dejará de ver el hogar desde su cuenta. El historial que ya existe seguirá guardado para mantener tu lectura del mes intacta."
+        title="Quitar acceso a tu pareja"
+        message="Tu pareja dejará de ver el hogar desde su cuenta. El historial que ya existe seguirá guardado para mantener tu lectura del mes intacta."
         confirmLabel="Quitar acceso"
         loading={memberActionLoading}
       />

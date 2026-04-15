@@ -228,10 +228,10 @@ export function DashboardPage() {
               </span>
             </div>
             <h1 className="mt-4 text-[clamp(2rem,2.8vw,2.9rem)] font-semibold tracking-[-0.04em] text-text">
-              Radiografía del hogar
+              Así va el hogar este mes
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted">
-              Una lectura clara del mes: cuánto entró, qué pagos pesan, cuánto queda y cómo va el equilibrio entre ustedes.
+              Una lectura clara del mes: cuánto entró, qué falta por cubrir, cuánto puso cada uno y cómo va el hogar.
             </p>
           </div>
 
@@ -401,7 +401,7 @@ export function DashboardPage() {
               <p className="text-sm font-semibold text-danger">Volver a empezar</p>
               <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.03em] text-text">Reiniciar los datos del hogar</h3>
               <p className="mt-3 text-sm leading-7 text-text-muted">
-                Úsalo si quieres limpiar montos viejos o empezar de nuevo sin borrar tu cuenta, el hogar, los integrantes ni la suscripción.
+                Úsalo si quieres limpiar montos viejos o empezar de nuevo sin borrar tu cuenta, el hogar, las personas del hogar ni la suscripción.
               </p>
               <p className="mt-2 text-sm leading-7 text-text-muted">
                 Se borran movimientos, pagos programados, recurrencias, metas, revisiones mensuales, imports e invitaciones pendientes.
@@ -433,7 +433,7 @@ export function DashboardPage() {
         onClose={() => !resettingData && setResetDialogOpen(false)}
         onConfirm={handleResetHouseholdData}
         title="Empezar de cero en este hogar"
-        message="Esto borrará la historia operativa del hogar: movimientos, pagos programados, recurrencias, metas, revisiones mensuales, imports e invitaciones pendientes. No borra tu cuenta, el hogar, los integrantes, las categorías ni la suscripción."
+        message="Esto borrará la historia operativa del hogar: movimientos, pagos programados, recurrencias, metas, revisiones mensuales, imports e invitaciones pendientes. No borra tu cuenta, el hogar, las personas del hogar, las categorías ni la suscripción."
         confirmLabel="Sí, limpiar todo"
         loading={resettingData}
       />

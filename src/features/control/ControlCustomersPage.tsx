@@ -112,7 +112,7 @@ export function ControlCustomersPage() {
                           <p>Recurrencias: {String((household.activity as Record<string, unknown>)?.recurring_rules ?? 0)}</p>
                         </div>
                         <div className="rounded-2xl border border-border bg-surface-low px-4 py-3 text-sm text-text-secondary">
-                          <p className="font-medium text-text">Miembros</p>
+                          <p className="font-medium text-text">Personas</p>
                           {((household.members as Array<Record<string, unknown>>) ?? []).map((member) => (
                             <p key={String(member.id)} className="mt-2">
                               {String(member.display_name)} · {String(member.role)} · {String(member.invitation_status)}

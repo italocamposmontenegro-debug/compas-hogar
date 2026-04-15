@@ -198,7 +198,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
           .eq('invitation_status', 'accepted')
           .abortSignal(signal),
         7000,
-        'No pudimos cargar los miembros del hogar.',
+        'No pudimos cargar las personas del hogar.',
       );
 
       if (allMembers) {
