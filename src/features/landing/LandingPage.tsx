@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowRight,
   CheckCircle2,
   CircleDollarSign,
   Target,
@@ -81,8 +80,7 @@ export function LandingPage() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" onClick={() => handlePrimaryCta('hero')}>
-                  Probar con mi pareja
-                  <ArrowRight className="h-4 w-4" />
+                  Probar en pareja
                 </Button>
                 <Button variant="secondary" size="lg" onClick={() => handleExampleCta('hero')}>
                   Ver un mes de ejemplo
