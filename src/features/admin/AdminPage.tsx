@@ -79,8 +79,8 @@ function AdminStat({
 }
 
 function formatPlan(planCode: string) {
-  if (planCode === 'plus') return 'Estratégico';
-  if (planCode === 'base') return 'Esencial';
+  if (planCode === 'plus') return 'Premium';
+  if (planCode === 'base') return 'Free';
   if (planCode === 'admin') return 'Admin';
   return 'Free';
 }
@@ -167,7 +167,7 @@ export function AdminPage() {
                   <tr className="border-b border-border-light text-text-light">
                     <th className="px-3 py-3 font-medium">Hogar</th>
                     <th className="px-3 py-3 font-medium">Owner</th>
-                    <th className="px-3 py-3 font-medium">Miembros</th>
+                    <th className="px-3 py-3 font-medium">Personas</th>
                     <th className="px-3 py-3 font-medium">Plan</th>
                     <th className="px-3 py-3 font-medium">Estado</th>
                     <th className="px-3 py-3 font-medium">Precio</th>
@@ -231,7 +231,7 @@ export function AdminPage() {
                   <div key={event.id} className="rounded-2xl border border-border bg-surface-low px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="font-medium text-text">{event.event_type}</p>
-                      <span className="text-xs uppercase tracking-[0.14em] text-text-light">{event.plan_code} · {event.subscription_status}</span>
+                      <span className="text-xs uppercase tracking-[0.14em] text-text-light">{formatPlan(event.plan_code)} · {event.subscription_status}</span>
                     </div>
                     <p className="mt-2 text-sm text-text-secondary">{event.household_name}</p>
                     <p className="mt-2 text-xs text-text-light">{event.created_at}</p>

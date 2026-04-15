@@ -269,7 +269,7 @@ export function SplitPage() {
           icon={<Scale className="h-4 w-4" />}
         />
         <SignalCard
-          label="Integrante a favor"
+          label="Persona a favor"
           value={balanceSummary.favoredMemberName || 'Sin saldo pendiente'}
           detail={balanceSummary.favoredMemberName ? 'Es quien adelantó más gastos compartidos.' : 'El hogar está equilibrado.'}
           icon={<PiggyBank className="h-4 w-4" />}
@@ -297,7 +297,7 @@ export function SplitPage() {
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-light">Origen del saldo</p>
                 <h2 className="mt-2 text-[1.45rem] font-semibold tracking-[-0.03em] text-text">Qué movimientos explican el desbalance</h2>
                 <p className="mt-3 text-sm leading-7 text-text-muted">
-                  Cada origen muestra cuánto del gasto correspondía al otro integrante y qué parte ya se puso al día.
+                  Cada origen muestra cuánto del gasto correspondía a tu pareja y qué parte ya se puso al día.
                 </p>
               </div>
             </div>

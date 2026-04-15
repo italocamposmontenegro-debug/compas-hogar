@@ -107,6 +107,11 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   hideLabel?: boolean;
+  action?: {
+    label: string;
+    onClick: () => void;
+    ariaLabel?: string;
+  };
 }
 
 export function InputField({
@@ -114,6 +119,7 @@ export function InputField({
   error,
   hint,
   hideLabel = false,
+  action,
   className = '',
   id,
   required,
@@ -138,20 +144,33 @@ export function InputField({
         {required ? <span aria-hidden="true" className="ml-1 text-danger">*</span> : null}
       </label>
 
-      <input
-        id={inputId}
-        type={type}
-        disabled={disabled}
-        required={required}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={describedBy}
-        className={`w-full rounded-xl border bg-surface text-text shadow-none transition-colors duration-150 placeholder:text-text-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
-          error
-            ? 'border-danger/50 pr-4'
-            : 'border-border hover:border-border-strong focus:border-primary'
-        } ${isColor ? 'min-h-12 p-2' : 'min-h-12 px-4 py-3 text-base'} ${className}`}
-        {...props}
-      />
+      <div className="relative">
+        <input
+          id={inputId}
+          type={type}
+          disabled={disabled}
+          required={required}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={describedBy}
+          className={`w-full rounded-xl border bg-surface text-text shadow-none transition-colors duration-150 placeholder:text-text-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:bg-surface-low disabled:text-text-light ${
+            error
+              ? 'border-danger/50 pr-4'
+              : 'border-border hover:border-border-strong focus:border-primary'
+          } ${action && !isColor ? 'pr-20' : ''} ${isColor ? 'min-h-12 p-2' : 'min-h-12 px-4 py-3 text-base'} ${className}`}
+          {...props}
+        />
+
+        {action && !isColor ? (
+          <button
+            type="button"
+            onClick={action.onClick}
+            aria-label={action.ariaLabel ?? action.label}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          >
+            {action.label}
+          </button>
+        ) : null}
+      </div>
 
       {error ? (
         <p id={errorId} className="flex items-start gap-2 text-sm leading-6 text-danger" role="alert">

@@ -53,7 +53,7 @@ export function RegisterPaymentModal({
     if (!saving) onClose();
   }, [onClose, saving]);
 
-  const getMemberName = (id: string) => members.find(member => member.id === id)?.display_name || 'miembro';
+  const getMemberName = (id: string) => members.find(member => member.id === id)?.display_name || 'tu pareja';
 
   async function handleSubmit() {
     if (!item || !paidBy || !paidOn) return;
@@ -166,7 +166,7 @@ export function RegisterPaymentModal({
           label="Notas (opcional)"
           value={paymentNotes}
           onChange={e => setPaymentNotes(e.target.value)}
-          placeholder={`Ej: Pagado por ${paidBy ? getMemberName(paidBy) : 'miembro'} desde cuenta corriente`}
+          placeholder={`Ej: Pagado por ${paidBy ? getMemberName(paidBy) : 'tu pareja'} desde cuenta corriente`}
         />
         <div className="flex gap-3 justify-end">
           <Button variant="secondary" onClick={handleClose}>Cancelar</Button>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Card, LoadingPage } from '../../components/ui';
+import { trackEvent } from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
 import { Home, CheckCircle, AlertTriangle, LogIn, UserPlus } from 'lucide-react';
 
@@ -86,6 +87,10 @@ export function InvitationPage() {
       });
 
       if (error) throw error;
+      trackEvent('partner_invite_accepted', {
+        household_name: householdName || null,
+        invited_email: invitedEmail || user.email || null,
+      });
       setStatus('accepted');
       setTimeout(() => navigate('/app/resumen'), 2000);
     } catch (error: unknown) {

@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Shield, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, Shield, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { AlertBanner, Button, InputField } from '../../components/ui';
 import { BrandLogo } from '../../components/ui/BrandLogo';
@@ -41,12 +41,9 @@ function AuthLayout({
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section className="ui-panel ui-panel-subtle hidden p-8 lg:flex lg:flex-col lg:justify-between xl:p-10">
           <div>
-            <div className="eyebrow">
-              <Sparkles className="h-4 w-4" />
-              Claridad compartida para el hogar
-            </div>
+            <div className="eyebrow">Claridad compartida para el hogar</div>
             <div className="mt-8 flex justify-center">
-              <BrandLogo mode="full" className="h-11 w-auto" />
+              <BrandLogo mode="full" className="h-14 w-auto max-w-[260px]" />
             </div>
             <h1 className="section-heading mt-8 max-w-[11ch] text-[clamp(2.35rem,4vw,4rem)] text-text">
               Una entrada clara y confiable al hogar.
@@ -57,13 +54,13 @@ function AuthLayout({
           <div className="space-y-4">
             <AuthSignal
               icon={<Users className="h-4 w-4" />}
-              title="La misma lectura para cada persona"
-              description="Menos confusión y más acuerdo sobre lo que está pasando en el hogar."
+              title="Los dos ven el mismo mes"
+              description="Ingresos, pagos y prioridades del hogar en una lectura compartida desde el primer día."
             />
             <AuthSignal
               icon={<Shield className="h-4 w-4" />}
-              title="Una base sobria y segura"
-              description="Accede, registra y sigue el mes en un entorno claro, estable y fácil de usar."
+              title="Menos fricción para decidir"
+              description="Cuando el mes está claro, es más fácil ponerse de acuerdo y avanzar con calma en lo que están construyendo juntos."
             />
           </div>
         </section>
@@ -72,7 +69,7 @@ function AuthLayout({
           <div className="ui-panel w-full p-5 sm:p-8 lg:p-9">
             <div className="mb-8 lg:hidden">
               <div className="flex justify-center">
-                <BrandLogo mode="full" className="h-10 w-auto" />
+                <BrandLogo mode="full" className="h-11 w-auto max-w-[220px]" />
               </div>
             </div>
 
@@ -103,6 +100,44 @@ function AuthSignal({
       <h2 className="mt-4 text-lg font-semibold tracking-tight text-text">{title}</h2>
       <p className="mt-2 text-sm leading-7 text-text-muted">{description}</p>
     </div>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  autoComplete,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+  hint?: string;
+  autoComplete?: string;
+  required?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <InputField
+      label={label}
+      type={visible ? 'text' : 'password'}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      hint={hint}
+      autoComplete={autoComplete}
+      required={required}
+      action={{
+        label: visible ? 'Ocultar' : 'Mostrar',
+        onClick: () => setVisible((current) => !current),
+        ariaLabel: visible ? 'Ocultar contraseña' : 'Mostrar contraseña',
+      }}
+    />
   );
 }
 
@@ -154,9 +189,8 @@ export function LoginPage() {
             autoComplete="email"
             required
           />
-          <InputField
+          <PasswordField
             label="Contraseña"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••••"
@@ -274,9 +308,8 @@ export function RegisterPage() {
             autoComplete="email"
             required
           />
-          <InputField
+          <PasswordField
             label="Contraseña"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Mínimo 8 caracteres"
@@ -398,18 +431,16 @@ export function ResetPasswordPage() {
         {error ? <AlertBanner type="danger" message={error} /> : null}
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          <InputField
+          <PasswordField
             label="Nueva contraseña"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Mínimo 8 caracteres"
             autoComplete="new-password"
             required
           />
-          <InputField
+          <PasswordField
             label="Confirmar contraseña"
-            type="password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
             placeholder="Repite la contraseña"
