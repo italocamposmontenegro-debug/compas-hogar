@@ -12,7 +12,7 @@ export function ControlExecutivePage() {
     <div className="space-y-6">
       <ControlModuleIntro
         eyebrow="Cockpit ejecutivo"
-        title="Lo esencial del negocio, claro y directo"
+        title="Panorama ejecutivo del negocio"
         description="Este módulo condensa crecimiento, salud comercial y riesgo operativo para responder rápido cómo va Compás Hogar y dónde mirar primero."
       />
 
