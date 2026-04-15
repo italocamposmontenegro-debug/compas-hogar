@@ -5,7 +5,6 @@ import {
   ArrowRight,
   CheckCircle2,
   CircleDollarSign,
-  Sparkles,
   Target,
   Users,
 } from 'lucide-react';
@@ -52,7 +51,7 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border bg-surface/92 backdrop-blur-md">
         <div className="page-shell flex items-center justify-between py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <BrandLogo mode="full" className="h-8 w-auto max-w-[180px]" />
+            <BrandLogo mode="full" className="h-9 w-auto max-w-[210px]" />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -70,11 +69,7 @@ export function LandingPage() {
         <section className="page-shell pt-8 lg:pt-12">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,520px)] lg:items-center xl:gap-14">
             <div className="min-w-0 lg:pr-3">
-              <div className="flex justify-center lg:justify-start">
-                <BrandLogo mode="full" className="h-10 w-auto" />
-              </div>
               <div className="eyebrow">
-                <Sparkles className="h-4 w-4" />
                 Finanzas claras para construir juntos
               </div>
               <h1 className="display-heading mt-6 max-w-[13ch] text-[clamp(2.7rem,6vw,5rem)] text-text">
