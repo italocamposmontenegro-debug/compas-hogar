@@ -72,10 +72,10 @@ export function LandingPage() {
               <div className="eyebrow">
                 Finanzas claras para construir juntos
               </div>
-              <h1 className="display-heading mt-6 max-w-[13ch] text-[clamp(2.7rem,6vw,5rem)] text-text">
+              <h1 className="display-heading mt-6 max-w-[12ch] text-[clamp(2.25rem,5.2vw,4.35rem)] leading-[0.94] text-text">
                 Ordenen la plata del hogar sin discusiones, planillas ni supuestos.
               </h1>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-text-secondary">
+              <p className="mt-5 max-w-[56ch] text-[1.03rem] leading-7 text-text-secondary sm:text-[1.08rem] sm:leading-8">
                 Compás Hogar ayuda a una pareja a ver el mismo mes, entender cuánto puso cada uno, qué falta por cubrir y avanzar con más calma hacia sus proyectos en común.
               </p>
 
