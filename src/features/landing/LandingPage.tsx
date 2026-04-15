@@ -52,8 +52,7 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border bg-surface/92 backdrop-blur-md">
         <div className="page-shell flex items-center justify-between py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <BrandLogo mode="icon" className="h-8 w-8 sm:hidden" />
-            <BrandLogo mode="full" className="hidden h-8 w-auto sm:block" />
+            <BrandLogo mode="full" className="h-8 w-auto max-w-[180px]" />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
